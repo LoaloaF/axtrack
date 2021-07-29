@@ -120,7 +120,7 @@ def run_experiment(exp_name, parameters, save_results=True):
             
             # check the model predictions every 20 Epochs
             # every 20th epoch, check how the model performs in eval model
-            if epoch%20 == 0:
+            if epoch and epoch%50 == 0:
                 epoch_dir = f'{METRICS_DIR}/{epoch:0>3}_results/'
                 os.makedirs(epoch_dir)
                 model.predict_all(train_data, parameters, dest_dir=epoch_dir)
@@ -140,10 +140,11 @@ def run_experiment(exp_name, parameters, save_results=True):
 if __name__ == '__main__':
     default_parameters = get_default_parameters()
     exp_name = 'v1Model_exp3_newcnn'
+    exp_name = 'v1Model_exp4_NewCNN'
 
     # clean_rundirs(exp_name, delete_runs=15)
-    # evaluate_run(exp_name, 'run87', recreate=False)
-    # compare_two_runs(exp_name, ['run95', 'run93'])
+    # evaluate_run(exp_name, 'run09', recreate=False)
+    # compare_two_runs(exp_name, ['run09', 'run11'])
 
     parameters = copy(default_parameters)
     parameters['FROM_CACHE'] = OUTPUT_DIR
@@ -156,21 +157,34 @@ if __name__ == '__main__':
     parameters['BATCH_SIZE'] = 32
     parameters['SHUFFLE'] = False
     # parameters['LOAD_MODEL'] = [exp_name, 'run13', '100']
-    run_experiment(exp_name, parameters, save_results=False)
+    # run_experiment(exp_name, parameters, save_results=False)
 
 
 
     # ========== GPU experiments ===========
 
     parameters = copy(default_parameters)
-    parameters['DEVICE'] = 'cuda:1'
+    # parameters['DEVICE'] = 'cuda:2'
     # parameters['CACHE'] = OUTPUT_DIR
     parameters['FROM_CACHE'] = OUTPUT_DIR
+    parameters['USE_MOTION_DATA'] = 'temp_context'
     parameters['NUM_WORKERS'] = 4
+    parameters['USE_TRANSFORMS'] = []
+
     parameters['BATCH_SIZE'] = 32
     parameters['LR'] = 1e-4
-    parameters['NOTES'] = 't0 bug fixed, better logging, BS=32'
-    # run_experiment(exp_name, parameters, save_results=True)
+    parameters['NOTES'] = 'first temp context, new CNN'
+    ARCHITECTURE = [
+        #kernelsize, out_channels, stride, concat_to_feature_vector
+        [(3, 20,  2,  5),     # y-x out: 256
+         (3, 40,  2,  5),     # y-x out: 128
+         (3, 80,  2,  5),     # y-x out: 64
+         (3, 80,  1,  1)],     # y-x out: 64
+        [(3, 80,  2,  1),     # y-x out: 32
+         (3, 160, 2,  1)],     # y-x out: 16
+    ]
+    parameters['ARCHITECTURE'] = ARCHITECTURE
+    run_experiment(exp_name, parameters, save_results=False)
     
     
     parameters = copy(default_parameters)
@@ -178,7 +192,9 @@ if __name__ == '__main__':
     # parameters['CACHE'] = OUTPUT_DIR
     parameters['FROM_CACHE'] = OUTPUT_DIR
     parameters['NUM_WORKERS'] = 4
-    parameters['BATCH_SIZE'] = 64
-    parameters['DROP_LAST'] = False
-    parameters['NOTES'] = 't0 bug fixed, better logging, BS=64, DL=False'
+    parameters['BATCH_SIZE'] = 32
+    parameters['USE_MOTION_DATA'] = 'exclude'
+    parameters['EPOCHS'] = 601
+    parameters['NOTES'] = 'kinda exp4, excl motion'
+
     # run_experiment(exp_name, parameters, save_results=True)

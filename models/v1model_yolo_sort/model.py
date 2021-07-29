@@ -13,25 +13,45 @@ from plotting import draw_tile
 
 
 class CNNBlock(nn.Module):
-    def __init__(self, in_channels, out_channels, use_bachnorm=True, **kwargs):
+    def __init__(self, in_channels, out_channels, **kwargs):
         super(CNNBlock, self).__init__()
 
+        self.in_channels = in_channels
+        self.out_channels = out_channels
         self.conv = nn.Conv2d(in_channels, out_channels, bias=True, **kwargs)
         self.batchnorm = nn.BatchNorm2d(out_channels)
         self.LeakyReLU = nn.LeakyReLU(.1)
-        self.use_bachnorm = use_bachnorm
     
     def forward(self, x):
-        if self.use_bachnorm:
-            conv_out = self.conv(x)
-            # print(f'CNN in size: {x.shape}, \n\t\tout: {conv_out.shape}\n')
-            return self.LeakyReLU(self.batchnorm(conv_out)) 
-        else:    
-            return self.LeakyReLU(self.conv(x))
+        conv_out = self.conv(x)
+        # print(f'CNN in size: {x.shape}, \n\t\tout: {conv_out.shape}\n')
+        return self.LeakyReLU(self.batchnorm(conv_out)) 
 
+class CNNFeature_collector(nn.Module):
+    def __init__(self, architecture, in_c):
+        super(CNNFeature_collector, self).__init__()
+        
+        self.feature_blocks = []
+        for layer in range(len(architecture)):
+            out_c = architecture[layer][1]
+            fblock = CNNBlock(in_channels = in_c, 
+                              out_channels = out_c, 
+                              padding = (1,1),
+                              kernel_size = architecture[layer][0], 
+                              stride = architecture[layer][2])
+            self.feature_blocks.append(fblock)
+            in_c = out_c
+        self.out_channels = out_c
+
+    def forward(self, x):
+        features = []
+        for block in self.feature_blocks:
+            x = block(x)
+            features.append(x.flatten(1))
+        return torch.cat(features, 1)
 
 class YOLO_AXTrack(nn.Module):
-    def __init__(self, initial_in_channels, architecture_config, img_dim, grouping, Sy ,Sx, **kwargs):
+    def __init__(self, initial_in_channels, architecture_config, img_dim, Sy ,Sx, **kwargs):
         super(YOLO_AXTrack, self).__init__()
         self.architecture = architecture_config
         self.Sy = Sy
@@ -39,42 +59,50 @@ class YOLO_AXTrack(nn.Module):
         self.B = 1
         self.initial_in_channels = initial_in_channels
         self.tilesize = img_dim[0]
-        
-        # create CNN
-        self.ConvNet = self._create_ConvNet(self.architecture, grouping)
-        cnn_input = torch.zeros((1, self.initial_in_channels, *img_dim))
-        self.conv_outdim = torch.tensor(list(self.ConvNet(cnn_input).shape[1:]))
-
+        # create preCNN
+        self.PreConvNet = self._create_PreConvNet(self.architecture[0],
+                                                  self.initial_in_channels)
+        # create postCNN
+        self.PostConvNet = CNNFeature_collector(self.architecture[1], 
+                                                self.PreConvNet[-1].out_channels)
         # create FC
-        self.fcs = self._create_fcs(**kwargs)
+        self.fcs = self._create_fcs()
+    
+    def to_device(self, device):
+        self.to(device)
+        [fb.to(device) for fb in self.PostConvNet.feature_blocks]
+
+    def get_CNN_outdim(self):
+        x = torch.zeros((1, self.initial_in_channels, self.tilesize, self.tilesize))
+        x = self.PreConvNet(x)
+        cnn_features = self.PostConvNet(x)
+        return cnn_features.shape[1]
 
     def forward(self, x):
-        x = self.ConvNet(x)
-        features = torch.flatten(x, start_dim=1)
-        return self.fcs(features)
+        x = self.PreConvNet(x)
+        cnn_features = self.PostConvNet(x)
+        return self.fcs(cnn_features)
 
-    def _create_ConvNet(self, architecture, grouping):
-        ConvNet = nn.Sequential()
-        in_c = self.initial_in_channels
-        for i in range(len(architecture)):
-            groups = in_c if grouping and i < 2 else 1
-            if architecture[i] != 'M':
-                out_c = architecture[i][1]
+    def _create_PreConvNet(self, architecture, in_c):
+        PreConvNet = nn.Sequential()
+        for layer in range(len(architecture)):
+            groups = architecture[layer][3]
+            if architecture[layer] != 'M':
+                out_c = architecture[layer][1]
                 block = CNNBlock(in_channels = in_c, 
                                  out_channels = out_c, 
                                  padding = (1,1),
                                  groups = groups,
-                                 kernel_size = architecture[i][0], 
-                                 stride = architecture[i][2])
+                                 kernel_size = architecture[layer][0], 
+                                 stride = architecture[layer][2])
                 in_c = out_c
             else:
                 block = nn.MaxPool2d(2,2)
-            ConvNet.add_module(f'block_{i}', block)
-        return ConvNet
-
+            PreConvNet.add_module(f'PreConvBlock_{layer}', block)
+        return PreConvNet
 
     def _create_fcs(self, FC_size=512):
-        features_in = torch.prod(self.conv_outdim)
+        features_in = self.get_CNN_outdim()
         features_out = self.Sy * self.Sx *self.B*3
         return nn.Sequential(
             nn.Flatten(),
@@ -104,7 +132,13 @@ class YOLO_AXTrack(nn.Module):
                 ax.spines['bottom'].set_color('#787878')
 
             # get the image data
-            X = dataset.X_tiled[t].to(params['DEVICE'])
+            if self.initial_in_channels == 3:
+                X = dataset.X_tiled[t].to(params['DEVICE'])
+            elif self.initial_in_channels in (1, 5):
+                X = dataset.X_tiled[t, :, :1].to(params['DEVICE'])
+            elif self.initial_in_channels == 2:
+                X = dataset.X_tiled[t, :, 1:].to(params['DEVICE'])
+
             target = dataset.target_tiled[t].to(params['DEVICE'])
             n_tiles = X.shape[0]
 
@@ -136,7 +170,7 @@ class YOLO_AXTrack(nn.Module):
                 draw_tile(rgb_tile, target_anchors_tile, pred_anchors_tile, 
                           tile_axis=ax, draw_YOLO_grid=(self.Sx, self.Sy),
                           dest_dir=dest_dir if save_sinlge_tiles else None,
-                          fname=f'tile{tile:0>2}_t{t:0>2}')
+                          fname=f'{dataset.name}_tile{tile:0>2}_t{t:0>2}')
 
                 # add label
                 ax.text(.1, .93, f't: {t}', transform=fig.transFigure, 
@@ -158,21 +192,25 @@ if __name__ == '__main__':
 
     ARCHITECTURE = [
         #kernelsize, out_channels, stride, concat_to_feature_vector
-        (3, 12, 2),     # y-x out: 256
-        (3, 24, 2),     # y-x out: 128
-        (3, 30, 2),     # y-x out: 64
-        (3, 30, 1, True),     # y-x out: 64
-        (3, 60, 2, True),     # y-x out: 32
-        (3, 120, 2, True),     # y-x out: 16
+        [(3, 20,  2,  5),     # y-x out: 256
+         (3, 40,  2,  5),     # y-x out: 128
+         (3, 80,  2,  5),     # y-x out: 64
+         (3, 80,  1,  1)],     # y-x out: 64
+        [(3, 80,  2,  1),     # y-x out: 32
+         (3, 160, 2,  1)],     # y-x out: 16
     ]
+    
     parameters['ARCHITECTURE'] = ARCHITECTURE
     parameters['GROUPING'] = False
+    parameters['USE_MOTION_DATA'] = 'include'
+    parameters['USE_MOTION_DATA'] = 'temp_context'
+
+    bs = 2
+    inchannels = 5
 
 
     model, loss_fn, optimizer = setup_model(parameters)
 
-    bs = 2
-    inchannels = 3
     X = torch.rand((bs, inchannels, parameters['TILESIZE'], parameters['TILESIZE']))
 
     OUT = model(X)

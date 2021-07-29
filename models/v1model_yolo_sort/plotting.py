@@ -74,16 +74,22 @@ def plot_training_process(training_files, parameter_list, dest_dir=None,
     for training_file, parameters in zip(training_files, parameter_list):
         main_title = main_title+'  -   '+parameters['NOTES']
         fig.suptitle(main_title)
+        print(training_file)
         data = pd.read_pickle(training_file).loc[:,x_epochs]
-        # x_epochs = data.columns.unique(0)
+        
+        # datafile2 =  '/home/loaloa/gdrive/projects/biohybrid MEA/tl140_outputdata//runs/v1Model_exp3_newcnn//run12_28.07.2021_21.47.22/metrics//all_epochs.pkl'
+        # data2 = pd.read_pickle(datafile2).loc[:,x_epochs]
+        # data2 = data2.stack(level=(-1,-2))
+        # data2.columns = data2.columns.values+301
+        # data2 = data2.unstack(level=(-1,-2))
+        # data = pd.concat([data, data2], axis=1)
+            
+        x_epochs = data.columns.unique(0)
 
-        print(data)
         # for i, name in enumerate(data.index):
-        for i in range(data.shape[0]+2):
-            print('\n\n\n\n')
+        for i in range(data.shape[0]+1):
             if i<data.shape[0]:
                 name = data.index[i]
-                print(i, name)
             ax = axes[i]
             ax.axis('on')
             ax.set_facecolor('#eeeeee')

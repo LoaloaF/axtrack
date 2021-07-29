@@ -42,13 +42,13 @@ def get_default_parameters():
 
     # MODEL
     ARCHITECTURE = [
-        #kernelsize, out_channels, stride, concat_to_feature_vector
-        (3, 12, 2),     # y-x out: 256
-        (3, 24, 2),     # y-x out: 128
-        (3, 30, 2),     # y-x out: 64
-        (3, 30, 1, True),     # y-x out: 64
-        (3, 60, 2, True),     # y-x out: 32
-        (3, 120, 2, True),     # y-x out: 16
+        #kernelsize, out_channels, stride, groups
+        [(3, 12, 2, 1),     # y-x out: 256
+        (3, 24, 2, 1),     # y-x out: 128
+        (3, 30, 2, 1),     # y-x out: 64
+        (3, 30, 1, 1),     # y-x out: 64
+        (3, 60, 2, 1)],     # y-x out: 32
+        [(3, 120, 2, 1)],     # y-x out: 16
     ]
     IMG_DIM = 2920, 6364
     SY, SX = 12, 12
@@ -119,16 +119,17 @@ def setup_model(P):
         initial_in_channels = 2
     if P['USE_MOTION_DATA'] == 'exclude':
         initial_in_channels = 1
+    if P['USE_MOTION_DATA'] == 'temp_context':
+        initial_in_channels = 5
     model = YOLO_AXTrack(initial_in_channels, 
                          P['ARCHITECTURE'], 
                          (P['TILESIZE'],P['TILESIZE']), 
-                         P['GROUPING'], 
                          P['SY'], 
                          P['SX'])
-    model.to(P['DEVICE'])
+    model.to_device(P['DEVICE'])
 
-    print(model)
-    summary(model, input_size=(initial_in_channels, P['TILESIZE'], P['TILESIZE']))
+    # print(model)
+    # summary(model, input_size=(initial_in_channels, P['TILESIZE'], P['TILESIZE']))
 
     optimizer = optim.Adam(model.parameters(), lr=P['LR'], weight_decay=P['WEIGHT_DECAY'])
     

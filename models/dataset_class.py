@@ -116,6 +116,11 @@ class Timelapse(Dataset):
             X = self.X_tiled[t_idx, tile_idx, :1]
         elif self.use_motion_filtered == 'only':
             X = self.X_tiled[t_idx, tile_idx, 1:]
+        elif self.use_motion_filtered == 'temp_context':
+            tstart, tstop = t_idx-2, t_idx+3
+            # tstart = tstart if tstart >= 0 else 0
+            X = self.X_tiled[:, tile_idx, 0]
+
         return X, self.target_tiled[t_idx, tile_idx]
     
     def __len__(self):
