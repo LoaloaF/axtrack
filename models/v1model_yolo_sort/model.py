@@ -116,6 +116,7 @@ class YOLO_AXTrack(nn.Module):
     def predict_all(self, dataset, params, dest_dir=None, show=False, 
                     save_sinlge_tiles=True):
         print('Computing [eval] model output...', end='')
+        n_tiles = dataset.X_tiled.shape[1]
         # iterate the timepoints
         for t in range(dataset.sizet):
             # make a figure that plots the tiles as axis
@@ -131,18 +132,18 @@ class YOLO_AXTrack(nn.Module):
                 ax.spines['top'].set_color('#787878')
                 ax.spines['bottom'].set_color('#787878')
 
-            # get the image data
-            if self.initial_in_channels == 3:
-                X = dataset.X_tiled[t].to(params['DEVICE'])
-            elif self.initial_in_channels in (1, 5):
-                X = dataset.X_tiled[t, :, :1].to(params['DEVICE'])
-            elif self.initial_in_channels == 2:
-                X = dataset.X_tiled[t, :, 1:].to(params['DEVICE'])
+            
+            # get the data: both image and targets
+            X, target = [], []
+            for tile in range(n_tiles):
+                idx = dataset.fold_idx((t, tile))
+                x, tar = dataset[idx]
+                X.append(x)
+                target.append(tar)
+            X = torch.stack(X, 0).to(params['DEVICE'])
+            target = torch.stack(target, 0).to(params['DEVICE'])
 
-            target = dataset.target_tiled[t].to(params['DEVICE'])
-            n_tiles = X.shape[0]
-
-            # forward pass through the model - get predictions, convert to anchors
+            # predict anchor coos
             self.eval()
             with torch.no_grad():
                 pred = self(X).reshape(n_tiles, self.Sx, self.Sy, -1)
@@ -154,6 +155,7 @@ class YOLO_AXTrack(nn.Module):
             target_anchors = Y2pandas_anchors(target, dataset.Sx, 
                                               dataset.Sy, dataset.tilesize, 
                                               params['DEVICE'], 1)
+            
             # for the current timepoints, iter non-empty tiles
             print(t+1, end='...t:', flush=True)
             for tile in range(n_tiles):
@@ -161,8 +163,14 @@ class YOLO_AXTrack(nn.Module):
                 ytile_coo, xtile_coo = dataset.flat_tile_idx2yx_tile_idx(tile)
                 ax = axes[ytile_coo, xtile_coo]
                 
-                # slice to tile
-                rgb_tile = torch.moveaxis(X[tile], 0, -1).detach().cpu()
+                # slice to tile and correct colorcolorchanels
+                if X.shape[1] == 5:
+                    chanl_idx = slice(2,3)
+                elif X.shape[1] == 10:
+                    chanl_idx = slice(4,6)
+                elif X.shape[1] == 15:
+                    chanl_idx = slice(6,9)
+                rgb_tile = torch.moveaxis(X[tile, chanl_idx], 0, -1).detach().cpu()
                 target_anchors_tile = target_anchors[tile]
                 pred_anchors_tile = pred_anchors[tile]
 

@@ -8,8 +8,8 @@ if where.startswith('/home/ssteffens'):
     # eth gpu server
     BASE_DIR = '/home/ssteffens/'
     RAW_DATA_DIR = BASE_DIR + 'raw_data_dir/'
-    DEFAULT_DEVICE = 'cuda:7'
-    DEFAULT_NUM_WORKERS = 0
+    DEFAULT_DEVICE = 'cuda:0'
+    DEFAULT_NUM_WORKERS = 3
 
 # local
 elif where.startswith('/home/loaloa/gdrive/'):

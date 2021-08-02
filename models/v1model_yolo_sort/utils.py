@@ -138,13 +138,17 @@ def create_logging_dirs(exp_name):
     [os.makedirs(d) for d in [RUN_DIR, MODELS_DIR, METRICS_DIR, PREPROC_DATA_DIR]]
     return (RUN_DIR, MODELS_DIR, METRICS_DIR, PREPROC_DATA_DIR), run_label
 
-def clean_rundirs(exp_name, delete_runs=None, keep_runs=None):
+def clean_rundirs(exp_name, delete_runs=None, keep_runs=None, keep_only_latest_model=False):
     EXP_DIR = f'{OUTPUT_DIR}/runs/{exp_name}'
     for d in sorted(os.listdir(EXP_DIR)):
         n_metrics = len(glob.glob(f'{EXP_DIR}/{d}/metrics/E*.csv'))
         n_models = len(glob.glob(f'{EXP_DIR}/{d}/models/*.pth'))
-        print(f'{d} - Epochs: {n_metrics}, models saved: {n_models}')
+        notes = pickle.load(open(f'{EXP_DIR}/{d}/params.pkl', 'rb'))['NOTES']
+        print(f'{d} - Epochs: {n_metrics}, models saved: {n_models}, {notes}')
 
+        if keep_only_latest_model and n_models>1:
+            [os.remove(model) for model in glob.glob(f'{EXP_DIR}/{d}/models/*.pth')[:-1]]
+            print(f'{n_models-1} models --deleted--')
         if delete_runs and n_metrics<delete_runs:
             shutil.rmtree(f'{EXP_DIR}/{d}')
             print('--deleted--\n')
@@ -204,8 +208,11 @@ def params2text(params):
             text += '\n\t>> data parameters <<\n'
         elif key == 'ARCHITECTURE':
             text += '\n\t>> model & training <<\n'
-            text += f'\t\t{key:20} {val[1]}\n'
-            for layer in val[1:]:
+            text += f'\t\t{key:20} {val[0][0]}\n'
+            for layer in val[0][1:]:
+                text += f'\t\t\t\t\t\t\t {layer}\n'
+            text += '\t\t\t\t\t\t\t== cat CNN features ==\n'
+            for layer in val[1]:
                 text += f'\t\t\t\t\t\t\t {layer}\n'
             continue
         elif key == 'LOSS':

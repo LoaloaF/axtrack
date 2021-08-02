@@ -31,7 +31,7 @@ from utils import (
     )
 from plotting import plot_preprocessed_input_data, plot_training_process
 
-def evaluate_run(exp_name, run, recreate=True):
+def evaluate_run(exp_name, run, recreate=True, use_prepend=False):
     EXP_DIR = f'{OUTPUT_DIR}/runs/{exp_name}/'
     RUN_DIR = f'{EXP_DIR}/{[rd for rd in os.listdir(EXP_DIR) if run in rd][0]}'
     METRICS_DIR = f'{RUN_DIR}/metrics/'
@@ -52,13 +52,15 @@ def evaluate_run(exp_name, run, recreate=True):
         plot_preprocessed_input_data(preproc_file, dest_dir=RUN_DIR, show=False)
 
     training_file = f'{METRICS_DIR}/all_epochs.pkl'
+    if use_prepend:
+        training_file = f'{METRICS_DIR}/all_epochs_prepend.pkl'
     if os.path.exists(training_file) and not recreate:
         plot_training_process([training_file], [parameters], dest_dir=RUN_DIR, show=True)
     else:
         training_file = create_lossovertime_pkl(METRICS_DIR)
         plot_training_process([training_file], [parameters], dest_dir=RUN_DIR, show=True)
     
-def compare_two_runs(exp_name, runs, show=True):
+def compare_two_runs(exp_name, runs, show=True, use_prepend_if_avail=True):
     EXP_DIR = f'{OUTPUT_DIR}/runs/{exp_name}/'
     training_files = []
     params_list = []
@@ -66,10 +68,34 @@ def compare_two_runs(exp_name, runs, show=True):
         RUN_DIR = f'{EXP_DIR}/{[rd for rd in os.listdir(EXP_DIR) if run in rd][0]}'
         METRICS_DIR = f'{RUN_DIR}/metrics/'
         params_list.append(load_parameters(exp_name, run))
-        training_files.append(f'{METRICS_DIR}/all_epochs.pkl')
+        training_file = f'{METRICS_DIR}/all_epochs.pkl'
+        if use_prepend_if_avail:
+            training_file_prepend = training_file.replace('all_epochs', 'all_epochs_prepend')
+            if os.path.exists(training_file_prepend):
+                training_file = training_file_prepend
+        training_files.append(training_file)
     
     plot_training_process(training_files, params_list, dest_dir=None, show=show)
 
+def prepend_prev_run(exp_name, older_run, newer_run):
+    EXP_DIR = f'{OUTPUT_DIR}/runs/{exp_name}/'
+
+    data = []
+    for i, run in enumerate([older_run, newer_run]):
+        RUN_DIR = f'{EXP_DIR}/{[rd for rd in os.listdir(EXP_DIR) if run in rd][0]}'
+        training_file = f'{RUN_DIR}/metrics/all_epochs.pkl'
+        dat = pd.read_pickle(training_file)
+
+        if i == 0:
+            last_epoch = dat.columns.unique(0)[-1]
+        else:
+            dat = dat.stack(level=(-1,-2))
+            dat.columns = dat.columns.values + last_epoch+1
+            dat = dat.unstack(level=(-1,-2))
+        data.append(dat)
+    data = pd.concat(data, axis=1)
+    data.to_pickle(training_file.replace('all_epochs', 'all_epochs_prepend'))
+    
 
 def run_experiment(exp_name, parameters, save_results=True):
     torch.manual_seed(parameters['SEED'])
@@ -92,6 +118,8 @@ def run_experiment(exp_name, parameters, save_results=True):
     # setup model and data
     model, loss_fn, optimizer = setup_model(parameters)
     train_data, test_data = setup_data(parameters)
+    # train_data.construct_tiles(parameters['DEVICE'])
+    # test_data.construct_tiles(parameters['DEVICE'])
 
     print_log = []
     for epoch in range(parameters['EPOCHS']):
@@ -115,17 +143,16 @@ def run_experiment(exp_name, parameters, save_results=True):
             # save the current epoch loss
             epoch_log.to_csv(f'{METRICS_DIR}/E{epoch:0>3}.csv')
             # save the model every 100 Epochs
-            if epoch and not (epoch % 100):
+            if epoch and not (epoch % 250):
                 save_checkpoint(model, optimizer, filename=f'{MODELS_DIR}/E{epoch:0>3}.pth')
             
             # check the model predictions every 20 Epochs
             # every 20th epoch, check how the model performs in eval model
-            if epoch and epoch%50 == 0:
+            if epoch%500 == 0:
                 epoch_dir = f'{METRICS_DIR}/{epoch:0>3}_results/'
                 os.makedirs(epoch_dir)
-                model.predict_all(train_data, parameters, dest_dir=epoch_dir)
-                                  
-                model.predict_all(test_data, parameters, dest_dir=epoch_dir)
+                model.predict_all(train_data, parameters, dest_dir=epoch_dir, show=False)
+                model.predict_all(test_data, parameters, dest_dir=epoch_dir, show=False)
 
         # print out current progress
         current_progress = pd.concat(print_log, axis=1).unstack(level=0)
@@ -139,62 +166,167 @@ def run_experiment(exp_name, parameters, save_results=True):
 
 if __name__ == '__main__':
     default_parameters = get_default_parameters()
+    exp_name = 'v1Model_exp2_boxlossfocus'
     exp_name = 'v1Model_exp3_newcnn'
     exp_name = 'v1Model_exp4_NewCNN'
 
-    # clean_rundirs(exp_name, delete_runs=15)
-    # evaluate_run(exp_name, 'run09', recreate=False)
-    # compare_two_runs(exp_name, ['run09', 'run11'])
+    # clean_rundirs(exp_name, delete_runs=15, keep_only_latest_model=True)
+    # prepend_prev_run(exp_name, 'run09', 'run23')
+    # evaluate_run(exp_name, 'run26', recreate=False, use_prepend=False)
+    # compare_two_runs(exp_name, ['run26', 'run23'])
 
     parameters = copy(default_parameters)
-    parameters['FROM_CACHE'] = OUTPUT_DIR
     # parameters['CACHE'] = OUTPUT_DIR
-    parameters['USE_MOTION_DATA'] = 'include'
-    parameters['USE_TRANSFORMS'] = ['vflip', 'hflip', 'rot', 'translateY', 'translateX']
-    parameters['USE_TRANSFORMS'] = []
-    parameters['NUM_WORKERS'] = 4
-    parameters['DROP_LAST'] = False
-    parameters['BATCH_SIZE'] = 32
-    parameters['SHUFFLE'] = False
-    # parameters['LOAD_MODEL'] = [exp_name, 'run13', '100']
-    # run_experiment(exp_name, parameters, save_results=False)
-
-
-
-    # ========== GPU experiments ===========
-
-    parameters = copy(default_parameters)
     # parameters['DEVICE'] = 'cuda:2'
-    # parameters['CACHE'] = OUTPUT_DIR
     parameters['FROM_CACHE'] = OUTPUT_DIR
-    parameters['USE_MOTION_DATA'] = 'temp_context'
+    parameters['USE_MOTION_DATA'] = 'exclude'
     parameters['NUM_WORKERS'] = 4
-    parameters['USE_TRANSFORMS'] = []
-
     parameters['BATCH_SIZE'] = 32
     parameters['LR'] = 1e-4
-    parameters['NOTES'] = 'first temp context, new CNN'
-    ARCHITECTURE = [
-        #kernelsize, out_channels, stride, concat_to_feature_vector
-        [(3, 20,  2,  5),     # y-x out: 256
-         (3, 40,  2,  5),     # y-x out: 128
-         (3, 80,  2,  5),     # y-x out: 64
-         (3, 80,  1,  1)],     # y-x out: 64
-        [(3, 80,  2,  1),     # y-x out: 32
-         (3, 160, 2,  1)],     # y-x out: 16
-    ]
-    parameters['ARCHITECTURE'] = ARCHITECTURE
+    parameters['SHUFFLE'] = True
+    parameters['DROP_LAST'] = False
+    parameters['USE_TRANSFORMS'] = ['vflip', 'hflip', 'rot', 'translateY', 'translateX']
+    parameters['USE_TRANSFORMS'] = []
     run_experiment(exp_name, parameters, save_results=False)
     
+    new_ARCHITECTURE = [
+        #kernelsize, out_channels, stride, concat_to_feature_vector
+        [(3, 20,  2,  1),      # y-x out: 256
+         (3, 40,  2,  1),      # y-x out: 128
+
+         (3, 80,  2,  1),      # y-x out: 64
+         (3, 80,  1,  1),     # y-x out: 64
+         (3, 80,  2,  1)],      # y-x out: 32
+         [(3, 160, 2,  1)],     # y-x out: 16
+    ]
+    new_ARCHITECTURE_deeper = [
+        #kernelsize, out_channels, stride, concat_to_feature_vector
+
+        [(3, 20,  2,  1),      # y-x out: 256
+         (3, 40,  2,  1),      # y-x out: 128
+
+         (3, 80,  2,  1),      # y-x out: 64
+         (3, 80,  1,  1),     # y-x out: 64
+         (3, 80,  2,  1),      # y-x out: 32
+         # new
+         (3, 80,  1,  1),      # y-x out: 32
+         (3, 80,  1,  1)],      # y-x out: 32
+         
+         [(3, 160, 2,  1)],     # y-x out: 16
+    ]
+    new_ARCHITECTURE_moreCs = [
+        #kernelsize, out_channels, stride, concat_to_feature_vector
+        [(3, 20,  2,  1),      # y-x out: 256
+         (3, 40,  2,  1),      # y-x out: 128
+         
+         # everyone more Cs
+         (3, 120,  2,  1),      # y-x out: 64
+         (3, 120,  1,  1),     # y-x out: 64
+         (3, 160,  2,  1)],      # y-x out: 32
+         [(3, 240, 2,  1)],     # y-x out: 16
+    ]
+    new_ARCHITECTURE_deeperMoreCs = [
+        #kernelsize, out_channels, stride, concat_to_feature_vector
+        [(3, 20,  2,  1),      # y-x out: 256
+         (3, 40,  2,  1),      # y-x out: 128
+
+         # eeryone more Cs
+         (3, 120,  2,  1),      # y-x out: 64
+         (3, 120,  1,  1),     # y-x out: 64
+         (3, 160,  2,  1),     # y-x out: 32
+         
+         # new
+         (3, 160,  1,  1),     # y-x out: 32
+         (3, 160,  1,  1)],      # y-x out: 32
+         
+         [(3, 240, 2,  1)],     # y-x out: 16
+    ]
     
+    # ========== GPU experiments ===========
     parameters = copy(default_parameters)
     parameters['DEVICE'] = 'cuda:0'
-    # parameters['CACHE'] = OUTPUT_DIR
     parameters['FROM_CACHE'] = OUTPUT_DIR
-    parameters['NUM_WORKERS'] = 4
-    parameters['BATCH_SIZE'] = 32
+    parameters['NUM_WORKERS'] = 3
+    parameters['EPOCHS'] = 1501
+    parameters['LR'] = 1e-4
     parameters['USE_MOTION_DATA'] = 'exclude'
-    parameters['EPOCHS'] = 601
-    parameters['NOTES'] = 'kinda exp4, excl motion'
-
+    parameters['ARCHITECTURE'] = new_ARCHITECTURE
+    parameters['NOTES'] = 'no group, no cat, no motion - base'
     # run_experiment(exp_name, parameters, save_results=True)
+
+    parameters = copy(default_parameters)
+    parameters['DEVICE'] = 'cuda:1'
+    parameters['FROM_CACHE'] = OUTPUT_DIR
+    parameters['NUM_WORKERS'] = 3
+    parameters['EPOCHS'] = 1501
+    parameters['LR'] = 1e-4
+    parameters['USE_MOTION_DATA'] = 'exclude'
+    parameters['ARCHITECTURE'] = new_ARCHITECTURE_deeper
+    parameters['NOTES'] = 'base, deeper architecture'
+    # run_experiment(exp_name, parameters, save_results=True)
+
+    parameters = copy(default_parameters)
+    parameters['DEVICE'] = 'cuda:2'
+    parameters['FROM_CACHE'] = OUTPUT_DIR
+    parameters['NUM_WORKERS'] = 3
+    parameters['EPOCHS'] = 1501
+    parameters['LR'] = 1e-4
+    parameters['USE_MOTION_DATA'] = 'exclude'
+    parameters['ARCHITECTURE'] = new_ARCHITECTURE_moreCs
+    parameters['NOTES'] = 'base, more Cs architecture'
+    # run_experiment(exp_name, parameters, save_results=True)
+
+    parameters = copy(default_parameters)
+    parameters['DEVICE'] = 'cuda:3'
+    parameters['FROM_CACHE'] = OUTPUT_DIR
+    parameters['NUM_WORKERS'] = 3
+    parameters['EPOCHS'] = 1501
+    parameters['LR'] = 1e-4
+    parameters['USE_MOTION_DATA'] = 'exclude'
+    parameters['ARCHITECTURE'] = new_ARCHITECTURE_deeperMoreCs
+    parameters['NOTES'] = 'base, deeper & more Cs'
+    # run_experiment(exp_name, parameters, save_results=True)
+
+
+
+
+
+
+
+
+
+
+    # parameters = copy(default_parameters)
+    # parameters['DEVICE'] = 'cuda:1'
+    # parameters['FROM_CACHE'] = OUTPUT_DIR
+    # parameters['NUM_WORKERS'] = 1
+    # parameters['EPOCHS'] = 1001
+    # parameters['LR'] = 5e-5
+    # parameters['ARCHITECTURE'] = old_ARCHITECTURE
+    # parameters['USE_MOTION_DATA'] = 'include'
+    # parameters['LOAD_MODEL'] = [exp_name, 'run10', '1000']   
+    # parameters['NOTES'] = 'old arch, incl mot, contd.10, LR 5e-5, ' #run25
+    # # run_experiment(exp_name, parameters, save_results=True)
+
+    # parameters = copy(default_parameters)
+    # parameters['DEVICE'] = 'cuda:2'
+    # parameters['FROM_CACHE'] = OUTPUT_DIR
+    # parameters['NUM_WORKERS'] = 3
+    # parameters['EPOCHS'] = 2001
+    # parameters['LR'] = 1e-4
+    # parameters['ARCHITECTURE'] = new_ARCHITECTURE_nogrouping
+    # parameters['USE_MOTION_DATA'] = 'exclude'
+
+    # parameters['NOTES'] = 'new arch, no motion, no grouping' #run26
+    # # run_experiment(exp_name, parameters, save_results=True)
+    
+    # parameters = copy(default_parameters)
+    # parameters['DEVICE'] = 'cuda:3'
+    # parameters['FROM_CACHE'] = OUTPUT_DIR
+    # parameters['NUM_WORKERS'] = 3
+    # parameters['EPOCHS'] = 2001
+    # parameters['ARCHITECTURE'] = new_ARCHITECTURE_nofeaturecat
+    # parameters['LR'] = 1e-4
+    # parameters['USE_MOTION_DATA'] = 'exclude'
+    # parameters['NOTES'] = 'new arch, no motion, no featureCat'  #run27
+    # # run_experiment(exp_name, parameters, save_results=True)

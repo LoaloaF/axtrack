@@ -110,22 +110,23 @@ class Timelapse(Dataset):
 
     def __getitem__(self, idx):
         t_idx, tile_idx = self.unfold_idx(idx)
-        if self.use_motion_filtered == 'include':
-            X = self.X_tiled[t_idx, tile_idx]
-        elif self.use_motion_filtered == 'exclude':
-            X = self.X_tiled[t_idx, tile_idx, :1]
-        elif self.use_motion_filtered == 'only':
-            X = self.X_tiled[t_idx, tile_idx, 1:]
-        elif self.use_motion_filtered == 'temp_context':
-            tstart, tstop = t_idx-2, t_idx+3
-            # tstart = tstart if tstart >= 0 else 0
-            X = self.X_tiled[:, tile_idx, 0]
+        t_idx += 2
+        tstart, tstop = t_idx-2, t_idx+3
 
+        if self.use_motion_filtered == 'include':
+            X = self.X_tiled[tstart:tstop, tile_idx].flatten(end_dim=1)
+        elif self.use_motion_filtered == 'exclude':
+            X = self.X_tiled[tstart:tstop, tile_idx, :1].flatten(end_dim=1)
+        elif self.use_motion_filtered == 'only':
+            X = self.X_tiled[tstart:tstop, tile_idx, 1:].flatten(end_dim=1)
+        
+        elif self.use_motion_filtered == 'temp_context':
+            X = self.X_tiled[tstart:tstop, tile_idx, :1].flatten(end_dim=1)
         return X, self.target_tiled[t_idx, tile_idx]
     
     def __len__(self):
         assert self.X_tiled is not None, "No tiles yet. Run dataset.construct_tiles() before iterating."
-        length = self.X_tiled.shape[0] * self.X_tiled.shape[1]
+        length = self.sizet * self.tile_info[..., 0].all(-1).sum()
         return length
 
     def unfold_idx(self, idx):
@@ -134,7 +135,7 @@ class Timelapse(Dataset):
 
     def fold_idx(self, idx):
         t_idx, tile_idx = idx
-        folded_idx = t_idx*self.X_tiled[1] + tile_idx
+        folded_idx = t_idx*self.X_tiled.shape[1] + tile_idx
         return folded_idx
 
     def flat_tile_idx2yx_tile_idx(self, tile_idx):
@@ -283,10 +284,12 @@ class Timelapse(Dataset):
     def _slice_timepoints(self):
         print(f'Slicing timepoints from t=[0...{self.sizet}] to t=' \
               f'{self.timepoints} (n={len(self.timepoints)})')
-        imseq = [self.imseq[t] for t in self.timepoints]
-        p_motion_seq = [self.p_motion_seq[t] for t in self.timepoints]
-        n_motion_seq = [self.n_motion_seq[t] for t in self.timepoints]
-        target = self.target.iloc[self.timepoints]
+        t0, tn1 = self.timepoints[0], self.timepoints[-1]
+        padded_tps = [t0-2, t0-1, *self.timepoints, tn1+1, tn1+2]
+        imseq = [self.imseq[t] for t in padded_tps]
+        p_motion_seq = [self.p_motion_seq[t] for t in padded_tps]
+        n_motion_seq = [self.n_motion_seq[t] for t in padded_tps]
+        target = self.target.iloc[padded_tps]
         sizet = len(self.timepoints)
         return sizet, target, imseq, p_motion_seq, n_motion_seq
     
@@ -481,7 +484,7 @@ class Timelapse(Dataset):
             angle = ((self.transform_configs['rot'] * 40) -20)
         
         # apply the transformation using paramters above, do on GPU, return on CPU
-        tchunksize = 4
+        tchunksize = 2
         X = transform_X(self.X.to(device), tchunksize, angle, flip_dims, dy, dx)
         # now transform the bboxes with the same paramters
         target_transf = transform_Y(self.target, angle, flip_dims, dy, dx)
@@ -493,6 +496,8 @@ class Timelapse(Dataset):
         # yolo target switches dim order from y-x to x-y!
         # dims: ytile x xtile x timepoint x yolo_x_grid x yolo_y_grid x label(conf, x_anchor, y_anchor)
         yolo_target = torch.zeros((*target_tiled.shape[:-2], self.Sx, self.Sy, 3))
+        yolo_target = torch.zeros((*target_tiled.shape[:-2], self.Sx, self.Sy, 3))
+        print(yolo_target.shape)
 
         # scale x and y anchors to tilesize (0-1)
         target_tiled = target_tiled/self.tilesize
@@ -509,6 +514,8 @@ class Timelapse(Dataset):
         x_anchors = target_tiled[..., 1].coalesce()
         # get the tile-specific coordinates that have positive labels
         ytile_coo, xtile_coo, t_idx, axID_idx = y_anchors.indices()
+        print(axID_idx)
+        print(axID_idx.shape)
         
         # this converts the values of the sparse tensors x_anchors, y_anchors
         # from 0-1 to 0-S (0-12)
@@ -527,6 +534,7 @@ class Timelapse(Dataset):
         yolo_target[ytile_coo, xtile_coo, t_idx, yolo_x_box, yolo_y_box, 0] = 1
         yolo_target[ytile_coo, xtile_coo, t_idx, yolo_x_box, yolo_y_box, 1] = yolo_x_withinbox
         yolo_target[ytile_coo, xtile_coo, t_idx, yolo_x_box, yolo_y_box, 2] = yolo_y_withinbox
+        print(yolo_target)
         return yolo_target
 
     # def validate_data(self, dest_dir=None, show=False):

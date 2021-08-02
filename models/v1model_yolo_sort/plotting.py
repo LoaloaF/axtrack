@@ -74,7 +74,6 @@ def plot_training_process(training_files, parameter_list, dest_dir=None,
     for training_file, parameters in zip(training_files, parameter_list):
         main_title = main_title+'  -   '+parameters['NOTES']
         fig.suptitle(main_title)
-        print(training_file)
         data = pd.read_pickle(training_file).loc[:,x_epochs]
         
         # datafile2 =  '/home/loaloa/gdrive/projects/biohybrid MEA/tl140_outputdata//runs/v1Model_exp3_newcnn//run12_28.07.2021_21.47.22/metrics//all_epochs.pkl'
@@ -85,6 +84,7 @@ def plot_training_process(training_files, parameter_list, dest_dir=None,
         # data = pd.concat([data, data2], axis=1)
             
         x_epochs = data.columns.unique(0)
+        print(data)
 
         # for i, name in enumerate(data.index):
         for i in range(data.shape[0]+1):
@@ -98,7 +98,11 @@ def plot_training_process(training_files, parameter_list, dest_dir=None,
 
             # collapsing batch dim by averaging
             train_dat = data.loc[name, (slice(None), 'train')].droplevel(1).unstack().mean(1)
+            train_tpr = data.loc['total_pos_labels_rate', (slice(None), 'train')].droplevel(1).unstack().mean(1) 
+            train_dat_tpr_adjust = (train_dat/train_tpr) *(train_tpr).mean()
             test_dat = data.loc[name, (slice(None), 'test',)].droplevel(1).unstack().mean(1)
+            test_tpr = data.loc['total_pos_labels_rate', (slice(None), 'test')].droplevel(1).unstack().mean(1) 
+            test_dat_tpr_adjust = (test_dat/test_tpr) *(test_tpr).mean()
 
             if i in (0,1,2):
                 ax.set_ylim(0,15)
@@ -156,23 +160,31 @@ def plot_training_process(training_files, parameter_list, dest_dir=None,
                     #                     linewidth=1, alpha=.5, color='purple')
 
             else:
-                # smoothing curve
-                train_dat_smoo = train_dat.ewm(span=20).mean()
-                test_dat_smoo = test_dat.ewm(span=20).mean()
+                train_dat = train_dat.ewm(span=18).mean()
+                test_dat = test_dat.ewm(span=18).mean()
+                train_dat_tpr_adjust = train_dat_tpr_adjust.ewm(span=18).mean()
+                test_dat_tpr_adjust = test_dat_tpr_adjust.ewm(span=18).mean()
                 
-                # plot unsmoothed
-                lines = ax.plot(x_epochs, train_dat,  label='train', linewidth=1, alpha=.3)
-                train_col = lines[-1].get_color()
-                ax.plot(x_epochs, train_dat_smoo, label='train', linewidth=1, color=train_col)
-                
-                # plot smoothed
-                lines = ax.plot(x_epochs, test_dat,  label='test', linewidth=1, alpha=.3)
-                test_col = lines[-1].get_color()
-                ax.plot(x_epochs, test_dat_smoo, label='test', linewidth=1, color=test_col)
-                ax.legend()
 
+                
+                # plot train
+                lines = ax.plot(x_epochs, train_dat, linestyle='-.',  
+                                label='train', linewidth=1, alpha=.8)
+                train_col = lines[-1].get_color()
+                ax.plot(x_epochs, train_dat_tpr_adjust, label='train, TPR normed.', 
+                        linewidth=1.4, color=train_col, alpha=.8)
+                
+                # plot test
+                lines = ax.plot(x_epochs, test_dat, linestyle='-.',  
+                                label='test', linewidth=1, alpha=.8)
+                test_col = lines[-1].get_color()
+                ax.plot(x_epochs, test_dat_tpr_adjust, label='test, TPR normed.', 
+                        linewidth=1.4, color=test_col, alpha=.8)
+                ax.legend()
+                
             ax.set_xticks(np.arange(0,len(x_epochs)+1,10))
-            ax.set_xticklabels(np.arange(0,len(x_epochs)+1,10), rotation=37, ha='center', va='center', fontsize=8, y=-.02)
+            ax.set_xticklabels(np.arange(0,len(x_epochs)+1,10), rotation=37, 
+                               ha='center', va='center', fontsize=8, y=-.02)
             ax.set_xlabel('Epoch')
             ax.set_xlim(-1, len(x_epochs)+1)
             

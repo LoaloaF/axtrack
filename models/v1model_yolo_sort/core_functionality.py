@@ -24,8 +24,8 @@ def get_default_parameters():
     TIMELAPSE_FILE = RAW_DATA_DIR + 'G001_red_compr.deflate.tif'
     LABELS_FILE = OUTPUT_DIR + 'labelled_axons_astardists.csv'
     MASK_FILE = OUTPUT_DIR + 'mask_wells_excl.npy'
-    TRAIN_TIMEPOINTS = range(4,34)
-    TEST_TIMEPOINTS = list(range(1,4)) + list(range(34,37))
+    TRAIN_TIMEPOINTS = range(4,33)
+    TEST_TIMEPOINTS = list(range(2,4)) + list(range(33,35))
     LOG_CORRECT = True
     PLOT_PREPROC = True
     STANDARDIZE = True
@@ -38,29 +38,31 @@ def get_default_parameters():
     CACHE = None
     FROM_CACHE = None
     SHUFFLE = True
-    DROP_LAST = True
+    DROP_LAST = False
 
     # MODEL
     ARCHITECTURE = [
-        #kernelsize, out_channels, stride, groups
-        [(3, 12, 2, 1),     # y-x out: 256
-        (3, 24, 2, 1),     # y-x out: 128
-        (3, 30, 2, 1),     # y-x out: 64
-        (3, 30, 1, 1),     # y-x out: 64
-        (3, 60, 2, 1)],     # y-x out: 32
-        [(3, 120, 2, 1)],     # y-x out: 16
+        #kernelsize, out_channels, stride, groups, 2nd list: concat to features inp
+        [(3, 20,  2,  5),      # y-x out: 256
+         (3, 40,  2,  5),      # y-x out: 128
+         (3, 80,  1,  1),      # y-x out: 128
+         (3, 80,  2,  1)],     # y-x out: 64
+        [(3, 80,  2,  1),      # y-x out: 32
+         (3, 160, 2,  1)],     # y-x out: 16
     ]
     IMG_DIM = 2920, 6364
     SY, SX = 12, 12
     TILESIZE = 512
     GROUPING = True
-    LR = 1e-4
     WEIGHT_DECAY = 5e-4
     BATCH_SIZE = 32
     EPOCHS = 301
     LOAD_MODEL = None
     # LOAD_MODEL = ['Exp1_yolo_only_firstfirst', 'run02', 'E0']   # [ExpName, #run, #epoch]
     BBOX_THRESHOLD = .7
+    LR = 1e-4
+    LR_DECAYRATE = 0
+    LR_DECAY_STARTEPOCH = 0
 
     # LOSS
     L_OBJECT = 49.5
@@ -114,13 +116,11 @@ def run_epoch(dataset, model, loss_fn, params, epoch, optimizer=None):
 
 def setup_model(P):
     if P['USE_MOTION_DATA'] == 'include':
-        initial_in_channels = 3
+        initial_in_channels = 3 *5
     if P['USE_MOTION_DATA'] == 'only':
-        initial_in_channels = 2
+        initial_in_channels = 2 *5
     if P['USE_MOTION_DATA'] == 'exclude':
-        initial_in_channels = 1
-    if P['USE_MOTION_DATA'] == 'temp_context':
-        initial_in_channels = 5
+        initial_in_channels = 1 *5
     model = YOLO_AXTrack(initial_in_channels, 
                          P['ARCHITECTURE'], 
                          (P['TILESIZE'],P['TILESIZE']), 
@@ -173,7 +173,7 @@ def setup_data(P):
                            use_sparse = P['USE_SPARSE'],
                            use_transforms = P['USE_TRANSFORMS'],
                            contrast_llim = P['CLIP_LOWERLIM'],
-                           pad = P['PAD'], 
+                           pad = P['PAD'],  
                            plot = P['PLOT_PREPROC'], 
                            cache = P['CACHE'], 
                            from_cache = P['FROM_CACHE'],
@@ -183,28 +183,6 @@ def setup_data(P):
                            Sx = P['SX'],)
     return train_data, test_data
 
-# def setup_data_loaders(P, train_data, test_data, train_indices_to_sample=None, 
-#                        test_indices_to_sample=None):
-#     if train_indices_to_sample is None:
-#         train_indices_to_sample = train_data.non_empty_tiles
-#     train_loader = DataLoader(
-#     dataset = train_data,
-#     sampler = SubsetRandomSampler(train_indices_to_sample),
-#     batch_size = P['BATCH_SIZE'],
-#     num_workers = P['NUM_WORKERS'],
-#     pin_memory = P['PIN_MEMORY'],
-#     drop_last = P['DROP_LAST'],)
-
-#     if test_indices_to_sample is None:
-#         test_indices_to_sample = test_data.non_empty_tiles
-#     test_loader = DataLoader(
-#         dataset = test_data,
-#         sampler = SubsetRandomSampler(test_indices_to_sample),
-#         batch_size = P['BATCH_SIZE'],
-#         num_workers = P['NUM_WORKERS'],
-#         pin_memory = P['PIN_MEMORY'],
-#         drop_last = P['DROP_LAST'],)
-    
 def setup_data_loaders(P, dataset):
     data_loader = DataLoader(
         dataset = dataset,
