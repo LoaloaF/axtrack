@@ -6,6 +6,11 @@ from datetime import datetime
 from collections import Counter
 from config import RAW_DATA_DIR, OUTPUT_DIR, CODE_DIR, PYTORCH_DIR, SPACER
 
+from torchvision import models
+
+import pyastar
+from scipy import sparse
+
 import numpy as np
 import torch
 import pandas as pd
@@ -52,13 +57,14 @@ def filter_anchors(target_tensor, conf_threshold):
     frame_targets_fltd = [tar[tar[:,:,0] >= conf_threshold] for tar in frame_targets]
     return frame_targets_fltd
 
-def fltd_tensor2pandas(target_tensor, t=0, sort=True):
-    axon_lbls = [f'Axon_{i:0>2}' for i in range(target_tensor.shape[0])]
-    axon_lbls = pd.MultiIndex.from_product([[t], axon_lbls])
+def fltd_tensor2pandas(target_tensor, sort=True):
+    axons_ids = target_tensor[:,3].to(int) if target_tensor.shape[1]>3 else range(target_tensor.shape[0])
+    axon_lbls = [f'Axon_{i:0>3}' for i in axons_ids]
+    # axon_lbls = pd.MultiIndex.from_product([[t], axon_lbls])
     cols = 'conf', 'anchor_x', 'anchor_y'
     
-    target_df = pd.DataFrame(target_tensor.to('cpu').numpy(), index=axon_lbls, 
-                             columns=cols)
+    target_df = pd.DataFrame(target_tensor[:,:3].to('cpu').numpy(), index=axon_lbls, 
+                             columns=cols).convert_dtypes()
     if sort:
         target_df.sort_values('conf', inplace=True)
     return target_df
@@ -73,8 +79,32 @@ def Y2pandas_anchors(Y, Sx, Sy, tilesize, device, conf_thr):
     Ys_list_fltd = filter_anchors(Y_imgcoo, conf_threshold=conf_thr)
     # convert each frame from tensor to pandas
     for i in range(len(Ys_list_fltd)):
-        Ys_list_fltd[i] = fltd_tensor2pandas(Ys_list_fltd[i], t=i)
+        Ys_list_fltd[i] = fltd_tensor2pandas(Ys_list_fltd[i])
     return Ys_list_fltd
+
+def print_models():
+    from torchsummary import summary
+    models_to_print = [(models.alexnet(), 'AlexNet'),
+                       (models.vgg11_bn(), 'vgg11'),
+                       (models.vgg19_bn(), 'vgg19'),
+                       (models.resnet18(), 'resnet18'),
+                       (models.resnext50_32x4d(), 'resnext50'),
+                       (models.shufflenet_v2_x0_5(), 'shufflenet')
+                    #    (models.densenet121(), 'densenet121'),
+                    #    (models.densenet201(), 'densenet201'),
+                    #    (models.GoogLeNet(), 'GoogLeNet'),
+
+                    #    (models.inception_v3(), 'Incpetion v3'),
+                    #    (models.mnasnet1_0(), 'MNAS Net'),
+                    #    (models.mobilenet_v3_large(), 'mobileNet large'),
+                    #    (models.mobilenet_v3_small(), 'mobileNet small'),
+    ]
+    for model, name in models_to_print:
+        print()
+        print(name)
+        model.to('cuda:0')
+        summary(model, input_size=(3, 512, 512))
+        print()
 
 # def get_model_output_anchors(model, x, target, params):
 #     print('Computing [eval] model output...', end='')
@@ -113,7 +143,11 @@ def load_checkpoint(OUTPUT_DIR, load_model, model, optimizer, device):
     print("=> Loading checkpoint...", end='')
     exp_dir = f'{OUTPUT_DIR}/runs/{load_model[0]}/'
     run_dir = [rd for rd in os.listdir(exp_dir) if load_model[1] in rd][0]
-    file = f'{exp_dir}/{run_dir}/models/E{load_model[2]}.pth'
+    if load_model[2] == 'latest':
+        file = [pthfile for pthfile in glob.glob(f'{exp_dir}/{run_dir}/models/*.pth')][-1]
+    elif load_model[2]:
+        file = f'{exp_dir}/{run_dir}/models/E{load_model[2]}.pth'
+
     checkpoint = torch.load(file, map_location=torch.device(device))
     model.load_state_dict(checkpoint["state_dict"])
     optimizer.load_state_dict(checkpoint["optimizer"])
@@ -183,6 +217,7 @@ def create_lossovertime_pkl(metrics_dir):
     fname = f'{metrics_dir}/all_epochs.pkl'
     data.to_pickle(fname)
     print('Done.')
+
     return fname
 
 def save_preproc_metrics(run_dir, train_data, test_data):
@@ -245,3 +280,21 @@ def check_parameters(passed_params, default_params):
     if inval_keys:
         print(f'Invalid parameters passed: {inval_keys}')
         exit(1)
+
+def to_device_specifc_params(model_parameters, local_default_params):
+    to_update = ('TIMELAPSE_FILE', 'LABELS_FILE', 'MASK_FILE', 'DEVICE', 'FROM_CACHE')
+    [model_parameters.update({key: local_default_params[key]}) for key in to_update]
+    return model_parameters
+
+    # TIMELAPSE_FILE = RAW_DATA_DIR + 'G001_red_compr.deflate.tif'
+    # LABELS_FILE = OUTPUT_DIR + 'labelled_axons_astardists.csv'
+    # MASK_FILE = OUTPUT_DIR + 'mask_wells_excl.npy'
+    # DEVICE = DEFAULT_DEVICE
+
+def get_astar_path(source, target, weights, return_path=False):
+    path_coo = pyastar.astar_path(weights, source, target)
+    if return_path:
+        ones, row, cols = np.ones(path_coo.shape[0]), path_coo[:,0], path_coo[:,1]
+        path = sparse.coo_matrix((ones, (row, cols)), shape=weights.shape, dtype=bool)
+        return path_coo.shape[0], path
+    return path_coo.shape[0]

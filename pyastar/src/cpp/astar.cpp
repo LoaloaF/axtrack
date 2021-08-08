@@ -78,6 +78,11 @@ static PyObject *astar(PyObject *self, PyObject *args) {
     // .top() doesn't actually remove the node
     Node cur = nodes_to_visit.top();
 
+    // if (cur.path_length >400) {
+    //   path_length = cur.path_length;
+    //   break;
+    // }
+
     if (cur.idx == goal) {
       path_length = cur.path_length;
       break;

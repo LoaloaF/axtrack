@@ -34,7 +34,7 @@ class Timelapse(Dataset):
                 log_correct=True, retain_temporal_var=True, standardize=True, name='', use_motion_filtered='only', 
                 use_sparse=False, use_transforms = ['vflip', 'hflip', 'rot', 'translateY', 'translateX'],
                 contrast_llim=43/2**16, plot=True, pad=[0,300,0,300], Sy=12, Sx=12, tilesize=512,
-                cache=False, from_cache=False):
+                cache=False, from_cache=False, temporal_context=2):
         
         super().__init__()
         self.name = name
@@ -45,6 +45,10 @@ class Timelapse(Dataset):
         self.use_motion_filtered = use_motion_filtered
         self.transform_configs = dict.fromkeys(use_transforms,0)
 
+        # self.t_center, self.ncolorchannels = self._get_center_time_index()
+        # self.imseq, self.mask = self._read_tiff(imseq_path, mask_path, plot)
+        # self.ID_assoc = self._construct_axon_identity_association_matrix()
+
         if not from_cache:
             # agg preprocessing steps data in this dict
             self.plot_data = {}
@@ -53,13 +57,14 @@ class Timelapse(Dataset):
             self.timepoints = timepoints
             self.pad = pad
             # X: here, still a numpy array, later becomes scipy.sparse
-            self.imseq = self._read_tiff(imseq_path, mask_path, plot)
+            self.imseq, self.mask = self._read_tiff(imseq_path, mask_path, plot)
 
             # which input data to use
             self.use_sparse = use_sparse
             self.use_motion_filtered = use_motion_filtered #, 'only', 'exclude'
             self.motion_gaussian_filter_std = 3
             self.motion_lowerlim = .1
+            self.temporal_context = temporal_context
             
             # image augmentation setup (actually performed only when training)
             self.transform_configs = dict.fromkeys(use_transforms,0)
@@ -68,7 +73,8 @@ class Timelapse(Dataset):
             self.sizet = self.imseq.shape[0]
             self.sizey = self.imseq.shape[1]
             self.sizex = self.imseq.shape[2]
-                
+            self.t_center, self.ncolorchannels = self._get_center_time_index()
+
             # for formatting the label Y (bboxes) in YOLO format
             self.Sy = Sy
             self.Sx = Sx
@@ -99,6 +105,7 @@ class Timelapse(Dataset):
 
             # convert scipy.COO (imseq, p_motion & n_motion) to sparse tensor
             self.X = self._construct_X_tensor()
+            self.ID_assoc = self._construct_axon_identity_association_matrix()
 
             # final data to use is constructed before each epoch by calling 
             # construct_tiles(). empty tiles mask for reconstructing image from 
@@ -110,8 +117,10 @@ class Timelapse(Dataset):
 
     def __getitem__(self, idx):
         t_idx, tile_idx = self.unfold_idx(idx)
+        # print('Getting t: ', t_idx, end='')
         t_idx += 2
         tstart, tstop = t_idx-2, t_idx+3
+        # print('   but really t, tstart, tstop: ', t_idx, tstart, tstop)
 
         if self.use_motion_filtered == 'include':
             X = self.X_tiled[tstart:tstop, tile_idx].flatten(end_dim=1)
@@ -146,14 +155,38 @@ class Timelapse(Dataset):
         folded_idxs_non_empty = folded_idxs_2d[non_empty_tile_mask].flatten()
         ycoo, xcoo = divmod(folded_idxs_non_empty[tile_idx].item(), self.xtiles)
         return ycoo, xcoo
+    
+    def get_stack(self, which, major_index):
+        X, target = [], []
+        if which == 'image':
+            n_imagetiles = self.X_tiled.shape[1]
+            iter_over = range(n_imagetiles)
+
+        elif which == 'time':
+            n_timepoints = self.sizet
+            iter_over = range(n_timepoints)
+
+        for minor_idx in iter_over:
+            if which == 'image':
+                # major index is the timpoint, minor the tile 
+                indexer = (major_index, minor_idx)
+            elif which == 'time':
+                # major index is the tile, minor the timepoint
+                indexer = (minor_idx, major_index)
+
+            x, tar = self[self.fold_idx(indexer)]
+            X.append(x)
+            target.append(tar)
+        return torch.stack(X, 0), torch.stack(target, 0)
+        
 
     def _read_tiff(self, path, mask_path, plot):
         print('Loading .tif image...', end='', flush=True)
         imseq = img_as_float32(imread(path))
         if mask_path:
             print('masking...', end='', flush=True)
-            mask = np.load(mask_path)
-            imseq[:,~mask.astype(bool)] = 0
+            mask = np.load(mask_path).astype(bool)
+            imseq[:,~mask] = 0
         if any(self.pad):
             print('padding...', end='', flush=True)
             top, right, bottom, left = self.pad
@@ -161,13 +194,16 @@ class Timelapse(Dataset):
             W = imseq.shape[2] + right + left
             padded = np.zeros((imseq.shape[0], H, W), dtype=np.float32)
             padded[:, top:top+imseq.shape[1], left:left+imseq.shape[2]] = imseq
+            padded_mask = np.zeros((H, W), dtype=int)
+            padded_mask[top:top+imseq.shape[1], left:left+imseq.shape[2]] = mask
             imseq = padded
+            mask = padded_mask
         print('Done.')
         if plot:
             t0 = imseq[self.timepoints[0]].copy()
             tn1 = imseq[self.timepoints[-1]].copy() 
             self.plot_data['Original'] = t0, tn1
-        return imseq
+        return imseq, mask
         
     def _clip_image_values(self, lower, plot):
         if lower:
@@ -293,6 +329,18 @@ class Timelapse(Dataset):
         sizet = len(self.timepoints)
         return sizet, target, imseq, p_motion_seq, n_motion_seq
     
+    def _get_center_time_index(self):
+        if self.use_motion_filtered == 'exclude':
+            t_center = slice(2,3)
+            ncchannels = 1
+        elif self.use_motion_filtered == 'only':
+            t_center = slice(4,6)
+            ncchannels = 2
+        elif self.use_motion_filtered == 'include':
+            t_center = slice(6,9)
+            ncchannels = 3
+        return t_center, ncchannels
+    
     def _construct_X_tensor(self):
         print('Constructing sparse Tensor...', end='', flush=True)
         imseq = torch.stack([coo2tensor(coo_frame) for coo_frame in self.imseq])
@@ -301,6 +349,35 @@ class Timelapse(Dataset):
         X = torch.stack([imseq, p_mot_seq, n_mot_seq], 1)
         print('Done.')
         return X
+
+    def _construct_axon_identity_association_matrix(self):
+        IDs = self.target.swaplevel(0,1,1).anchor_x.fillna(0).astype(bool).values
+        IDs = IDs[self.temporal_context:self.sizet+self.temporal_context]
+        # pad virtual t0-1 timepoint, and tlast+1 with zeros
+        IDs = np.pad(IDs, ((1,1),(0,0)), 'constant', constant_values=(0,0))
+
+        id_capacity = IDs.shape[1]
+        filler_block = np.zeros((id_capacity,id_capacity))
+        ID_assoc = []
+        for t in range(self.sizet+1):
+            t0, t1 = IDs[t:t+2]
+            ID_continues = t0 & t1
+            ID_killed = t0 & ~t1
+            ID_created = ~t0 & t1
+            ID_t0isNone = ~(ID_continues|ID_killed)
+            ID_t1isNone = ~(ID_continues|ID_created)
+
+            ID_continues = np.diagflat(ID_continues)
+            ID_killed = np.diagflat(ID_killed)
+            ID_created = np.diagflat(ID_created)
+            ID_t0isNone = np.diagflat(ID_t0isNone)
+            ID_t1isNone = np.diagflat(ID_t1isNone)
+
+            t0t1_assoc = np.block([[ID_continues, ID_killed,    ID_t0isNone],
+                                   [ID_created,   filler_block, filler_block],
+                                   [ID_t1isNone,  filler_block, filler_block]])
+            ID_assoc.append(t0t1_assoc)
+        return np.stack(ID_assoc)
             
     def _caching(self, cache=False, from_cache=False):
         if from_cache:
@@ -495,9 +572,7 @@ class Timelapse(Dataset):
     def tiled_target2yolo_format(self, target_tiled):
         # yolo target switches dim order from y-x to x-y!
         # dims: ytile x xtile x timepoint x yolo_x_grid x yolo_y_grid x label(conf, x_anchor, y_anchor)
-        yolo_target = torch.zeros((*target_tiled.shape[:-2], self.Sx, self.Sy, 3))
-        yolo_target = torch.zeros((*target_tiled.shape[:-2], self.Sx, self.Sy, 3))
-        print(yolo_target.shape)
+        yolo_target = torch.zeros((*target_tiled.shape[:-2], self.Sx, self.Sy, 4))
 
         # scale x and y anchors to tilesize (0-1)
         target_tiled = target_tiled/self.tilesize
@@ -514,8 +589,6 @@ class Timelapse(Dataset):
         x_anchors = target_tiled[..., 1].coalesce()
         # get the tile-specific coordinates that have positive labels
         ytile_coo, xtile_coo, t_idx, axID_idx = y_anchors.indices()
-        print(axID_idx)
-        print(axID_idx.shape)
         
         # this converts the values of the sparse tensors x_anchors, y_anchors
         # from 0-1 to 0-S (0-12)
@@ -534,37 +607,39 @@ class Timelapse(Dataset):
         yolo_target[ytile_coo, xtile_coo, t_idx, yolo_x_box, yolo_y_box, 0] = 1
         yolo_target[ytile_coo, xtile_coo, t_idx, yolo_x_box, yolo_y_box, 1] = yolo_x_withinbox
         yolo_target[ytile_coo, xtile_coo, t_idx, yolo_x_box, yolo_y_box, 2] = yolo_y_withinbox
-        print(yolo_target)
+        yolo_target[ytile_coo, xtile_coo, t_idx, yolo_x_box, yolo_y_box, 3] = axID_idx.to(torch.float32)
         return yolo_target
 
-    # def validate_data(self, dest_dir=None, show=False):
-    #     for t in range(self.sizet):
-    #         fig, axes = plt.subplots(self.ytiles, self.xtiles, facecolor='#242424',
-    #                                 figsize=(self.sizex/400, self.sizey/400))
-    #         fig.subplots_adjust(wspace=0, hspace=0, top=.99, bottom=.01, 
-    #                             left=.01, right=.99)
-    #         for ax in axes.flatten():
-    #             ax.tick_params(left=False, labelleft=False, bottom=False, labelbottom=False)
-    #             ax.set_facecolor('#242424')
-    #             ax.spines['right'].set_color('#787878')
-    #             ax.spines['left'].set_color('#787878')
-    #             ax.spines['top'].set_color('#787878')
-    #             ax.spines['bottom'].set_color('#787878')
+    def stitch_tiles(self, img, target, pred_target=None):
+        ts = self.tilesize
+        # get the yx coordinates of the tiles  
+        tile_coos = torch.tensor([self.flat_tile_idx2yx_tile_idx(tile) 
+                                  for tile in range(img.shape[0])])
 
-    #         for tile in range(self.X_tiled.shape[1]):
-    #             ytile_coo, xtile_coo = self.flat_tile_idx2yx_tile_idx(tile)
-                
-    #             ax = axes[ytile_coo, xtile_coo]
-    #             im = torch.moveaxis(self.X_tiled[t, tile], 0, -1)
-    #             tile_anchors = self.target_tiled[t, tile].unsqueeze(0)
-    #             anchors = Y2pandas_anchors(tile_anchors, self.Sx, self.Sy, 
-    #                                        self.tilesize, 'cpu', 1)
-    #             plot_images([im], anchors, axis=ax, lbl=False)
+        # make an empty img, then iter of tile grid 
+        img_new = torch.zeros((1, self.ncolorchannels, self.sizey, self.sizex))
+        target_new, pred_target_new = [], []
+        for tile_ycoo in range(self.ytiles):
+            for tile_xcoo in range(self.xtiles):
+                non_empty_tile = (tile_coos[:,0] == tile_ycoo) & (tile_coos[:,1] == tile_xcoo)
+                flat_tile_idx = torch.where(non_empty_tile)[0]
 
-    #             ax.text(.1, .93, f't: {t}', transform=fig.transFigure, 
-    #                     fontsize=20, color='w')
-    #         if show:
-    #             plt.show()
-    #         if dest_dir:
-    #             fig.savefig(f'{dest_dir}/{self.name}_t{t:0>2}.png')
-    #         plt.close()
+                if flat_tile_idx.any():
+                    # when there is a nonempty tile, place its values in img_new
+                    yslice = slice(ts*tile_ycoo, ts*(tile_ycoo+1))
+                    xslice = slice(ts*tile_xcoo, ts*(tile_xcoo+1))
+                    img_new[0, :, yslice, xslice] = img[flat_tile_idx, self.t_center]
+
+                    # and transform the anchor coordinates into img coordinates
+                    target[flat_tile_idx].anchor_y += tile_ycoo*ts
+                    target[flat_tile_idx].anchor_x += tile_xcoo*ts
+                    target_new.append(target[flat_tile_idx])
+                    if pred_target is not None:
+                        pred_target[flat_tile_idx].anchor_y += tile_ycoo*ts
+                        pred_target[flat_tile_idx].anchor_x += tile_xcoo*ts
+                        pred_target_new.append(pred_target[flat_tile_idx])
+        
+        target_new = pd.concat(target_new)
+        if pred_target:
+            pred_target_new = pd.concat(pred_target_new, ignore_index=True)
+        return img_new, target_new, pred_target_new
