@@ -13,7 +13,7 @@ class YOLO_AXTrack_loss(nn.Module):
     Calculate the loss for yolo (v1) model
     """
 
-    def __init__(self, Sy, Sx, lambda_obj, lambda_noobj, lambda_coord_anchor):
+    def __init__(self, Sy, Sx, conf_thr, lambda_obj, lambda_noobj, lambda_coord_anchor):
         super(YOLO_AXTrack_loss, self).__init__()
         self.mse = nn.MSELoss(reduction="sum")
 
@@ -25,6 +25,8 @@ class YOLO_AXTrack_loss(nn.Module):
         self.Sy = Sy
         self.Sx = Sx
         self.B = 1
+
+        self.conf_thr = conf_thr
 
         self.lambda_obj = lambda_obj
         self.lambda_noobj = lambda_noobj
@@ -46,6 +48,16 @@ class YOLO_AXTrack_loss(nn.Module):
         pred_xy_positive_label = pred_xy * obj_exists
         pred_conf_positive_label = pred_conf * obj_exists
         pred_conf_negative_label = pred_conf * no_obj_exists
+
+        anchor_predicted = torch.where(predictions[...,2] <self.conf_thr, 0, 1)
+        TP = (anchor_predicted.to(bool) & obj_exists[...,0].to(bool)).sum()
+        precision1 = TP/anchor_predicted.sum()
+        recall1 = TP/obj_exists.sum().item()
+
+        anchor_predicted = torch.where(predictions[...,2] <self.conf_thr+.1, 0, 1)
+        TP = (anchor_predicted.to(bool) & obj_exists[...,0].to(bool)).sum()
+        precision2 = TP/anchor_predicted.sum()
+        recall2 = TP/obj_exists.sum()
 
         # ======================== #
         #   FOR BOX COORDINATES    #
@@ -79,8 +91,14 @@ class YOLO_AXTrack_loss(nn.Module):
                     'total_object_loss': (self.lambda_obj * object_loss) /bs,
                     'total_no_object_loss': (self.lambda_noobj * no_object_loss) /bs}
         loss = sum([l for l in loss_components.values()])
+        
         loss_components['total_summed_loss'] = loss
         loss_components['total_pos_labels_rate'] = total_pos_labels_rate
+        loss_components[f"total_precision_{self.conf_thr:.2f}"] = precision1
+        loss_components[f"total_recall_{self.conf_thr:.2f}"] = recall1
+        loss_components[f"total_precision_{self.conf_thr+.1:.2f}"] = precision2
+        loss_components[f"total_recall_{self.conf_thr+.1:.2f}"] = recall2
+        
         loss_components = pd.Series({idx: v.item() for idx, v in loss_components.items()})
         return loss, loss_components
 

@@ -53,7 +53,7 @@ def get_default_parameters():
     IMG_DIM = 2920, 6364
     SY, SX = 12, 12
     TILESIZE = 512
-    GROUPING = True
+    # GROUPING = True
     WEIGHT_DECAY = 5e-4
     BATCH_SIZE = 32
     EPOCHS = 301
@@ -62,7 +62,7 @@ def get_default_parameters():
     BBOX_THRESHOLD = .7
     LR = 1e-4
     LR_DECAYRATE = 0
-    LR_DECAY_STARTEPOCH = 0
+    # LR_DECAY_STARTEPOCH = 0
 
     # LOSS
     L_OBJECT = 49.5
@@ -138,9 +138,7 @@ def setup_model(P):
                          P['SX'],
                          which_pretrained=P['ARCHITECTURE'])
     model.to_device(P['DEVICE'])
-
-    # print(model)
-    # summary(model, input_size=(initial_in_channels, P['TILESIZE'], P['TILESIZE']))
+    summary(model, input_size=(initial_in_channels, P['TILESIZE'], P['TILESIZE']), device=P['DEVICE'])
 
     optimizer = optim.Adam(model.parameters(), lr=P['LR'], weight_decay=P['WEIGHT_DECAY'])
 
@@ -152,6 +150,7 @@ def setup_model(P):
     
     loss_fn = YOLO_AXTrack_loss(Sy = P['SX'], 
                                 Sx = P['SX'],
+                                conf_thr = P['BBOX_THRESHOLD'],
                                 lambda_obj = P['L_OBJECT'],
                                 lambda_noobj = P['L_NOBJECT'],
                                 lambda_coord_anchor = P['L_COORD_ANCHOR'],)
@@ -208,5 +207,4 @@ def setup_data_loaders(P, dataset):
         num_workers = P['NUM_WORKERS'],
         pin_memory = P['PIN_MEMORY'],
         drop_last = P['DROP_LAST'],)
-
     return data_loader

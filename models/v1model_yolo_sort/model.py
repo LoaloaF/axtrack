@@ -4,7 +4,7 @@ import torch.nn as nn
 import pandas as pd
 import numpy as np
 from scipy.optimize import linear_sum_assignment
-from utils import get_astar_path
+from utils import get_astar_path, rand_nRGB, nRGB2Hex, generate_axon_id
 
 import scipy.sparse as sparse
 from scipy.signal import convolve
@@ -69,11 +69,11 @@ class YOLO_AXTrack(nn.Module):
             self.get_CNN_outdim()
         else:
             # create preCNN
-            self.PreConvNet = self._create_PreConvNet(self.architecture[0],
-                                                    self.initial_in_channels)
+            self.PreConvNet, out_channels = self._create_PreConvNet(self.architecture[0],
+                                                                    self.initial_in_channels)
             # create postCNN
             self.PostConvNet = CNNFeature_collector(self.architecture[1], 
-                                                    self.PreConvNet[-1].out_channels)
+                                                    out_channels)
         # create FC
         self.fcs = self._create_fcs()
     
@@ -132,8 +132,8 @@ class YOLO_AXTrack(nn.Module):
     def _create_PreConvNet(self, architecture, in_c):
         PreConvNet = nn.Sequential()
         for layer in range(len(architecture)):
-            groups = architecture[layer][3]
             if architecture[layer] != 'M':
+                groups = architecture[layer][3]
                 out_c = architecture[layer][1]
                 block = CNNBlock(in_channels = in_c, 
                                  out_channels = out_c, 
@@ -145,18 +145,19 @@ class YOLO_AXTrack(nn.Module):
             else:
                 block = nn.MaxPool2d(2,2)
             PreConvNet.add_module(f'PreConvBlock_{layer}', block)
-        return PreConvNet
+        return PreConvNet, out_c
 
-    def _create_fcs(self, FC_size=512):
-    # def _create_fcs(self, FC_size=1024):
+    def _create_fcs(self, FC_size=1024):
         features_in = self.get_CNN_outdim()
         features_out = self.Sy * self.Sx *self.B*3
         return nn.Sequential(
             nn.Flatten(),
-            # nn.Dropout(.2),
             nn.Linear(features_in, FC_size),
+            # nn.LeakyReLU(),
             nn.Sigmoid(),
+            # nn.Dropout(.15),
             nn.Linear(FC_size, FC_size),
+            # nn.LeakyReLU(),
             nn.Sigmoid(),
             nn.Linear(FC_size, features_out),
         )
@@ -215,34 +216,32 @@ class YOLO_AXTrack(nn.Module):
             dists = np.load(filename)
         return dists
     
-    def compute_association_cost(self, D, Conf, alpha, beta, gamma, max_cost):
+    def compute_association_cost(self, D, Conf, alpha, beta, gamma, max_cost, conf_thr):
         def compute_cost(which, dist=None, t0_conf=None, t1_conf=None):
             if which in ('ID_continues', 'ID_created', 'ID_killed'):
                 if which == 'ID_continues': 
                     c = (alpha*dist) * (1/(1 + np.e**(beta*(t0_conf+t1_conf-1))))
                     c[no_IDt0_mask | no_IDt1_mask] = max_cost
-                    # c[no_IDt0_mask & no_IDt1_mask & diag_mask] = 0
+                    # c[(no_IDt0_mask & no_IDt1_mask) & diag_mask] = 0
 
                 elif which == 'ID_killed':
                     c = 1/(1 + np.e**(beta*(t0_conf-.5)))
                     c[no_IDt0_mask | ~diag_mask] = max_cost
-                    # c[no_IDt0_mask & diag_mask] = 0
 
                 elif which == 'ID_created':
                     c = 1/(1 + np.e**(beta*(t1_conf-.5)))
                     c[no_IDt1_mask | ~diag_mask] = max_cost
-                    # c[no_IDt1_mask & diag_mask] = 0
                 
             elif which in ('ID_t0_FP', 'ID_t1_FP'):
                 c = gamma*np.eye(dist.shape[0])
                 
                 if which == 'ID_t0_FP':
                     c[no_IDt0_mask | ~diag_mask] = max_cost
-                    c[no_IDt0_mask & diag_mask] = 0
+                    # c[no_IDt0_mask & diag_mask] = 0
                 
                 if which == 'ID_t1_FP':
                     c[no_IDt1_mask | ~diag_mask] = max_cost
-                    c[no_IDt1_mask & diag_mask] = 0
+                    # c[no_IDt1_mask & diag_mask] = 0
             return c.astype(float)
 
         capacity = D.shape[1]
@@ -266,30 +265,50 @@ class YOLO_AXTrack(nn.Module):
             ID_t0_FP = compute_cost('ID_t0_FP', det_dists, det_conf_t0, det_conf_t1)
             ID_t1_FP = compute_cost('ID_t1_FP', det_dists, det_conf_t0, det_conf_t1)
 
-            cost_t0t1 = np.block([[ID_cont,    ID_killed,    ID_t0_FP],
-                                  [ID_created, filler_block, filler_block],
-                                  [ID_t1_FP,   filler_block, filler_block]])
-            print(cost_t0t1.min())
-            print(cost_t0t1.max())
-            plt.imshow(cost_t0t1, cmap='nipy_spectral')
-            plt.show()
-            C.append(cost_t0t1)
-        return np.stack(C)
             
+            # ID_killed = np.where((ID_killed>gamma) & diag_mask & ~no_IDt0_mask & ~no_IDt0_mask, 0, ID_killed)
+            # ID_created = np.where((ID_created>gamma) & diag_mask & ~no_IDt1_mask & ~no_IDt1_mask, 0, ID_created)
 
+            filler_block_diag = np.where(diag_mask, 0, filler_block)
+            filler_block_mod = np.minimum(ID_killed,ID_created)
+            cost_t0t1 = np.block([[ID_cont,   ID_killed],
+                                  [ID_created, filler_block]])
+
+            C.append(cost_t0t1)
+        return C
+            
     def hungarian_algorithm(self, C):
+        # print(C)
+        # x_assignm = 0
+        # x_assignments = []
+        # for t0_id, t0_det in enumerate(C):
+        #     order = np.argsort(t0_det)
+        #     # t0_cost_sorted = t0_det[order]
+        #     # print(t0_cost_sorted)
+
+        #     while order[x_assignm] in x_assignments:
+        #         x_assignm += 1 
+        #     x_assignments.append(order[x_assignm])
+        #     print(x_assignments)
+        # print()
+        # print()
+        # print()
+        # print()
         return linear_sum_assignment(C)
 
-    def assign_ids(self, data, device, run_dir):
+    def assign_ids(self, data, device, run_dir, draw_assoc=True):
         thr = .5
         capacity = 400
         alpha, beta, gamma = 0.1, 6, 0.2
         max_dist = 400
         max_cost = (alpha*max_dist) * (1/(1 + np.e**(beta*(thr+thr-1))))
+        conf_thr = np.log((1/gamma) -1)/beta +0.5
 
         # aggregate all distances and confidences over timepoints
         prv_t_pred_target = np.full((capacity, 3), -1) 
         D, Conf, Coos = [], [], []
+        detections = []
+        images = []
         for t in range(data.sizet):
             # get a stack of tiles that makes up a frame
             img, target = data.get_stack('image', t)
@@ -303,13 +322,14 @@ class YOLO_AXTrack(nn.Module):
             pred_target = Y2pandas_anchors(pred_target, self.Sx, self.Sy, 
                                            self.tilesize, device, thr) 
 
-            # stitch the data from tile format back to frame format
-            img, target, pred_target = data.stitch_tiles(img, target, pred_target)
+            # stitch the prediction from tile format back to frame format
+            img, _, pred_target = data.stitch_tiles(img, target, pred_target)
+            images.append(img)
             
             # reorder detections by confidence
             conf_order = pred_target.conf.sort_values(ascending=False).index
             pred_target = pred_target.reindex(conf_order)
-            print(pred_target.shape)
+            pred_target.conf[pred_target.conf>1] = 1
             
             # for the association, a consistent length is needed, pad with -1 yx and 0 conf
             pad_to_cap = np.full((capacity-len(pred_target), 3), -1) 
@@ -318,57 +338,167 @@ class YOLO_AXTrack(nn.Module):
             # compute the a star distances between current frame- and followup
             # frame detections 
             fname = f'{run_dir}/astar_dists/dists_t{t:0>3}.npy'
-            dists = self.compute_astar_distances(prv_t_pred_target[:,1:], 
+            dists = self.compute_astar_distances(prv_t_pred_target[:,1:3], 
                                                  pred_target[:,1:], 
                                                  data.mask, max_dist,
                                                  filename=fname, 
                                                  from_cache=False)
 
+            dists[dists==max_dist] = max_dist*10
             D.append(dists)
-            Conf.append(prv_t_pred_target[:, 0])
-            Coos.append(prv_t_pred_target[:, 1:])
-            prv_t_pred_target = pred_target.copy()
-        D.append(D[0])
-        Conf.extend([prv_t_pred_target[:, 0], np.full(capacity, -1)])
-        Coos.extend([prv_t_pred_target[:, 1:], np.full((capacity,2), -1)])
-
-        Conf = np.stack(Conf)
-        D = np.stack(D)
-        Coos = np.stack(Coos)
-        print(Conf.shape, D.shape, Coos.shape)
-        print()
-
-        C = self.compute_association_cost(D, Conf, alpha, beta, gamma, max_cost)
-        # for t in range(C.shape[0]):
-        for t in range(len(C)):
-
-            fig,ax = plt.subplots(2,2, figsize=(13,18), tight_layout=True, sharex=True, sharey=True)
             
-            for i in range(2):
-                if not i:
-                    cost = C[t, :, :400]
-                else:
-                    cost = C[t, :400]
-                print(cost.shape)
-                print()
-                y_idx_assignm, x_idx_assignm = self.hungarian_algorithm(cost)
-                print(y_idx_assignm.shape)
-                print(x_idx_assignm.shape)
-                print()
+            # concatenate an empty column for id label later 
+            prv_t_pred_target = np.concatenate([prv_t_pred_target, np.full((400,1), -1)], 1)
+            detections.append(prv_t_pred_target)
+            prv_t_pred_target = pred_target.copy()
+            # at last timepoint, append last result and an empty target (virtual 
+            # timepoint that serves as sink
+            if t == data.sizet-1:
+                D.append(D[0])
+                prv_t_pred_target = np.concatenate([prv_t_pred_target, np.full((400,1), -1)], 1)
+                detections.extend([prv_t_pred_target, np.full((capacity,4), -1)])
 
-                fig.suptitle(cost[y_idx_assignm, x_idx_assignm].sum())
+        # a* distances
+        D = np.stack(D)
+        detections = np.stack(detections)
 
-                ass_plot = np.zeros_like(cost)
-                ass_plot[y_idx_assignm, x_idx_assignm] = 1
-                ax[0,i].set_title('assignment matrix')
-                ax[0,i].imshow(ass_plot, cmap='nipy_spectral')
+        # pass distances D, confidences and hyperparameters
+        C = self.compute_association_cost(D, detections[:,:, 0], alpha, beta, 
+                                          gamma, max_cost, conf_thr)
+
+        axon_id_generator = generate_axon_id()
+        animation_frames = []
+        fig, ax = plt.subplots(figsize=(19,13), facecolor='k')
+        fig.subplots_adjust(left=0, right=1, top=1, bottom=0)
+        ax.axis('off')
+        for t in range(len(D)):
+            c = C[t]
+            n_t0 = (~(detections[t] == -1).all(1)).sum()
+            n_t1 = (~(detections[t+1] == -1).all(1)).sum()
+            
+            print('\n\n\n\n', t)
+            print(detections[t])
+            print('n at t0: ', n_t0)
+            print(detections[t+1])
+            print('n at t1: ', n_t1)
+
+            # hack for capacity, remove later
+            nmax = max((n_t0, n_t1))
+            diag_mask = np.eye(nmax, dtype=bool)
+            
+            # solve linear assignment between all detections t0 to t1
+            contnd_cost = c[:nmax, :nmax]
+            y_assignm, x_assignm = self.hungarian_algorithm(contnd_cost)
+
+            # get the assignments associated cost 
+            contd_cost = c[y_assignm, x_assignm]
+            create_cost = c[capacity:capacity+nmax, :nmax][diag_mask].flatten()[:nmax]
+            kill_cost = c[:nmax, capacity:capacity+nmax][diag_mask].flatten()[:nmax]
+
+            # check where create or kill id cost is lower than contnd cost
+            kill_lower_cost = contd_cost >= kill_cost[y_assignm]
+            create_lower_cost = contd_cost >= create_cost[x_assignm]
+            not_contd = np.zeros_like(kill_lower_cost, bool)
+
+            # if both kill and create are lower than cntd cost, change x_assignm, y_assigmn
+            not_contd = kill_lower_cost & create_lower_cost
+            if t in (0, len(D)-1):
+                # for first and last time point (source, sink, always create/kill)
+                not_contd = kill_lower_cost | create_lower_cost
+            
+            y_contd = y_assignm[~not_contd]
+            x_contd = x_assignm[~not_contd]
+            y_kill = y_assignm[not_contd]
+            x_kill = capacity+y_kill
+            x_create = x_assignm[not_contd]
+            y_create = capacity+x_create
+
+            print('\ncntd:')
+            print(np.stack((y_contd, x_contd),-1))
+            print(c[y_contd, x_contd])
+            print(y_contd.shape)
+            print('\nkill:')
+            print(np.stack((y_kill, x_kill),-1))
+            print(c[y_kill, x_kill])
+            print(y_kill.shape)
+            print('\ncreate:')
+            print(np.stack((y_create, x_create),-1))
+            print(c[y_create, x_create])
+            print(y_create.shape)
+
+
+            # new id creation
+            new_axon_ids = [next(axon_id_generator) for _ in range(len(x_create))]
+            detections[t+1, x_create, 3] = new_axon_ids
+            # continued ids from last timepoint, t1
+            contd_axon_ids = detections[t, y_contd, 3]
+            detections[t+1, x_contd, 3] = contd_axon_ids
+
+            
+            xs_t0, ys_t0, ax_ids_t0 = detections[t, y_contd, 1:4].T
+            
+            t_animation_artists = []
+            if t < len(images):
+                im = ax.imshow(images[t][0,0], cmap='hot', animated=True)
+                for i, row in enumerate(detections[t+1]):
+                    if (row == -1).all():
+                        continue
+                    x, y, ax_id = row[1:]
+                    col = plt.cm.get_cmap('hsv', 20)(ax_id%20)
+                    path_coll = ax.scatter(x, y, color=col, s=500, facecolor='none', alpha=.4)
+                    t_animation_artists.append(path_coll)
+
+
+                    lbl = f'Axon_{ax_id:0>3}'
+                    if i in x_create:
+                        lbl += '_created'
+                    elif i in x_contd:
+                        lbl += '_cntd'
+
+                        if draw_assoc:
+                            prv_idx = np.where(ax_ids_t0==ax_id)[0][0]
+                        x_t0, y_t0 = xs_t0[prv_idx], ys_t0[prv_idx]
+                        path_coll = ax.plot((x,x_t0),(y,y_t0), color=col)
+                        print(type(path_coll))
+                        print(type(path_coll[0]))
+                        t_animation_artists.extend(path_coll)
+
+
+                    text = ax.text(x, y, lbl, color=col, alpha=.4, fontsize=10)
+                    t_animation_artists.append(text)
+                lbl = f'timepoint-{data.timepoints[t]:0>3}'
+                text = ax.text(100,100, lbl, fontsize=18, color='w')
                 
-                ax[0,i].set_title('cost matrix')
-                ax[1,i].imshow(cost, cmap='nipy_spectral')
+                t_animation_artists.extend([text, im])
+                animation_frames.append(t_animation_artists)
+                # fig.savefig(f'{run_dir}/associated_detections/{lbl}')
+                # plt.close()
 
-            plt.show()
-        exit()
+        from matplotlib import animation
+        animation_frames.extend([animation_frames[-1],animation_frames[-1],animation_frames[-1]])
+        ani = animation.ArtistAnimation(fig, animation_frames, interval=1000, 
+                                        blit=True, repeat_delay=3000)
+        # plt.show()
+        print('encoding video...', end='')
+        Writer = animation.writers['ffmpeg'](fps=1)
+        ani.save(f'{run_dir}/associated_detections/assoc_dets.mp4', writer=Writer)
 
+            
+            # ass = np.zeros_like(c)
+            # ass[y_contd, x_contd] = 1
+            # ass[y_kill, x_kill] = 1
+            # ass[y_create, x_create] = 1
+            # _, ax = plt.subplots(1, 2,  sharex=True, sharey=True, tight_layout=True, figsize=(13,18))
+            # ax[0].imshow(ass)
+            # ax[1].imshow(c, vmin=0, vmax=10, cmap='nipy_spectral')
+            # tot_c = c[y_assignm, x_assignm].sum().round()
+            # plt.title(tot_c)
+            # plt.show()
+
+        return detections
+
+
+             
 
 
     def predict_all(self, dataset, params, dest_dir=None, show=False, 

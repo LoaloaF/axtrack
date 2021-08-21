@@ -151,7 +151,7 @@ def load_checkpoint(OUTPUT_DIR, load_model, model, optimizer, device):
     checkpoint = torch.load(file, map_location=torch.device(device))
     model.load_state_dict(checkpoint["state_dict"])
     optimizer.load_state_dict(checkpoint["optimizer"])
-    print('Done.')
+    print(f' - {file} - Done.')
 
 def create_logging_dirs(exp_name):
     EXP_DIR = f'{OUTPUT_DIR}/runs/{exp_name}'
@@ -298,3 +298,22 @@ def get_astar_path(source, target, weights, return_path=False):
         path = sparse.coo_matrix((ones, (row, cols)), shape=weights.shape, dtype=bool)
         return path_coo.shape[0], path
     return path_coo.shape[0]
+
+def rand_nRGB(n):
+    np.random.seed(42)
+    r, g, b = np.random.randint(0, 2**8, (3,n))
+    return r*2**16 + g*2**8 + b
+
+def nRGB2Hex(folded_RGB):
+    if folded_RGB == -1:
+        folded_RGB = rand_nRGB(1)[0]
+    r, rem = divmod(folded_RGB, 2**16)
+    g, b = divmod(rem, 2**8)
+    hex_rgb = f"#{r:02x}{g:02x}{b:02x}"
+    return hex_rgb
+
+def generate_axon_id():
+    axon_id = 0
+    while True:
+        yield axon_id
+        axon_id += 1

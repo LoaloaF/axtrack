@@ -15,7 +15,7 @@ from torch.utils.data import SubsetRandomSampler
 from config import RAW_DATA_DIR, OUTPUT_DIR, CODE_DIR, PYTORCH_DIR, SPACER
 from model import YOLO_AXTrack
 from loss import YOLO_AXTrack_loss
-from core_functionality import get_default_parameters, setup_model, setup_data, run_epoch # train_fn, test_fn,
+from core_functionality import get_default_parameters, setup_model, setup_data, run_epoch
 from dataset_class import Timelapse
 from utils import (
     create_logging_dirs,
@@ -32,42 +32,36 @@ from utils import (
     )
 from plotting import plot_preprocessed_input_data, plot_training_process
 
-def evaluate_run(exp_name, run, recreate=True, use_prepend=False, 
-                 include_processing=True, include_training=True,
-                 include_ID_association=False, which_data='test'):
-
+def evaluate_run(exp_name, run, which='training', recreate=True, 
+                 use_prepend=False, which_data='train'):
     EXP_DIR = f'{OUTPUT_DIR}/runs/{exp_name}/'
     RUN_DIR = f'{EXP_DIR}/{[rd for rd in os.listdir(EXP_DIR) if run in rd][0]}'
-    METRICS_DIR = f'{RUN_DIR}/metrics/'
-    PREPROC_DATA_DIR = f'{RUN_DIR}/preproc_data/'
-
     parameters = load_parameters(exp_name, run)
     torch.manual_seed(parameters['SEED'])
     params2img(f'{RUN_DIR}/params.png', parameters, show=False)
     print(f'Evaluating model: {exp_name}, {run}')
     print(params2text(parameters))
 
-    if include_processing:
+    if which == 'preprocessing':
+        PREPROC_DATA_DIR = f'{RUN_DIR}/preproc_data/'
         preproc_file = f'{PREPROC_DATA_DIR}/preprocessed_data.csv'
-        print(preproc_file)
         if os.path.exists(preproc_file):
-            plot_preprocessed_input_data(preproc_file, show=False)
-        else:
-            print('No preprocessed data file found.\n\n\n')
-            # save_preproc_metrics(RUN_DIR, train_data, test_data)
-            plot_preprocessed_input_data(preproc_file, dest_dir=RUN_DIR, show=False)
+            plot_preprocessed_input_data(preproc_file, dest_dir=RUN_DIR, show=True)
 
-    if include_training:
+    if which == 'training':
+        METRICS_DIR = f'{RUN_DIR}/metrics/'
         training_file = f'{METRICS_DIR}/all_epochs.pkl'
         if use_prepend:
             training_file = f'{METRICS_DIR}/all_epochs_prepend.pkl'
         if os.path.exists(training_file) and not recreate:
-            plot_training_process([training_file], [parameters], dest_dir=RUN_DIR, show=True)
+            plot_training_process([training_file], [parameters], dest_dir=RUN_DIR, 
+                                  show=True)
         else:
             training_file = create_lossovertime_pkl(METRICS_DIR)
-            plot_training_process([training_file], [parameters], dest_dir=RUN_DIR, show=False)
+            plot_training_process([training_file], [parameters], dest_dir=RUN_DIR, 
+                                   show=False)
     
-    if include_ID_association:
+    if which == 'ID_association':
         parameters = to_device_specifc_params(parameters, get_default_parameters())
         parameters['LOAD_MODEL'] = [exp_name, run, 'latest']   
         parameters['USE_TRANSFORMS'] = []
@@ -79,6 +73,7 @@ def evaluate_run(exp_name, run, recreate=True, use_prepend=False,
         data.construct_tiles(parameters['DEVICE'])
 
         os.makedirs(f'{RUN_DIR}/astar_dists', exist_ok=True)
+        os.makedirs(f'{RUN_DIR}/associated_detections', exist_ok=True)
         model.assign_ids(data, parameters['DEVICE'], RUN_DIR)
 
     
@@ -142,8 +137,6 @@ def run_experiment(exp_name, parameters, save_results=True):
     train_data, test_data = setup_data(parameters)
     # train_data.construct_tiles(parameters['DEVICE'])
     # test_data.construct_tiles(parameters['DEVICE'])
-    # model.assign_ids(test_data)
-    # exit()
 
     print_log = []
     for epoch in range(parameters['EPOCHS']):
@@ -163,14 +156,14 @@ def run_experiment(exp_name, parameters, save_results=True):
         print_log.append(epoch_log.groupby(axis=1, level=1).mean().unstack().rename(epoch))
         
         if save_results:
-            # save preprocessing data for plotting 
+            # save preprocessing of input data for plotting 
             if epoch == 0 and parameters['PLOT_PREPROC']:
                 save_preproc_metrics(RUN_DIR, train_data, test_data)
             # save the current epoch loss
             epoch_log.to_csv(f'{METRICS_DIR}/E{epoch:0>3}.csv')
             # save the model every 100 Epochs
             if epoch and not (epoch % 500):
-                save_checkpoint(model, optimizer, filename=f'{MODELS_DIR}/E{epoch:0>3}.pth')
+                save_checkpoint(model, optimizer, filename=f'{MODELS_DIR}/E{epoch:0>4}.pth')
             
             # check the model predictions every 20 Epochs
             # every 20th epoch, check how the model performs in eval model
@@ -200,30 +193,19 @@ if __name__ == '__main__':
     # print_models()
     # exit()
 
-    # clean_rundirs(exp_name, delete_runs=1, keep_only_latest_model=False)
+    clean_rundirs(exp_name, delete_runs=56, keep_only_latest_model=True)
+    
     # prepend_prev_run(exp_name, 'run09', 'run23')
-    # compare_two_runs(exp_name, ['run58', 'run59'])
-    # evaluate_run(exp_name, 'run66', recreate=False)
-    # evaluate_run(exp_name, 'run67', recreate=False)
-    # evaluate_run(exp_name, 'run68', recreate=False)
-
-    evaluate_run(exp_name, 'run26', include_processing=False, include_training=False, 
-                 include_ID_association=True)
-
-    # new_ARCHITECTURE = [
-    #     #kernelsize, out_channels, stride, groups, 2nd list: concat to features inp
-    #     [(3, 2,  2,  1),      # y-x out: 256
-    #      (3, 4,  2,  1),      # y-x out: 1282
-    #      (3, 8,  1,  1),      # y-x out: 128
-    #      (3, 8,  2,  1)],     # y-x out: 64
-    #     [(3, 8,  2,  1),      # y-x out: 32
-    #      (3, 16, 2,  1)],     # y-x out: 16
-    # ]
+    evaluate_run(exp_name, 'run94', which='preprocessing', recreate=False)
+    evaluate_run(exp_name, 'run95', recreate=False)
+    evaluate_run(exp_name, 'run96', recreate=False)
+    # compare_two_runs(exp_name, ['run96', 'run59'])
+    evaluate_run(exp_name, 'run59', which='id_association')
 
     parameters = copy(default_parameters)
     parameters['CACHE'] = OUTPUT_DIR
     # parameters['DEVICE'] = 'cpu'
-    # parameters['FROM_CACHE'] = OUTPUT_DIR
+    parameters['FROM_CACHE'] = None
     parameters['USE_MOTION_DATA'] = 'exclude'
     parameters['NUM_WORKERS'] = 4
     parameters['BATCH_SIZE'] = 32
@@ -232,20 +214,12 @@ if __name__ == '__main__':
     parameters['DROP_LAST'] = False
     parameters['USE_TRANSFORMS'] = ['vflip', 'hflip', 'rot', 'translateY', 'translateX']
     parameters['USE_TRANSFORMS'] = []
+    parameters['TEST_TIMEPOINTS'] = [4,5]
+    parameters['TRAIN_TIMEPOINTS'] = [11,12,13]
     # parameters['ARCHITECTURE'] = 'resnet'
-    parameters['NOTES'] = 'trying ID stuff'
+    parameters['NOTES'] = 'trying FP TP stuff'
     # run_experiment(exp_name, parameters, save_results=False)
     
-    new_ARCHITECTURE = [
-        #kernelsize, out_channels, stride, concat_to_feature_vector
-        [(3, 20,  2,  1),      # y-x out: 256
-         (3, 40,  2,  1),      # y-x out: 128
-
-         (3, 80,  2,  1),      # y-x out: 64
-         (3, 80,  1,  1),     # y-x out: 64
-         (3, 80,  2,  1)],      # y-x out: 32
-         [(3, 160, 2,  1)],     # y-x out: 16
-    ]
     new_ARCHITECTURE_deeper = [
         #kernelsize, out_channels, stride, concat_to_feature_vector
 
@@ -261,234 +235,52 @@ if __name__ == '__main__':
          
          [(3, 160, 2,  1)],     # y-x out: 16
     ]
-    new_ARCHITECTURE_moreCs = [
+    new_ARCHITECTURE_deeper_Maxpool = [
         #kernelsize, out_channels, stride, concat_to_feature_vector
-        [(3, 20,  2,  1),      # y-x out: 256
-         (3, 40,  2,  1),      # y-x out: 128
-         
-         # everyone more Cs
-         (3, 120,  2,  1),      # y-x out: 64
-         (3, 120,  1,  1),     # y-x out: 64
-         (3, 160,  2,  1)],      # y-x out: 32
-         [(3, 240, 2,  1)],     # y-x out: 16
-    ]
-    new_ARCHITECTURE_evenDdeeper = [
-        #kernelsize, out_channels, stride, concat_to_feature_vector
+
         [(3, 20,  2,  1),      # y-x out: 256
          (3, 40,  2,  1),      # y-x out: 128
 
-         # eeryone more Cs2
-         (3, 80,  2,  1),      # y-x out: 64
+         (3, 80,  1,  1),      # y-x out: 64
+         'M',
          (3, 80,  1,  1),     # y-x out: 64
-         (3, 80,  2,  1),     # y-x out: 32
+         (3, 80,  1,  1),      #   y-x out: 32
+         'M',
          
          # new
-         (3, 80,  1,  1),     # y-x out: 32
          (3, 80,  1,  1),      # y-x out: 32
+         (3, 80,  1,  1),      # y-x out: 32
+         'M'],
          
-         (3, 120,  1,  1),      # y-x out: 32
-         (3, 120,  1,  1)],      # y-x out: 32
-         
-         [(3, 120, 2,  1)],     # y-x out: 16
+         [(3, 160, 1,  1),],     # y-x out: 16
     ]
-    
+
     # ========== GPU experiments ===========
     parameters = load_parameters(exp_name, 'run59')
-    parameters['DEVICE'] = 'cuda:1'
+    parameters['DEVICE'] = 'cuda:5'
     parameters['EPOCHS'] = 2001
-    parameters['NUM_WORKERS'] = 4
-    parameters['ARCHITECTURE'] = new_ARCHITECTURE_evenDdeeper
-    parameters['NOTES'] = 'r59params deeper arch.'
+    parameters['NUM_WORKERS'] = 5
+    parameters['NOTES'] = 'r59params LeakyReLU 0.01  everywhere'
     # run_experiment(exp_name, parameters, save_results=True)
     
     parameters = load_parameters(exp_name, 'run59')
-    parameters['DEVICE'] = 'cuda:0'
+    parameters['DEVICE'] = 'cuda:1'
     parameters['EPOCHS'] = 2001
-    parameters['NUM_WORKERS'] = 4
-    parameters['NOTES'] = 'r59params Dropout 0.2'
+    parameters['NUM_WORKERS'] = 3
+    parameters['NOTES'] = 'r59params Dropout(FC now) 0.5, higher'
     # run_experiment(exp_name, parameters, save_results=True)
     
     parameters = load_parameters(exp_name, 'run59')
     parameters['DEVICE'] = 'cuda:2'
     parameters['EPOCHS'] = 2001
-    parameters['NUM_WORKERS'] = 4
-    parameters['WEIGHT_DECAY'] = 5e-5
-    parameters['NOTES'] = 'r59params lower weight decay'
+    parameters['NUM_WORKERS'] = 3
+    parameters['NOTES'] = 'TPR thr (all4) r59params Dropout(FC now) 0.15, lower'
     # run_experiment(exp_name, parameters, save_results=True)
     
     parameters = load_parameters(exp_name, 'run59')
     parameters['DEVICE'] = 'cuda:3'
     parameters['EPOCHS'] = 2001
-    parameters['NUM_WORKERS'] = 4
-    parameters['WEIGHT_DECAY'] = 5e-3
-    parameters['NOTES'] = 'r59params higher weight decay'
-    # run_experiment(exp_name, parameters, save_results=True)
-    
-
-
-
-
-
-    
-    parameters = copy(default_parameters)
-    parameters['FROM_CACHE'] = OUTPUT_DIR
-    parameters['NUM_WORKERS'] = 6
-    parameters['EPOCHS'] = 3001
-    parameters['LR'] = 5e-4
-    parameters['USE_MOTION_DATA'] = 'exclude'
-    parameters['ARCHITECTURE'] = new_ARCHITECTURE_deeper
-    parameters['LR_DECAYRATE'] = 20
-    parameters['NOTES'] = 'deeper.Arch., 1024x1024, TPR thr, Exp5-decay=20 (high LRs)'
-    # run_experiment(exp_name, parameters, save_results=True)
-    
-    parameters = copy(default_parameters)
-    parameters['DEVICE'] = 'cuda:2'
-    parameters['FROM_CACHE'] = OUTPUT_DIR
     parameters['NUM_WORKERS'] = 3
-    parameters['EPOCHS'] = 3001
-    parameters['LR'] = 5e-4
-    parameters['USE_MOTION_DATA'] = 'exclude'
-    parameters['ARCHITECTURE'] = new_ARCHITECTURE_deeper
-    parameters['LR_DECAYRATE'] = 15
-    parameters['NOTES'] = 'deeper.Arch., 1024x1024, TPR thr, Exp5-decay=15 (mid LRs)'
+    parameters['ARCHITECTURE'] = new_ARCHITECTURE_deeper_Maxpool
+    parameters['NOTES'] = 'r59params MaxPoolArch.'
     # run_experiment(exp_name, parameters, save_results=True)
-    
-    parameters = copy(default_parameters)
-    parameters['DEVICE'] = 'cuda:3'
-    parameters['FROM_CACHE'] = OUTPUT_DIR
-    parameters['NUM_WORKERS'] = 3
-    parameters['EPOCHS'] = 3001
-    parameters['LR'] = 5e-4
-    parameters['USE_MOTION_DATA'] = 'exclude'
-    parameters['ARCHITECTURE'] = new_ARCHITECTURE_deeper
-    parameters['LR_DECAYRATE'] = 10
-    parameters['NOTES'] = 'deeper.Arch., 1024x1024, TPR thr, Exp5-decay=10 (low LRs)'
-    # run_experiment(exp_name, parameters, save_results=True)
-    
-
-
-
-
-
-
-
-
-
-
-    parameters = copy(default_parameters)
-    parameters['DEVICE'] = 'cuda:1'
-    parameters['FROM_CACHE'] = OUTPUT_DIR
-    parameters['NUM_WORKERS'] = 3
-    parameters['EPOCHS'] = 1501
-    parameters['LR'] = 1e-4
-    parameters['USE_MOTION_DATA'] = 'exclude'
-    parameters['ARCHITECTURE'] = new_ARCHITECTURE_deeper
-    parameters['NOTES'] = 'deeper.Arch., 1024x1024'
-    # run_experiment(exp_name, parameters, save_results=True)
-    
-    parameters = copy(default_parameters)
-    parameters['DEVICE'] = 'cuda:2'
-    parameters['FROM_CACHE'] = OUTPUT_DIR
-    parameters['NUM_WORKERS'] = 3
-    parameters['EPOCHS'] = 1501
-    parameters['LR'] = 1e-4
-    parameters['USE_MOTION_DATA'] = 'exclude'
-    parameters['ARCHITECTURE'] = new_ARCHITECTURE_deeper
-    parameters['NOTES'] = 'deeper.Arch., 1024xDx1024'
-    # run_experiment(exp_name, parameters, save_results=True)
-    
-    parameters = copy(default_parameters)
-    parameters['DEVICE'] = 'cuda:3'
-    parameters['FROM_CACHE'] = OUTPUT_DIR
-    parameters['NUM_WORKERS'] = 3
-    parameters['EPOCHS'] = 1501
-    parameters['LR'] = 1e-4
-    parameters['USE_MOTION_DATA'] = 'exclude'
-    parameters['ARCHITECTURE'] = new_ARCHITECTURE_deeper
-    parameters['NOTES'] = 'deeper.Arch., 1024xDx1024xD'
-    # run_experiment(exp_name, parameters, save_results=True)
-
-
-
-
-
-
-
-
-
-    parameters = copy(default_parameters)
-    parameters['DEVICE'] = 'cuda:1'
-    parameters['FROM_CACHE'] = OUTPUT_DIR
-    parameters['NUM_WORKERS'] = 3
-    parameters['EPOCHS'] = 751
-    parameters['LR'] = 1e-4
-    parameters['ARCHITECTURE'] = 'mobilenet'
-    parameters['USE_MOTION_DATA'] = 'exclude'
-    parameters['NOTES'] = 'mobilenet, pretrained'
-    # run_experiment(exp_name, parameters, save_results=True)
-
-    parameters = copy(default_parameters)
-    parameters['DEVICE'] = 'cuda:2'
-    parameters['FROM_CACHE'] = OUTPUT_DIR
-    parameters['NUM_WORKERS'] = 3
-    parameters['EPOCHS'] = 751
-    parameters['LR'] = 1e-4
-    parameters['USE_MOTION_DATA'] = 'exclude'
-    parameters['ARCHITECTURE'] = 'alexnet'
-    parameters['NOTES'] = 'alexnet, pretrained'
-    # run_experiment(exp_name, parameters, save_results=True)
-
-    parameters = copy(default_parameters)
-    parameters['DEVICE'] = 'cuda:3'
-    parameters['FROM_CACHE'] = OUTPUT_DIR
-    parameters['NUM_WORKERS'] = 3
-    parameters['EPOCHS'] = 751
-    parameters['LR'] = 1e-4
-    parameters['USE_MOTION_DATA'] = 'include'
-    parameters['ARCHITECTURE'] = new_ARCHITECTURE_moreCs
-    parameters['NOTES'] = 'base, more Cs, incl motion'
-    # run_experiment(exp_name, parameters, save_results=True)
-
-
-
-
-
-
-
-
-
-
-    # parameters = copy(default_parameters)
-    # parameters['DEVICE'] = 'cuda:1'
-    # parameters['FROM_CACHE'] = OUTPUT_DIR
-    # parameters['NUM_WORKERS'] = 1
-    # parameters['EPOCHS'] = 1001
-    # parameters['LR'] = 5e-5
-    # parameters['ARCHITECTURE'] = old_ARCHITECTURE
-    # parameters['USE_MOTION_DATA'] = 'include'
-    # parameters['LOAD_MODEL'] = [exp_name, 'run10', '1000']   
-    # parameters['NOTES'] = 'old arch, incl mot, contd.10, LR 5e-5, ' #run25
-    # # run_experiment(exp_name, parameters, save_results=True)
-
-    # parameters = copy(default_parameters)
-    # parameters['DEVICE'] = 'cuda:2'
-    # parameters['FROM_CACHE'] = OUTPUT_DIR
-    # parameters['NUM_WORKERS'] = 3
-    # parameters['EPOCHS'] = 2001
-    # parameters['LR'] = 1e-4
-    # parameters['ARCHITECTURE'] = new_ARCHITECTURE_nogrouping
-    # parameters['USE_MOTION_DATA'] = 'exclude'
-
-    # parameters['NOTES'] = 'new arch, no motion, no grouping' #run26
-    # # run_experiment(exp_name, parameters, save_results=True)
-    
-    # parameters = copy(default_parameters)
-    # parameters['DEVICE'] = 'cuda:3'
-    # parameters['FROM_CACHE'] = OUTPUT_DIR
-    # parameters['NUM_WORKERS'] = 3
-    # parameters['EPOCHS'] = 2001
-    # parameters['ARCHITECTURE'] = new_ARCHITECTURE_nofeaturecat
-    # parameters['LR'] = 1e-4
-    # parameters['USE_MOTION_DATA'] = 'exclude'
-    # parameters['NOTES'] = 'new arch, no motion, no featureCat'  #run27
-    # # run_experiment(exp_name, parameters, save_results=True)

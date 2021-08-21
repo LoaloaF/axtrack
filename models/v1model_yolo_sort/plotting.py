@@ -84,10 +84,9 @@ def plot_training_process(training_files, parameter_list, dest_dir=None,
         # data = pd.concat([data, data2], axis=1)
             
         x_epochs = data.columns.unique(0)
-        print(data)
 
         # for i, name in enumerate(data.index):
-        for i in range(data.shape[0]+1):
+        for i in range(6):
             if i<data.shape[0]:
                 name = data.index[i]
             ax = axes[i]
@@ -109,7 +108,8 @@ def plot_training_process(training_files, parameter_list, dest_dir=None,
                 if i:
                     ax.tick_params(left=False, labelleft=False)
             else:
-                ax.set_ylim (0,40)
+                pass
+                # ax.set_ylim (0,40)
 
             if i in (4, 5):
                 if split_test_train:
@@ -128,36 +128,51 @@ def plot_training_process(training_files, parameter_list, dest_dir=None,
                 test_nbatches = test_loss.notna().sum(1)
 
                 losses, nbatchess, colors = (train_loss, test_loss), (train_nbatches, test_nbatches), (train_col, test_col)
-                for data_i in range(2):
-                    loss, nbatches, color = losses[data_i], nbatchess[data_i], colors[data_i]
-                    if split_test_train and data_i == 0 and i == 5:
-                        continue
+               
+               
+                # for data_i in range(2):
+                #     loss, nbatches, color = losses[data_i], nbatchess[data_i], colors[data_i]
+                #     if split_test_train and data_i == 0 and i == 5:
+                #         continue
 
-                    loss_allsteps = loss.stack()
-                    # flat index but still in range 0-max_epoch
-                    loss_allsteps.index = [E+ b/(nbatches[E]+1) for E,b in loss_allsteps.index]
+                #     loss_allsteps = loss.stack()
+                #     # flat index but still in range 0-max_epoch
+                #     loss_allsteps.index = [E+ b/(nbatches[E]+1) for E,b in loss_allsteps.index]
                     
-                    # plot indicate where new epoch starts
-                    ax.vlines(x_epochs, 0, 40, linewidth=.8, alpha=.4, color='k')
-                    # plot every single batch loss
-                    ax.plot(loss_allsteps.index, loss_allsteps, 'o-', alpha=.6,
-                            markersize=.6, linewidth=.5, color=color, )
-                    # plot how many batches the epoch had
-                    for epoch_idx, nb in nbatches.iteritems():
-                        col = 'purple' if split_test_train else color
-                        ax.plot((epoch_idx, epoch_idx+1), (nb,nb), 
-                                color=col, linewidth=2, alpha=.7)
+                #     # plot indicate where new epoch starts
+                #     ax.vlines(x_epochs, 0, 40, linewidth=.8, alpha=.4, color='k')
+                #     # plot every single batch loss
+                #     ax.plot(loss_allsteps.index, loss_allsteps, 'o-', alpha=.6,
+                #             markersize=.6, linewidth=.5, color=color, )
+                #     # plot how many batches the epoch had
+                #     for epoch_idx, nb in nbatches.iteritems():
+                #         col = 'purple' if split_test_train else color
+                #         ax.plot((epoch_idx, epoch_idx+1), (nb,nb), 
+                #                 color=col, linewidth=2, alpha=.7)
 
-                    if split_test_train and data_i == 0 and i == 4:
-                        break
-                # if not split_test_train and i == 4:
-                #     continue
-                    # else:
-                    #     ax.boxplot(train_loss.dropna(1).T, boxprops={'linewidth':.3}, 
-                    #             whiskerprops={'linewidth':.3}, showfliers=False,
-                    #             medianprops={'color':train_col})
-                    #     ax.scatter(x_epochs+1, nbatches, label='test', s=8, marker='o', 
-                    #                     linewidth=1, alpha=.5, color='purple')
+                #     if split_test_train and data_i == 0 and i == 4:
+                #         break
+                
+                # if split_test_train and i == 4:
+                #     precision = data.loc['total_precision_0.80', (slice(None), 'train')]
+                #     precision = precision.droplevel(1).unstack().sort_index(axis=1).mean(1)
+                #     precision = precision.ewm(span=25).mean()
+                #     recall = data.loc['total_recall_0.80', (slice(None), 'train')]
+                #     recall = recall.droplevel(1).unstack().sort_index(axis=1).mean(1)
+                #     recall = recall.ewm(span=25).mean()
+                #     ax.plot(recall, color=train_col, alpha=.5, label='train recall')
+                #     ax.plot(precision, color=train_col, alpha=.5, linestyle='dashed', label='train precision')
+                    
+                #     precision = data.loc['total_precision_0.80', (slice(None), 'test')]
+                #     precision = precision.droplevel(1).unstack().sort_index(axis=1).mean(1)
+                #     precision = precision.ewm(span=25).mean()
+                #     recall = data.loc['total_recall_0.80', (slice(None), 'test')]
+                #     recall = recall.droplevel(1).unstack().sort_index(axis=1).mean(1)
+                #     recall = recall.ewm(span=25).mean()
+                #     ax.plot(recall, color=test_col, alpha=.5, label='test recall')
+                #     ax.plot(precision, color=test_col, alpha=.5, linestyle='dashed', label='test recall')
+                #     ax.legend()
+
 
             else:
                 train_dat = train_dat.ewm(span=18).mean()
