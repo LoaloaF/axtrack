@@ -6,12 +6,11 @@ import numpy as np
 from scipy.optimize import linear_sum_assignment
 from utils import get_astar_path, rand_nRGB, nRGB2Hex, generate_axon_id
 
-import scipy.sparse as sparse
-from scipy.signal import convolve
-
 import matplotlib.pyplot as plt
+from matplotlib import animation
+
 from utils import Y2pandas_anchors
-from plotting import draw_tile
+from plotting import draw_frame
 
 from torchvision import datasets, models, transforms
 
@@ -311,10 +310,10 @@ class YOLO_AXTrack(nn.Module):
         images = []
         for t in range(data.sizet):
             # get a stack of tiles that makes up a frame
-            img, target = data.get_stack('image', t)
-            img, target = img.to(device), target.to(device)
+            X, target = data.get_stack('image', t)
+            X, target = X.to(device), target.to(device)
             # use the model to detect axons, output here follows target.shape
-            pred_target = self.detect_axons_in_frame(img)
+            pred_target = self.detect_axons_in_frame(X)
 
             # convert the detected anchors in YOLO format to normal ones
             target = Y2pandas_anchors(target, self.Sx, self.Sy, self.tilesize, 
@@ -323,7 +322,7 @@ class YOLO_AXTrack(nn.Module):
                                            self.tilesize, device, thr) 
 
             # stitch the prediction from tile format back to frame format
-            img, _, pred_target = data.stitch_tiles(img, target, pred_target)
+            img, _, pred_target = data.stitch_tiles(X, target, pred_target)
             images.append(img)
             
             # reorder detections by confidence
@@ -474,7 +473,6 @@ class YOLO_AXTrack(nn.Module):
                 # fig.savefig(f'{run_dir}/associated_detections/{lbl}')
                 # plt.close()
 
-        from matplotlib import animation
         animation_frames.extend([animation_frames[-1],animation_frames[-1],animation_frames[-1]])
         ani = animation.ArtistAnimation(fig, animation_frames, interval=1000, 
                                         blit=True, repeat_delay=3000)
@@ -494,79 +492,62 @@ class YOLO_AXTrack(nn.Module):
             # tot_c = c[y_assignm, x_assignm].sum().round()
             # plt.title(tot_c)
             # plt.show()
-
         return detections
 
 
-             
-
-
-    def predict_all(self, dataset, params, dest_dir=None, show=False, 
-                    save_sinlge_tiles=True):
+    def predict_all(self, data, device, anchor_conf_thr, dest_dir=None, show=False, 
+                    save_single_tiles=True, animated=False, **kwargs):
         print('Computing [eval] model output...', end='')
-        n_tiles = dataset.X_tiled.shape[1]
+        n_tiles = data.X_tiled.shape[1]
+        if animated:
+            anim_frames = []
+            animated = plt.subplots(1, figsize=(data.sizex/350, data.sizey/350), 
+                                    facecolor='#242424')
+
         # iterate the timepoints
-        for t in range(dataset.sizet):
-            # make a figure that plots the tiles as axis
-            fig, axes = plt.subplots(dataset.ytiles, dataset.xtiles, facecolor='#242424',
-                                    figsize=(dataset.sizex/400, dataset.sizey/400))
-            fig.subplots_adjust(wspace=0, hspace=0, top=.99, bottom=.01, 
-                                left=.01, right=.99)
-            for ax in axes.flatten():
-                ax.tick_params(left=False, labelleft=False, bottom=False, labelbottom=False)
-                ax.set_facecolor('#242424')
-                ax.spines['right'].set_color('#787878')
-                ax.spines['left'].set_color('#787878')
-                ax.spines['top'].set_color('#787878')
-                ax.spines['bottom'].set_color('#787878')
+        for t in range(data.sizet):
+            lbl = f'{data.name}_t{t:0>2}|{data.sizet:0>2}_({data.timepoints[t]})'
+            print(lbl, end='...', flush=True)
 
-            # get the data: both image and targets
-            X, target = dataset.get_stack('image', t)
-            X = X.to(params['DEVICE'])
-            target = target.to(params['DEVICE'])
+            # get a stack of tiles that makes up a frame
+            X, target = data.get_stack('image', t)
+            X, target = X.to(device), target.to(device)
+            # use the model to detect axons, output here follows target.shape
+            pred_target = self.detect_axons_in_frame(X)
 
-            # predict anchor coos
-            self.eval()
-            with torch.no_grad():
-                pred = self(X).reshape(n_tiles, self.Sx, self.Sy, -1)
-            self.train()
-            pred_anchors = Y2pandas_anchors(pred, self.Sx, self.Sy, self.tilesize, 
-                                            params['DEVICE'], params['BBOX_THRESHOLD'])
-            
-            # get the labels and convert to anchors like above
-            target_anchors = Y2pandas_anchors(target, dataset.Sx, 
-                                              dataset.Sy, dataset.tilesize, 
-                                              params['DEVICE'], 1)
-            
-            # for the current timepoints, iter non-empty tiles
-            print(t+1, end='...t:', flush=True)
-            for tile in range(n_tiles):
-                # get the original coordinate of the tile
-                ytile_coo, xtile_coo = dataset.flat_tile_idx2yx_tile_idx(tile)
-                ax = axes[ytile_coo, xtile_coo]
-                
-                # slice to tile and correct colorcolorchanels
-                rgb_tile = torch.moveaxis(X[tile, dataset.t_center], 0, -1).detach().cpu()
-                target_anchors_tile = target_anchors[tile]
-                pred_anchors_tile = pred_anchors[tile]
+            # convert the detected anchors in YOLO format to normal ones
+            target = Y2pandas_anchors(target, self.Sx, self.Sy, self.tilesize, 
+                                      device, 1) 
+            pred_target = Y2pandas_anchors(pred_target, self.Sx, self.Sy, 
+                                           self.tilesize, device, anchor_conf_thr) 
 
-                # draw tile, also save the single tile images
-                draw_tile(rgb_tile, target_anchors_tile, pred_anchors_tile, 
-                          tile_axis=ax, draw_YOLO_grid=(self.Sx, self.Sy),
-                          dest_dir=dest_dir if save_sinlge_tiles else None,
-                          fname=f'{dataset.name}_tile{tile:0>2}_t{t:0>2}')
+            # stitch the prediction from tile format back to frame format and draw the frame
+            X_stch, target_stch, pred_target_stch = data.stitch_tiles(X, target, pred_target)
+            # draw stitched frame
+            frame_artists = draw_frame(X_stch, target_stch, pred_target_stch, 
+                                       animation=animated, dest_dir=dest_dir, 
+                                       fname=lbl, show=show, **kwargs)
+            if animated:
+                anim_frames.append(frame_artists)
 
-                # add label
-                ax.text(.1, .93, f't: {t}', transform=fig.transFigure, 
-                        fontsize=16, color='w')
-                ax.text(.2, .93, ('solid=label, dashed=predicted (larger means '
-                        'more confident)'), transform=fig.transFigure, 
-                        fontsize=10, color='w')
+            # also save the single tile images
+            if save_single_tiles:
+                # for the current timepoints, iter non-empty tiles
+                for tile in range(n_tiles):
+                    draw_frame(X[tile, data.get_tcenter_idx()], target[tile],
+                               pred_target[tile], draw_YOLO_grid=(self.Sx, self.Sy),
+                               dest_dir=dest_dir, show=False, 
+                               fname=f'{lbl}_tile{tile:0>2}|{n_tiles:0>2}')
+
+        if animated:
+            anim_frames = [anim_frames[0]*3] + anim_frames + [anim_frames[-1]*3]
+            ani = animation.ArtistAnimation(animated[0], anim_frames, interval=1000, 
+                                            blit=True, repeat_delay=3000)
             if show:
                 plt.show()
-            if dest_dir:
-                fig.savefig(f'{dest_dir}/{dataset.name}_t{t:0>2}.png')
-            plt.close()
+            Writer = animation.writers['imagemagick'](fps=1)
+            ani.save(f'{dest_dir}/assoc_dets.mp4', writer=Writer)
+            print(f'{data.name} animation saved.')
         print(' - Done.')
 
 
@@ -601,5 +582,3 @@ if __name__ == '__main__':
 
     # print(OUT)
     print(OUT.shape)
-    
-

@@ -1,4 +1,6 @@
 import matplotlib.pyplot as plt
+from matplotlib.patches import Rectangle
+
 import pandas as pd
 import numpy as np
 
@@ -14,23 +16,33 @@ def plot_preprocessed_input_data(preporc_dat_csv, dest_dir=None, show=False):
     axes = [fig.add_subplot(spec[row,col]) for row in (0,1,2) for col in (0,1,3,4)]
 
     for i, name in enumerate(data.columns.unique(1)):
-        for j, which_data in enumerate(('train', 'test')):
+        for j, which_timpoint in enumerate(('t_0', 't_-1')):
+        # for j, which_data in enumerate(('train', 'test')):
             ax = axes[i*2+j]
 
             ax.spines['top'].set_visible(False)
             ax.spines['right'].set_visible(False)
             ax.grid(color='#d1d1cf', zorder=0)
             ax.tick_params(axis='both', labelsize=8)
-            ax.set_title(f'{which_data}-data: {name}', fontsize=9)
+            ax.set_title(f'{which_timpoint}-data: {name}', fontsize=9)
             if j:
                 ax.tick_params(labelleft=False, labelright=True)
             
-            t0 = data[(which_data, name, 't_0')]
-            tn1 = data[(which_data, name, 't_-1')]
+            train = data[('train', name, which_timpoint)]
+            test = data[('test', name, which_timpoint)]
+            print('train', name, which_timpoint)
+            print(train[train!=0].mean())
+            print(np.std(train[train!=0]))
+            
+            print('test', name, which_timpoint)
+            print(test[test!=0].mean())
+            print(np.std(test[test!=0]))
+            print()
  
             if name.startswith('Standardized'):
                 args = {'bins': 140, }
                 ax.set_ylim((0, 0.12))
+                ax.set_xlim((-.5, 14))
             elif 'Motion' in name:
                 args = {'bins': 100, }
                 ax.set_ylim((0, 0.02))
@@ -40,10 +52,12 @@ def plot_preprocessed_input_data(preporc_dat_csv, dest_dir=None, show=False):
                 ax.set_ylim((0, 12))
                 ax.set_xlim((-.01, .09))
             
-            ax.hist(t0, color='blue', alpha=.5, density=True, zorder=3,
-                            label='t_0', **args)
-            ax.hist(tn1, color='red', alpha=.5, density=True, zorder=3,
-                            label='t_-1', **args)
+            train_sprsty = f', sparsity: {(train==0).sum()/len(train):.3f}'
+            ax.hist(train, color='blue', alpha=.5, density=True, zorder=3,
+                            label='train'+train_sprsty, **args)
+            test_sprsty = f', sparsity: {(test==0).sum()/len(test):.3f}'
+            ax.hist(test, color='red', alpha=.5, density=True, zorder=3,
+                            label='test'+test_sprsty, **args)
             ax.legend(fontsize=8)
     if show:
         plt.show()
@@ -75,14 +89,6 @@ def plot_training_process(training_files, parameter_list, dest_dir=None,
         main_title = main_title+'  -   '+parameters['NOTES']
         fig.suptitle(main_title)
         data = pd.read_pickle(training_file).loc[:,x_epochs]
-        
-        # datafile2 =  '/home/loaloa/gdrive/projects/biohybrid MEA/tl140_outputdata//runs/v1Model_exp3_newcnn//run12_28.07.2021_21.47.22/metrics//all_epochs.pkl'
-        # data2 = pd.read_pickle(datafile2).loc[:,x_epochs]
-        # data2 = data2.stack(level=(-1,-2))
-        # data2.columns = data2.columns.values+301
-        # data2 = data2.unstack(level=(-1,-2))
-        # data = pd.concat([data, data2], axis=1)
-            
         x_epochs = data.columns.unique(0)
 
         # for i, name in enumerate(data.index):
@@ -211,70 +217,79 @@ def plot_training_process(training_files, parameter_list, dest_dir=None,
             fname = f'{dest_dir}/loss_over_time_compare.png'
         fig.savefig(fname, dpi=600)
 
-
-def draw_tile(tile, target_anchors=None, pred_anchors=None, tile_axis=None, 
-              dest_dir=None, fname='tile', draw_YOLO_grid=None, show=False):
-    im = np.array(tile)
+def draw_frame(image, target_anchors=None, pred_anchors=None, animation=None, 
+               dest_dir=None, fname='image', draw_YOLO_grid=None, show=False,
+               color_true_ids=True, color_pred_ids=False):
+    # make sure image data has the right format: HxWxC
+    im = np.array(image.detach().cpu())
+    if im.shape[0] <= 3:
+        im = np.moveaxis(im, 0, 2)
     height, width, cchannels = im.shape
+    
+    # make everything RGB, fill if necessary 
     emptychannel = np.zeros([height,width])
     if cchannels == 2:
         g, b = im[:,:,0], im[:,:,1]
         im = np.stack([emptychannel, g, b], axis=2)
     elif cchannels == 1:
         r = im[:,:,0]
-        im = np.stack([emptychannel, r, emptychannel], axis=2)
+        im = np.stack([r, emptychannel, emptychannel], axis=2)
         
-    # matplotlib likes float images in range [0,1]
+    # matplotlib likes float RGB images in range [0,1]
     min_val = im[im>0].min() if im.any().any() else 0
     im = np.where(im>0, im-min_val, 0)  # shift distribution to 0
     im = np.where(im>1, 1, im)  # ceil to 1
     
-    if dest_dir or tile_axis is None:
-        small_fig, ax = plt.subplots(1, figsize=(5,5), facecolor='#242424')
-        small_fig.subplots_adjust(wspace=0, hspace=0, top=.99, bottom=.01, 
-                                  left=.01, right=.99)
-        if tile_axis is None:
-            axes = [ax, None]
-        if dest_dir:
-            axes = [ax, tile_axis]
+    # Create figure and axes, do basic setup
+    if not animation:
+        fig, ax = plt.subplots(1, figsize=(width/350, height/350), facecolor='#242424')
     else:
-        axes = [None, tile_axis]
+        fig, ax = animation
+    fig.subplots_adjust(wspace=0, hspace=0, top=.99, bottom=.01, 
+                        left=.01, right=.99)
+    ax.axis('off')
+    ax.tick_params(left=False, labelleft=False, bottom=False, labelbottom=False)
+    ax.set_facecolor('#242424')
 
-    for ax_i, ax in enumerate(axes):
-        if ax is None:
-            continue
-
-        # Create figure and axes
-        ax.axis('off')
-        ax.imshow(im)
-
-        if draw_YOLO_grid is not None: 
-            xlines = np.linspace(0, width, draw_YOLO_grid[0])
-            ylines = np.linspace(0, height, draw_YOLO_grid[1])
-            ax.hlines(ylines, 0, width, color='white', linewidth=.5, alpha=.2)
-            ax.vlines(xlines, 0, height, color='white', linewidth=.5, alpha=.2)  
-            ax.set_xlim(0, width)
-            ax.set_ylim(height, 0)
+    # draw yolo lines
+    if draw_YOLO_grid is not None:
+        xlines = np.linspace(0, width, draw_YOLO_grid[0]+1)
+        ylines = np.linspace(0, height, draw_YOLO_grid[1]+1)
+        ax.hlines(ylines, 0, width, color='white', linewidth=.5, alpha=.2)
+        ax.vlines(xlines, 0, height, color='white', linewidth=.5, alpha=.2)
+        ax.set_xlim(0, width)
+        ax.set_ylim(height, 0)
+    
+    # draw bounding boxes
+    rectangles = []
+    text_artists = []
+    boxs = 60
+    for i, anchors in enumerate((target_anchors, pred_anchors)):
+        kwargs = {'edgecolor':'w', 'facecolor':'none', 'linewidth': 1, 
+                'linestyle':'solid'}
         
-        if target_anchors is not None and not target_anchors.empty:
-            s = 1600 if ax_i==0 else 140
-            lw = 3 if ax_i==0 else 1
-            kwargs = {"color":'white', "linewidth":lw, "linestyle":'solid',
-                    's':s, 'facecolor':'none'}
-            ax.scatter(target_anchors.anchor_x, target_anchors.anchor_y, **kwargs)
-        
-        if pred_anchors is not None and not pred_anchors.empty:
-            s = 2300 if ax_i==0 else 180
-            kwargs = {"color":'white', "linestyle":'dashed', 's':s, 
-                    'facecolor':'none'}
-            for r, box in pred_anchors.iterrows():
-                kwargs['alpha'] = box.conf if box.conf <1 else 1
-                kwargs['linewidth'] = 3*box.conf if ax_i==0 else 1.3*box.conf
-                ax.scatter(box.anchor_x, box.anchor_y, **kwargs)
+        if anchors is not None:
+            for axon_id, (conf, x, y) in anchors.iterrows():
+                if i == 1:
+                    kwargs.update({'alpha':conf, 'linestyle':'dashed'})
+                if (i==0 and color_true_ids) or (i==1 and color_pred_ids):
+                    if i == 1:
+                        print('ion')
+                    ax_id_col = plt.cm.get_cmap('hsv', 20)(int(axon_id[-3:])%20)
+                    kwargs.update({'edgecolor': ax_id_col})
+                    text_artists.append(ax.text(x-boxs/2, y-boxs/1.5, axon_id, 
+                                        fontsize=4, color=kwargs['edgecolor']))
+                axon_box = Rectangle((x-boxs/2, y-boxs/2), boxs, boxs, **kwargs)
+                rectangles.append(axon_box)
+    [ax.add_patch(rec) for rec in rectangles]
 
-        if ax_i == 0 and show:
-            plt.show()
-        if ax_i == 0 and dest_dir:
-            small_fig.savefig(f'{dest_dir}/{fname}.jpg')
-            plt.close(small_fig) 
-    return axes[-1]
+    im_artist = ax.imshow(im)
+    text_artists.append(ax.text(.05, .95, fname, transform=fig.transFigure, 
+                        fontsize=height/200, color='w'))
+    if animation:
+        return [im_artist, *text_artists, *rectangles]
+    if show:
+        plt.show()
+    if dest_dir:
+        fig.savefig(f'{dest_dir}/{fname}.jpg', dpi=450)
+        plt.close(fig) 

@@ -4,7 +4,7 @@ import time
 
 from config import RAW_DATA_DIR, OUTPUT_DIR, CODE_DIR, PYTORCH_DIR
 from pt_utils import rotate_indices, flip_indices, coo2tensor, gen_denseTensorChunk
-from plotting import draw_tile
+from plotting import draw_frame
 from utils import Y2pandas_anchors
 
 import numpy as np
@@ -31,7 +31,7 @@ from skimage.transform import rotate, AffineTransform, warp
 
 class Timelapse(Dataset):
     def __init__(self, imseq_path=None, labels_csv=None, mask_path=None, timepoints=None,
-                log_correct=True, retain_temporal_var=True, standardize=True, name='', use_motion_filtered='only', 
+                log_correct=True, standardize_framewise=False, standardize=('zscore', None), name='', use_motion_filtered='only', 
                 use_sparse=False, use_transforms = ['vflip', 'hflip', 'rot', 'translateY', 'translateX'],
                 contrast_llim=43/2**16, plot=True, pad=[0,300,0,300], Sy=12, Sx=12, tilesize=512,
                 cache=False, from_cache=False, temporal_context=2):
@@ -44,38 +44,34 @@ class Timelapse(Dataset):
         # irrespective of cache, update these two bois
         self.use_motion_filtered = use_motion_filtered
         self.transform_configs = dict.fromkeys(use_transforms,0)
-
-        # self.t_center, self.ncolorchannels = self._get_center_time_index()
-        # self.imseq, self.mask = self._read_tiff(imseq_path, mask_path, plot)
-        # self.ID_assoc = self._construct_axon_identity_association_matrix()
-
+        
         if not from_cache:
             # agg preprocessing steps data in this dict
             self.plot_data = {}
 
-            # read tiff file
+            # which input data to use
             self.timepoints = timepoints
             self.pad = pad
-            # X: here, still a numpy array, later becomes scipy.sparse
-            self.imseq, self.mask = self._read_tiff(imseq_path, mask_path, plot)
-
-            # which input data to use
             self.use_sparse = use_sparse
-            self.use_motion_filtered = use_motion_filtered #, 'only', 'exclude'
+            self.use_motion_filtered = use_motion_filtered #'both', 'only', 'exclude'
             self.motion_gaussian_filter_std = 3
             self.motion_lowerlim = .1
             self.temporal_context = temporal_context
-            
+
             # image augmentation setup (actually performed only when training)
             self.transform_configs = dict.fromkeys(use_transforms,0)
 
-            # define basic attributes
+            # X: here, still a numpy array, later becomes scipy.sparse, then tensor
+            # read tiff file
+            self.imseq, self.mask = self._read_tiff(imseq_path, mask_path, plot)
+            
+            # define basic attributes of X
             self.sizet = self.imseq.shape[0]
             self.sizey = self.imseq.shape[1]
             self.sizex = self.imseq.shape[2]
-            self.t_center, self.ncolorchannels = self._get_center_time_index()
+            self.size_chnls, self.size_colchnls = self._get_channelsizes() 
 
-            # for formatting the label Y (bboxes) in YOLO format
+            # for formatting the label Y (anchors) in YOLO format
             self.Sy = Sy
             self.Sx = Sx
             self.tilesize = tilesize
@@ -85,14 +81,14 @@ class Timelapse(Dataset):
             # clip image values to lower bound
             self._clip_image_values(contrast_llim, plot)
 
-            # log stretch image data
+            # log stretch low intensity image data
             self._log_adjust_image(log_correct, plot)
 
             # X: make self.imseq a list of scipy.sparse coo matrices
             self.imseq = self._sparsify_data()
 
             # standardize data to mean=1, std=1
-            self.scaler = self._standardize(standardize, retain_temporal_var, plot)
+            self.stnd_scaler = self._standardize(standardize, standardize_framewise, plot)
 
             # compute motion by subtracting t-1 from t
             self.p_motion_seq, self.n_motion_seq = self._compute_motion(standardize, plot)
@@ -105,7 +101,7 @@ class Timelapse(Dataset):
 
             # convert scipy.COO (imseq, p_motion & n_motion) to sparse tensor
             self.X = self._construct_X_tensor()
-            self.ID_assoc = self._construct_axon_identity_association_matrix()
+            # self.ID_assoc = self._construct_axon_identity_association_matrix()
 
             # final data to use is constructed before each epoch by calling 
             # construct_tiles(). empty tiles mask for reconstructing image from 
@@ -118,8 +114,8 @@ class Timelapse(Dataset):
     def __getitem__(self, idx):
         t_idx, tile_idx = self.unfold_idx(idx)
         # print('Getting t: ', t_idx, end='')
-        t_idx += 2
-        tstart, tstop = t_idx-2, t_idx+3
+        t_idx += self.temporal_context
+        tstart, tstop = t_idx-self.temporal_context, t_idx+self.temporal_context+1
         # print('   but really t, tstart, tstop: ', t_idx, tstart, tstop)
 
         if self.use_motion_filtered == 'include':
@@ -179,6 +175,9 @@ class Timelapse(Dataset):
             target.append(tar)
         return torch.stack(X, 0), torch.stack(target, 0)
         
+    def get_tcenter_idx(self):
+        return [list(range(i, i+self.size_colchnls)) for i in range(0, 
+                self.size_chnls, self.size_colchnls)][self.temporal_context]
 
     def _read_tiff(self, path, mask_path, plot):
         print('Loading .tif image...', end='', flush=True)
@@ -234,38 +233,51 @@ class Timelapse(Dataset):
         print(f' Avg sparseness: {sparseness/self.sizet:.3f} - Done.')
         return imseq_sparse
     
-    def _standardize(self, standardize, retain_temporal_var, plot):
-        scaler = None
+    def _standardize(self, standardize, standardize_framewise, plot):
+        stnd_scalar = (None, None)
         if standardize:
-            print('Standardizing image values...', end='', flush=True)
-            std = [np.std(frame.data) for frame in self.imseq]
-            mean = [np.mean(frame.data) for frame in self.imseq]
+            print(f'Standardizing image values ({standardize[0]})...', end='', flush=True)
+            # use passed scaler (eg train scaler for standardizing test data)
+            # only applies for non-framewise standardization
+            if standardize[1] is not None:
+                var_scalars, mean_scalars = standardize[1]
+                print('using passed scalers...', end='')
+            elif standardize[0] == 'zscore':
+                mean_scalars = [np.mean(frame.data) for frame in self.imseq]
+                var_scalars = [np.std(frame.data) for frame in self.imseq]
+            elif standardize[0] == '0to1':
+                mean_scalars = np.zeros(self.sizet)
+                var_scalars = [np.max(frame.data) for frame in self.imseq]
+
+            # one for all, collapsed std and mean
+            if not standardize_framewise:
+                var_scalar = np.mean(var_scalars) if standardize == 'zscore' else np.max(var_scalars)
+                mean_scalar = np.mean(mean_scalars)
+                stnd_scalar = (standardize[0], (var_scalar, mean_scalar))
+            else:
+                stnd_scalar = (standardize[0], None)
 
             for t in range(self.sizet):
                 frame_dense = self.imseq[t].todense()
                 zeros = frame_dense == 0
 
                 # framewise
-                if not retain_temporal_var:
-                    s = std[t]
-                    m = mean[t]
-                # one for all, collapsed std and mean
-                else:
-                    s = np.mean(std)
-                    m = np.mean(mean)
-
-                frame_dense = (frame_dense -m)/s +1
+                if standardize_framewise:
+                    var_scalar = var_scalars[t]
+                    mean_scalar = mean_scalars[t]
+                
+                to_mean = 1 if standardize[0] == 'zscore' else 0
+                frame_dense = (frame_dense -mean_scalar)/var_scalar +to_mean
                 frame_dense[zeros] = 0
                 self.imseq[t] = coo_matrix(frame_dense, dtype=np.float32)
-            scaler = (std, mean) if not retain_temporal_var else np.mean(std), np.mean(mean)
 
             if plot:
                 t0 = np.array(self.imseq[self.timepoints[0]].todense())
                 tn1 = np.array(self.imseq[self.timepoints[-1]].todense())
-                lbl = f'Standardized (retain temp. var: {retain_temporal_var})'
+                lbl = f'Standardized (frame-wize: {standardize_framewise})'
                 self.plot_data[lbl] = t0, tn1
             print('Done.')
-        return scaler
+        return stnd_scalar
 
     def _compute_motion(self, standardize, plot):
         blur_strength = self.motion_gaussian_filter_std
@@ -288,6 +300,7 @@ class Timelapse(Dataset):
         print('Done.')
             
         if standardize:
+            # motion data is always normed with a global scalar
             print('Standardizing motion values...', end='', flush=True)
             pos_scaler = np.mean([np.std(f.data) for f in pos_motion_seq[1:]])
             neg_scaler = np.mean([np.std(f.data) for f in neg_motion_seq[1:]])
@@ -320,26 +333,29 @@ class Timelapse(Dataset):
     def _slice_timepoints(self):
         print(f'Slicing timepoints from t=[0...{self.sizet}] to t=' \
               f'{self.timepoints} (n={len(self.timepoints)})')
-        t0, tn1 = self.timepoints[0], self.timepoints[-1]
-        padded_tps = [t0-2, t0-1, *self.timepoints, tn1+1, tn1+2]
-        imseq = [self.imseq[t] for t in padded_tps]
-        p_motion_seq = [self.p_motion_seq[t] for t in padded_tps]
-        n_motion_seq = [self.n_motion_seq[t] for t in padded_tps]
-        target = self.target.iloc[padded_tps]
+        tps = self.timepoints
+        if self.temporal_context:
+            t0, tn1 = self.timepoints[0], self.timepoints[-1]
+            pre_padding = [t0-t for t in range(1, self.temporal_context+1)]
+            post_padding = [tn1+t for t in range(1, self.temporal_context+1)]
+            tps = [*pre_padding, *tps, *post_padding]
+        imseq = [self.imseq[t] for t in tps]
+        p_motion_seq = [self.p_motion_seq[t] for t in tps]
+        n_motion_seq = [self.n_motion_seq[t] for t in tps]
+        target = self.target.iloc[tps]
         sizet = len(self.timepoints)
         return sizet, target, imseq, p_motion_seq, n_motion_seq
     
-    def _get_center_time_index(self):
+    def _get_channelsizes(self):
         if self.use_motion_filtered == 'exclude':
-            t_center = slice(2,3)
-            ncchannels = 1
+            ncol_chnls = 1
         elif self.use_motion_filtered == 'only':
-            t_center = slice(4,6)
-            ncchannels = 2
+            ncol_chnls = 2
         elif self.use_motion_filtered == 'include':
-            t_center = slice(6,9)
-            ncchannels = 3
-        return t_center, ncchannels
+            ncol_chnls = 3
+        col_block_size = self.temporal_context*2 +1
+        nchnls = col_block_size * ncol_chnls
+        return nchnls, ncol_chnls
     
     def _construct_X_tensor(self):
         print('Constructing sparse Tensor...', end='', flush=True)
@@ -350,35 +366,6 @@ class Timelapse(Dataset):
         print('Done.')
         return X
 
-    def _construct_axon_identity_association_matrix(self):
-        IDs = self.target.swaplevel(0,1,1).anchor_x.fillna(0).astype(bool).values
-        IDs = IDs[self.temporal_context:self.sizet+self.temporal_context]
-        # pad virtual t0-1 timepoint, and tlast+1 with zeros
-        IDs = np.pad(IDs, ((1,1),(0,0)), 'constant', constant_values=(0,0))
-
-        id_capacity = IDs.shape[1]
-        filler_block = np.zeros((id_capacity,id_capacity))
-        ID_assoc = []
-        for t in range(self.sizet+1):
-            t0, t1 = IDs[t:t+2]
-            ID_continues = t0 & t1
-            ID_killed = t0 & ~t1
-            ID_created = ~t0 & t1
-            ID_t0isNone = ~(ID_continues|ID_killed)
-            ID_t1isNone = ~(ID_continues|ID_created)
-
-            ID_continues = np.diagflat(ID_continues)
-            ID_killed = np.diagflat(ID_killed)
-            ID_created = np.diagflat(ID_created)
-            ID_t0isNone = np.diagflat(ID_t0isNone)
-            ID_t1isNone = np.diagflat(ID_t1isNone)
-
-            t0t1_assoc = np.block([[ID_continues, ID_killed,    ID_t0isNone],
-                                   [ID_created,   filler_block, filler_block],
-                                   [ID_t1isNone,  filler_block, filler_block]])
-            ID_assoc.append(t0t1_assoc)
-        return np.stack(ID_assoc)
-            
     def _caching(self, cache=False, from_cache=False):
         if from_cache:
             print('Loading data from cache.\n')
@@ -395,6 +382,11 @@ class Timelapse(Dataset):
                 print('Done.\n\n')
     
     def construct_tiles(self, device):
+        if not torch.cuda.is_available():
+            self.tile_info = torch.load(f'../tl140_outputdata/{self.name}_tileinfo.pth')
+            self.X_tiled = torch.load(f'../tl140_outputdata/{self.name}_X_tiled.pth')
+            self.target_tiled = torch.load(f'../tl140_outputdata/{self.name}_target_tiled.pth')
+            return
         if self.transform_configs:
             X, target = self.apply_transformations(device)
             print(f'Tiling data...', end='', flush=True)
@@ -458,6 +450,13 @@ class Timelapse(Dataset):
         # Finally swap the first two dims to have (timepoints, tile, ...)
         self.X_tiled = X[non_empty_tiles.all(-1)].swapaxes(0,1)
         self.target_tiled = target_tiled[non_empty_tiles.all(-1)].swapaxes(0,1)
+
+        # with open(f'../tl140_outputdata/{self.name}_tileinfo.pth', 'wb') as file:
+        #     torch.save(self.tile_info, file)
+        # with open(f'../tl140_outputdata/{self.name}_X_tiled.pth', 'wb') as file:
+        #     torch.save(self.X_tiled, file)
+        # with open(f'../tl140_outputdata/{self.name}_target_tiled.pth', 'wb') as file:
+        #     torch.save(self.target_tiled, file)
         print('Done', flush=True) 
 
     def apply_transformations(self, device):
@@ -610,36 +609,36 @@ class Timelapse(Dataset):
         yolo_target[ytile_coo, xtile_coo, t_idx, yolo_x_box, yolo_y_box, 3] = axID_idx.to(torch.float32)
         return yolo_target
 
-    def stitch_tiles(self, img, target, pred_target=None):
+    def stitch_tiles(self, X, Y, Y2=None):
+        from copy import copy
         ts = self.tilesize
         # get the yx coordinates of the tiles  
         tile_coos = torch.tensor([self.flat_tile_idx2yx_tile_idx(tile) 
-                                  for tile in range(img.shape[0])])
+                                  for tile in range(X.shape[0])])
 
-        # make an empty img, then iter of tile grid 
-        img_new = torch.zeros((1, self.ncolorchannels, self.sizey, self.sizex))
-        target_new, pred_target_new = [], []
+        # make an empty img, then iter over tile grid 
+        X_stitched = torch.zeros((self.size_colchnls, self.sizey, self.sizex))
+        Y_stitched = [y.copy() for y in Y]
+        Y2_stitched = [y.copy() for y in Y2] if Y2 is not None else None
         for tile_ycoo in range(self.ytiles):
             for tile_xcoo in range(self.xtiles):
                 non_empty_tile = (tile_coos[:,0] == tile_ycoo) & (tile_coos[:,1] == tile_xcoo)
                 flat_tile_idx = torch.where(non_empty_tile)[0]
 
-                if flat_tile_idx.any():
+                if len(flat_tile_idx) == 1:
                     # when there is a nonempty tile, place its values in img_new
                     yslice = slice(ts*tile_ycoo, ts*(tile_ycoo+1))
                     xslice = slice(ts*tile_xcoo, ts*(tile_xcoo+1))
-                    img_new[0, :, yslice, xslice] = img[flat_tile_idx, self.t_center]
+                    X_stitched[:, yslice, xslice] = X[flat_tile_idx, self.get_tcenter_idx()]
 
                     # and transform the anchor coordinates into img coordinates
-                    target[flat_tile_idx].anchor_y += tile_ycoo*ts
-                    target[flat_tile_idx].anchor_x += tile_xcoo*ts
-                    target_new.append(target[flat_tile_idx])
-                    if pred_target is not None:
-                        pred_target[flat_tile_idx].anchor_y += tile_ycoo*ts
-                        pred_target[flat_tile_idx].anchor_x += tile_xcoo*ts
-                        pred_target_new.append(pred_target[flat_tile_idx])
-        
-        target_new = pd.concat(target_new)
-        if pred_target:
-            pred_target_new = pd.concat(pred_target_new, ignore_index=True)
-        return img_new, target_new, pred_target_new
+                    Y_stitched[flat_tile_idx].anchor_y += tile_ycoo*ts
+                    Y_stitched[flat_tile_idx].anchor_x += tile_xcoo*ts
+                    
+                    if Y2 is not None:
+                        Y2_stitched[flat_tile_idx].anchor_y += tile_ycoo*ts
+                        Y2_stitched[flat_tile_idx].anchor_x += tile_xcoo*ts
+        Y_stitched = pd.concat(Y_stitched)
+        if Y2:
+            Y2_stitched = pd.concat(Y2_stitched)
+        return X_stitched, Y_stitched, Y2_stitched

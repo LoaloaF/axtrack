@@ -23,8 +23,8 @@ import matplotlib.font_manager
 
 def SSBox2ImgBox_coords(target_tensor, Sx, Sy, tilesize, device, with_batch_dim=True):
     # nobatch dim
-    # this creates a bool mask tensor that is true for all pos label entries
-    box_mask = target_tensor > 0
+    # this creates a bool mask tensor that is false for all pos label entries
+    box_mask = (target_tensor == 0).all(-1)
 
     # these rescale vectors scale depending on the gridbox the label is in
     rescale_x = torch.arange(Sx).reshape(Sx, 1, 1).to(device)
@@ -43,13 +43,15 @@ def SSBox2ImgBox_coords(target_tensor, Sx, Sy, tilesize, device, with_batch_dim=
     target_tensor[..., 1::3] = (target_tensor[..., 1::3] * tilesize/Sx).round()
     target_tensor[..., 2::3] = (target_tensor[..., 2::3] * tilesize/Sy).round()
     # the rescale vector also adds to the 0-elements (unwanted). Mask them here
-    target_tensor = torch.where(box_mask, target_tensor, torch.tensor(0.0).to(device))
+    target_tensor[box_mask] = 0
     return target_tensor
 
-def filter_anchors(target_tensor, conf_threshold):
+def filter_anchors(target_tensor, conf_threshold, ceil_conf=True):
     # convert the target tensor to shape (batchsize, Sx*Sy, 3)
     batch_size, labelsize = target_tensor.shape[0], target_tensor.shape[-1]
     target_tensor = target_tensor.reshape((batch_size, -1, labelsize))
+    if ceil_conf:
+        target_tensor[..., 0][target_tensor[..., 0]>1] = 1
     
     # split batches into list because of variable sizes 
     frame_targets = list(torch.tensor_split(target_tensor, batch_size))
@@ -222,15 +224,18 @@ def create_lossovertime_pkl(metrics_dir):
 
 def save_preproc_metrics(run_dir, train_data, test_data):
     samples = []
+    rng = np.random.default_rng()
+    smple_indices = rng.choice(train_data.plot_data['Original'][0].size, int(1e6))
+
     for name, arr in train_data.plot_data.items():
-        t0_sample = np.random.choice(arr[0].flatten(), int(1e5))
-        tn1_sample = np.random.choice(arr[1].flatten(), int(1e5))
+        t0_sample = arr[0].flatten()[smple_indices]
+        tn1_sample =arr[1].flatten()[smple_indices]
         samples.append(pd.Series(t0_sample, name=('train', name, 't_0')))
         samples.append(pd.Series(tn1_sample, name=('train', name, 't_-1')))
 
     for name, arr in test_data.plot_data.items():
-        t0_sample = np.random.choice(arr[0].flatten(), int(1e5))
-        tn1_sample = np.random.choice(arr[1].flatten(), int(1e5))
+        t0_sample = arr[0].flatten()[smple_indices]
+        tn1_sample = arr[1].flatten()[smple_indices]
         samples.append(pd.Series(t0_sample, name=('test', name, 't_0')))
         samples.append(pd.Series(tn1_sample, name=('test', name, 't_-1')))
 

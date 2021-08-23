@@ -28,8 +28,10 @@ def get_default_parameters():
     TEST_TIMEPOINTS = list(range(2,4)) + list(range(33,35))
     LOG_CORRECT = True
     PLOT_PREPROC = True
-    STANDARDIZE = True
-    RETAIN_TEMPORAL_VAR = False
+    STANDARDIZE = ('zscore', None)
+    # RETAIN_TEMPORAL_VAR = True
+    STANDARDIZE_FRAMEWISE = False
+    TEMPORAL_CONTEXT = 2
     USE_MOTION_DATA = 'include' #, 'exclude'  'only'
     USE_SPARSE = False
     USE_TRANSFORMS = ['vflip', 'hflip', 'rot', 'translateY', 'translateX']
@@ -42,13 +44,17 @@ def get_default_parameters():
 
     # MODEL
     ARCHITECTURE = [
-        #kernelsize, out_channels, stride, groups, 2nd list: concat to features inp
-        [(3, 20,  2,  5),      # y-x out: 256
-         (3, 40,  2,  5),      # y-x out: 128
-         (3, 80,  1,  1),      # y-x out: 128
-         (3, 80,  2,  1)],     # y-x out: 64
-        [(3, 80,  2,  1),      # y-x out: 32
-         (3, 160, 2,  1)],     # y-x out: 16
+        #kernelsize, out_channels, stride, groups
+        [(3, 20,  2,  1),      # y-x out: 256
+         (3, 40,  2,  1),      # y-x out: 128
+
+         (3, 80,  2,  1),      # y-x out: 64
+         (3, 80,  1,  1),     # y-x out: 64
+         (3, 80,  2,  1),      # y-x out: 32
+         # new
+         (3, 80,  1,  1),      # y-x out: 32
+         (3, 80,  1,  1)],      # y-x out: 32
+         [(3, 160, 2,  1)],     # y-x out: 16
     ]
     IMG_DIM = 2920, 6364
     SY, SX = 12, 12
@@ -126,11 +132,12 @@ def run_epoch(dataset, model, loss_fn, params, epoch, optimizer=None,
 
 def setup_model(P):
     if P['USE_MOTION_DATA'] == 'include':
-        initial_in_channels = 3 *5
+        initial_in_channels = 3 *(P['TEMPORAL_CONTEXT']*2+1)
     if P['USE_MOTION_DATA'] == 'only':
-        initial_in_channels = 2 *5
+        initial_in_channels = 2 *(P['TEMPORAL_CONTEXT']*2+1)
     if P['USE_MOTION_DATA'] == 'exclude':
-        initial_in_channels = 1 *5
+        initial_in_channels = 1 *(P['TEMPORAL_CONTEXT']*2+1)
+
     model = YOLO_AXTrack(initial_in_channels, 
                          P['ARCHITECTURE'], 
                          (P['TILESIZE'],P['TILESIZE']), 
@@ -164,11 +171,12 @@ def setup_data(P):
     train_data = Timelapse(P['TIMELAPSE_FILE'], P['LABELS_FILE'], P['MASK_FILE'], 
                            timepoints = P['TRAIN_TIMEPOINTS'],
                            log_correct = P['LOG_CORRECT'],
-                           retain_temporal_var = P['RETAIN_TEMPORAL_VAR'],
+                           standardize_framewise = P['STANDARDIZE_FRAMEWISE'],
                            standardize = P['STANDARDIZE'],
                            use_motion_filtered = P['USE_MOTION_DATA'],
                            use_sparse = P['USE_SPARSE'],
                            use_transforms = P['USE_TRANSFORMS'],
+                           temporal_context= P['TEMPORAL_CONTEXT'],
                            contrast_llim = P['CLIP_LOWERLIM'],
                            pad = P['PAD'], 
                            plot = P['PLOT_PREPROC'], 
@@ -183,11 +191,11 @@ def setup_data(P):
     test_data = Timelapse(P['TIMELAPSE_FILE'], P['LABELS_FILE'], P['MASK_FILE'], 
                            timepoints = P['TEST_TIMEPOINTS'],
                            log_correct = P['LOG_CORRECT'],
-                           retain_temporal_var = P['RETAIN_TEMPORAL_VAR'],
-                           standardize = P['STANDARDIZE'],
+                           standardize_framewise = P['STANDARDIZE_FRAMEWISE'],
                            use_motion_filtered = P['USE_MOTION_DATA'],
                            use_sparse = P['USE_SPARSE'],
                            use_transforms = P['USE_TRANSFORMS'],
+                           temporal_context= P['TEMPORAL_CONTEXT'],
                            contrast_llim = P['CLIP_LOWERLIM'],
                            pad = P['PAD'],  
                            plot = P['PLOT_PREPROC'], 
@@ -196,7 +204,9 @@ def setup_data(P):
                            name = 'test',
                            tilesize = P['TILESIZE'],
                            Sy = P['SY'], 
-                           Sx = P['SX'],)
+                           Sx = P['SX'],
+                        #    standardize = P['STANDARDIZE'],)
+                           standardize = train_data.stnd_scaler,)
     return train_data, test_data
 
 def setup_data_loaders(P, dataset):
