@@ -226,18 +226,37 @@ if __name__ == '__main__':
     clean_rundirs(exp_name, delete_runs=50, keep_only_latest_model=True)
     
     # prepend_prev_run(exp_name, 'run09', 'run23')
-    evaluate_run(exp_name, 'run90', which='training', recreate=True)
-    # compare_two_runs(exp_name, ['run90', 'run59'])
+    # evaluate_run(exp_name, 'run99', which='training', recreate=False)
+    # compare_two_runs(exp_name, ['run90', 'run99'])
     # evaluate_run(exp_name, 'run94', which='training', recreate=False)
     # evaluate_run(exp_name, 'run95', which='training', recreate=False)
     # evaluate_run(exp_name, 'run96', which='training', recreate=False)
     # compare_two_runs(exp_name, ['run99', 'run59'])
     # evaluate_run(exp_name, 'run59', which='model_out', assign_ids=True, animated=True, show=False, which_data='train')
 
+    new_ARCHITECTURE = [
+        #kernelsize, out_channels, stride, groups
+        [(3, 20,  2,  1),      # y-x out: 256
+         (3, 40,  2,  1),      # y-x out: 128
+         (3, 80,  2,  1),      # y-x out: 64
+         (3, 80,  1,  1),      # y-x out: 64
+         (3, 80,  2,  1),      # y-x out: 32
+         (3, 80,  1,  1),      # y-x out: 32
+         (3, 80,  1,  1),      # y-x out: 32
+         ],      
+        [(3, 160, 2,  1),      # y-x out: 16
+         ],
+        [('FC', 1024),
+         ('activation', torch.nn.Sigmoid()), 
+         ('FC', 1024),
+         ('activation', torch.nn.Sigmoid()), 
+        ]     
+    ]
+
     parameters = copy(default_parameters)
-    parameters['CACHE'] = OUTPUT_DIR
+    # parameters['CACHE'] = OUTPUT_DIR
     # parameters['DEVICE'] = 'cpu'
-    parameters['FROM_CACHE'] = None
+    # parameters['FROM_CACHE'] = None
     parameters['USE_MOTION_DATA'] = 'exclude'
     parameters['NUM_WORKERS'] = 4
     parameters['BATCH_SIZE'] = 32
@@ -248,10 +267,11 @@ if __name__ == '__main__':
     parameters['BBOX_THRESHOLD'] = 4
     # parameters['TEST_TIMEPOINTS'] = [4,5]
     # parameters['TRAIN_TIMEPOINTS'] = [11,12,13]
-    # parameters['ARCHITECTURE'] = 'resnet'
+    parameters['ARCHITECTURE'] = new_ARCHITECTURE
     parameters['TEMPORAL_CONTEXT'] = 2
     parameters['NOTES'] = 'trying FP TP stuff'
-    # run_experiment(exp_name, parameters, save_results=True)
+    run_experiment(exp_name, parameters, save_results=True)
+
 
     new_ARCHITECTURE_deeper = [
         #kernelsize, out_channels, stride, concat_to_feature_vector

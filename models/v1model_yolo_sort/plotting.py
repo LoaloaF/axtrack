@@ -150,26 +150,25 @@ def plot_training_process(training_files, parameter_list, dest_dir=None,
                 #     if split_test_train and data_i == 0 and i == 4:
                 #         break
                 
-                # if split_test_train and i == 4:
-                #     precision = data.loc['total_precision_0.80', (slice(None), 'train')]
-                #     precision = precision.droplevel(1).unstack().sort_index(axis=1).mean(1)
-                #     precision = precision.ewm(span=25).mean()
-                #     recall = data.loc['total_recall_0.80', (slice(None), 'train')]
-                #     recall = recall.droplevel(1).unstack().sort_index(axis=1).mean(1)
-                #     recall = recall.ewm(span=25).mean()
-                #     ax.plot(recall, color=train_col, alpha=.5, label='train recall')
-                #     ax.plot(precision, color=train_col, alpha=.5, linestyle='dashed', label='train precision')
+                if split_test_train and i == 4:
+                    precision = data.loc['total_precision_0.80', (slice(None), 'train')]
+                    precision = precision.droplevel(1).unstack().sort_index(axis=1).mean(1)
+                    precision = precision.ewm(span=25).mean()
+                    recall = data.loc['total_recall_0.80', (slice(None), 'train')]
+                    recall = recall.droplevel(1).unstack().sort_index(axis=1).mean(1)
+                    recall = recall.ewm(span=25).mean()
+                    ax.plot(recall, color=train_col, alpha=.5, label='train recall')
+                    ax.plot(precision, color=train_col, alpha=.5, linestyle='dashed', label='train precision')
                     
-                #     precision = data.loc['total_precision_0.80', (slice(None), 'test')]
-                #     precision = precision.droplevel(1).unstack().sort_index(axis=1).mean(1)
-                #     precision = precision.ewm(span=25).mean()
-                #     recall = data.loc['total_recall_0.80', (slice(None), 'test')]
-                #     recall = recall.droplevel(1).unstack().sort_index(axis=1).mean(1)
-                #     recall = recall.ewm(span=25).mean()
-                #     ax.plot(recall, color=test_col, alpha=.5, label='test recall')
-                #     ax.plot(precision, color=test_col, alpha=.5, linestyle='dashed', label='test recall')
-                #     ax.legend()
-
+                    precision = data.loc['total_precision_0.80', (slice(None), 'test')]
+                    precision = precision.droplevel(1).unstack().sort_index(axis=1).mean(1)
+                    precision = precision.ewm(span=25).mean()
+                    recall = data.loc['total_recall_0.80', (slice(None), 'test')]
+                    recall = recall.droplevel(1).unstack().sort_index(axis=1).mean(1)
+                    recall = recall.ewm(span=25).mean()
+                    ax.plot(recall, color=test_col, alpha=.5, label='test recall')
+                    ax.plot(precision, color=test_col, alpha=.5, linestyle='dashed', label='test recall')
+                    ax.legend()
 
             else:
                 train_dat = train_dat.ewm(span=18).mean()

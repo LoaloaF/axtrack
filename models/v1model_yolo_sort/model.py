@@ -14,22 +14,22 @@ from plotting import draw_frame
 from torchvision import datasets, models, transforms
 
 class CNNBlock(nn.Module):
-    def __init__(self, in_channels, out_channels, **kwargs):
+    def __init__(self, in_channels, out_channels, activation_function, **kwargs):
         super(CNNBlock, self).__init__()
 
         self.in_channels = in_channels
         self.out_channels = out_channels
         self.conv = nn.Conv2d(in_channels, out_channels, bias=True, **kwargs)
         self.batchnorm = nn.BatchNorm2d(out_channels)
-        self.LeakyReLU = nn.LeakyReLU(.1)
+        self.activation_function = activation_function
     
     def forward(self, x):
         conv_out = self.conv(x)
         # print(f'CNN in size: {x.shape}, \n\t\tout: {conv_out.shape}\n')
-        return self.LeakyReLU(self.batchnorm(conv_out)) 
+        return self.activation_function(self.batchnorm(conv_out)) 
 
 class CNNFeature_collector(nn.Module):
-    def __init__(self, architecture, in_c):
+    def __init__(self, architecture, activation_function, in_c):
         super(CNNFeature_collector, self).__init__()
         
         self.feature_blocks = []
@@ -37,6 +37,7 @@ class CNNFeature_collector(nn.Module):
             out_c = architecture[layer][1]
             fblock = CNNBlock(in_channels = in_c, 
                               out_channels = out_c, 
+                              activation_function = activation_function,
                               padding = (1,1),
                               kernel_size = architecture[layer][0], 
                               stride = architecture[layer][2])
@@ -52,28 +53,30 @@ class CNNFeature_collector(nn.Module):
         return torch.cat(features, 1)
 
 class YOLO_AXTrack(nn.Module):
-    def __init__(self, initial_in_channels, architecture_config, img_dim, Sy, Sx, which_pretrained=None, **kwargs):
+    def __init__(self, initial_in_channels, architecture, activation_function, 
+                 tilesize, Sy, Sx, **kwargs):
         super(YOLO_AXTrack, self).__init__()
-        self.architecture = architecture_config
-        self.Sy = Sy
-        self.Sx = Sx
-        self.B = 1
-        self.initial_in_channels = initial_in_channels
-        self.tilesize = img_dim[0]
 
-        if which_pretrained in ['mobilenet', 'alexnet', 'resnet']:
-            self.PreConvNet = self._from_pretrained(self.initial_in_channels, which_pretrained)
+        self.architecture = architecture
+        self.activation_function = activation_function
+        self.Sx, self.Sy = Sy, Sx
+        self.initial_in_channels = initial_in_channels
+        self.tilesize = tilesize
+
+        if self.architecture  in ['mobilenet', 'alexnet', 'resnet']:
+            self.PreConvNet = self._from_pretrained(self.initial_in_channels, self.architecture)
             self.PostConvNet = None
             self.get_CNN_outdim()
         else:
             # create preCNN
-            self.PreConvNet, out_channels = self._create_PreConvNet(self.architecture[0],
-                                                                    self.initial_in_channels)
+            # self.architecture.append(None)
+            self.PreConvNet, out_channels = self._create_PreConvNet(self.architecture[0])
             # create postCNN
             self.PostConvNet = CNNFeature_collector(self.architecture[1], 
+                                                    self.activation_function,
                                                     out_channels)
         # create FC
-        self.fcs = self._create_fcs()
+        self.fcs = self._create_fcs(self.architecture[2])
     
     def to_device(self, device):
         self.to(device)
@@ -127,14 +130,16 @@ class YOLO_AXTrack(nn.Module):
             ConvNet.add_module(f'block_{i}', module)
         return ConvNet
     
-    def _create_PreConvNet(self, architecture, in_c):
+    def _create_PreConvNet(self, architecture):
         PreConvNet = nn.Sequential()
+        in_c = self.initial_in_channels
         for layer in range(len(architecture)):
             if architecture[layer] != 'M':
                 groups = architecture[layer][3]
                 out_c = architecture[layer][1]
                 block = CNNBlock(in_channels = in_c, 
                                  out_channels = out_c, 
+                                 activation_function = self.activation_function,
                                  padding = (1,1),
                                  groups = groups,
                                  kernel_size = architecture[layer][0], 
@@ -145,21 +150,36 @@ class YOLO_AXTrack(nn.Module):
             PreConvNet.add_module(f'PreConvBlock_{layer}', block)
         return PreConvNet, out_c
 
-    def _create_fcs(self, FC_size=1024):
-        features_in = self.get_CNN_outdim()
-        features_out = self.Sy * self.Sx *self.B*3
-        return nn.Sequential(
-            nn.Flatten(),
-            nn.Linear(features_in, FC_size),
-            # nn.LeakyReLU(),
-            nn.Sigmoid(),
-            # nn.Dropout(.15),
-            nn.Linear(FC_size, FC_size),
-            # nn.LeakyReLU(),
-            nn.Sigmoid(),
-            nn.Linear(FC_size, features_out),
-        )
+    # def _create_fcs(self, architecture):
+    #     features_in = self.get_CNN_outdim()
+    #     features_out = self.Sy * self.Sx *3
+    #     return nn.Sequential(
+    #         nn.Flatten(),
 
+    #         nn.Linear(features_in, FC_size),
+    #         # nn.LeakyReLU(),
+    #         nn.Sigmoid(),
+    #         # nn.Dropout(.15),
+    #         nn.Linear(FC_size, FC_size),
+    #         # nn.LeakyReLU(),
+    #         nn.Sigmoid(),
+    #         nn.Linear(FC_size, features_out),
+    #     )
+
+    def _create_fcs(self, architecture):
+        in_c = self.get_CNN_outdim()
+        seq = [nn.Flatten()]
+        for element_type, param  in architecture:
+            if element_type == 'FC':
+                seq.append(nn.Linear(in_c, param))
+                in_c = param
+            elif element_type == 'dropout':
+                seq.append(nn.Dropout(param))
+            elif element_type == 'activation':
+                seq.append(param)
+        seq.append(nn.Linear(in_c, self.Sy * self.Sx *3))
+        return nn.Sequential(*seq)
+            
     def detect_axons_in_frame(self, X):
         self.eval()
         n_tiles = X.shape[0]
@@ -168,11 +188,6 @@ class YOLO_AXTrack(nn.Module):
         self.train()
         return pred
     
-    def get_detections_ids(self, dets, t, run_dir, data_name):
-        assigned_ids = pd.read_csv(f'{run_dir}/{data_name}_assigned_ids.csv', index_col=(0,1))
-        dets.index = assigned_ids.loc[(t, dets.index),:].values[:,0]
-        return dets
-
     def get_frame_detections(self, data, t, device, anchor_conf_thr, assign_ids=None):
         # get a stack of tiles that makes up a frame
         # batch dim of X corresbonds to all tiles in frame at time t
@@ -195,6 +210,10 @@ class YOLO_AXTrack(nn.Module):
             pred_dets_stch = self.get_detections_ids(pred_dets_stch, t, run_dir, data_name)
         return X,X_stch, pred_dets,pred_dets_stch, true_dets,true_dets_stch
 
+    def get_detections_ids(self, dets, t, run_dir, data_name):
+        assigned_ids = pd.read_csv(f'{run_dir}/{data_name}_assigned_ids.csv', index_col=(0,1))
+        dets.index = assigned_ids.loc[(t, dets.index),:].values[:,0]
+        return dets
 
     def predict_all(self, data, params, dest_dir=None, show=False, 
                     save_single_tiles=True, animated=False, assign_ids=False, **kwargs):

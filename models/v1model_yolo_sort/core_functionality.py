@@ -61,6 +61,7 @@ def get_default_parameters():
     SY, SX = 12, 12
     TILESIZE = 512
     GROUPING = False
+    ACTIVATION_FUNCTION = torch.nn.LeakyReLU(0.1)
 
     WEIGHT_DECAY = 5e-4
     BATCH_SIZE = 32
@@ -140,12 +141,13 @@ def setup_model(P):
     if P['USE_MOTION_DATA'] == 'exclude':
         initial_in_channels = 1 *(P['TEMPORAL_CONTEXT']*2+1)
 
-    model = YOLO_AXTrack(initial_in_channels, 
-                         P['ARCHITECTURE'], 
-                         (P['TILESIZE'],P['TILESIZE']), 
-                         P['SY'], 
-                         P['SX'],
-                         which_pretrained=P['ARCHITECTURE'])
+    model = YOLO_AXTrack(initial_in_channels = initial_in_channels, 
+                         architecture = P['ARCHITECTURE'], 
+                         activation_function = P['ACTIVATION_FUNCTION'],
+                         tilesize = P['TILESIZE'], 
+                         Sy = P['SY'],
+                         Sx =  P['SX'],)
+                        #  which_pretrained=P['ARCHITECTURE'])
     model.to_device(P['DEVICE'])
     summary(model, input_size=(initial_in_channels, P['TILESIZE'], P['TILESIZE']), device=P['DEVICE'])
 
