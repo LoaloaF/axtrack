@@ -1,30 +1,16 @@
-"""
-Implementation of Yolo Loss Function from the original yolo paper
-
-"""
 import pandas as pd
-import numpy as np
 
 import torch
 import torch.nn as nn
 
 class YOLO_AXTrack_loss(nn.Module):
-    """
-    Calculate the loss for yolo (v1) model
-    """
 
     def __init__(self, Sy, Sx, conf_thr, lambda_obj, lambda_noobj, lambda_coord_anchor):
         super(YOLO_AXTrack_loss, self).__init__()
         self.mse = nn.MSELoss(reduction="sum")
 
-        """
-        S is split size of image (in paper 7),
-        B is number of boxes (in paper 2),
-        """
-
         self.Sy = Sy
         self.Sx = Sx
-        self.B = 1
 
         self.conf_thr = conf_thr
 
@@ -37,7 +23,7 @@ class YOLO_AXTrack_loss(nn.Module):
         bs = target.shape[0]
         total_pos_labels_rate = target[..., 0].sum() /(bs*self.Sx*self.Sy)
         n = bs * self.Sy * self.Sx
-        predictions = predictions.reshape(bs, self.Sy, self.Sx, self.B*3)
+        predictions = predictions.reshape(bs, self.Sy, self.Sx, 3)
 
         # Calculate IoU for the two predicted bounding boxes with target bbox
         # size of predictions is Sx x Sy x 5, if a box exists, 1,0>x>1, 0>y>1, w>0, h>0 
@@ -101,44 +87,3 @@ class YOLO_AXTrack_loss(nn.Module):
         
         loss_components = pd.Series({idx: v.item() for idx, v in loss_components.items()})
         return loss, loss_components
-
-
-
-
-# def get_iou(loader, model, iou_threshold, threshold, device, 
-#                pred_format="cells", box_format="midpoint"):
-#     Sx = model.Sx
-#     Sy = model.Sy
-#     all_pred_boxes = []
-#     all_true_boxes = []
-
-#     # make sure model is in eval before get bboxes
-#     model.eval()
-#     train_idx = 0
-#     for batch_idx, (x, labels) in enumerate(loader):
-#         batch_size = x.shape[0]
-#         x = x.to(device)
-#         labels = labels.to(device)
-
-#         with torch.no_grad():
-#             predictions = model(x)
-
-#         bboxes = convert_cellboxes(out, Sy, Sx, device)[...,2:6]
-#         bboxes[..., 0] = bboxes[..., 0].long()
-#         pred_bboxes = convert_cellboxes(out, Sy, Sx, device)[...,2:6]
-#         pred_bboxes[..., 0] = pred_bboxes[..., 0].long()
-
-#         iou = intersection_over_union(pred_bboxes, bboxes)
-#         print(iou)
-
-#         converted_pred = convert_cellboxes(predictions, Sy, Sx).reshape(batch_size, Sy, Sx, -1)
-#         # converted_pred[..., 0] = converted_pred[..., 0].long()
-#         converted_target = convert_cellboxes(labels, Sy, Sx).reshape(batch_size, Sy, Sx, -1)
-#         # converted_pred[..., 0] = converted_pred[..., 0].long()
-        
-#         # Calculate IoU for the two predicted bounding boxes with target bbox
-#         # size of predictions is Sx x Sy x 5, if a box exists, 1,0>x>1, 0>y>1, w>0, h>0 
-#         iou = intersection_over_union(converted_pred[..., 2:6], converted_target[..., 2:6])
-#         # ious = torch.cat([iou_b1.unsqueeze(0), iou_b2.unsqueeze(0)], dim=0)
-#         print(iou.mean())
-#         continue

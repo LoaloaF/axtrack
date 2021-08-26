@@ -1,37 +1,37 @@
 import os
-import time
-
 from copy import copy
-from datetime import datetime
-
-import pandas as pd
-import matplotlib.pyplot as plt
 
 import numpy as np
+import pandas as pd
 import torch
-import torch.optim as optim
-from torch.utils.data import DataLoader
-from torch.utils.data import SubsetRandomSampler
 
-from config import RAW_DATA_DIR, OUTPUT_DIR, CODE_DIR, PYTORCH_DIR, SPACER
-from model import YOLO_AXTrack
-from loss import YOLO_AXTrack_loss
-from core_functionality import get_default_parameters, setup_model, setup_data, run_epoch
-from dataset_class import Timelapse
+from exp_parameters import (
+    get_default_parameters, 
+    write_parameters, 
+    check_parameters,
+    load_parameters, 
+    params2text, 
+    params2img,
+    to_device_specifc_params,
+    compare_parameters,
+    )
+from core_functionality import (
+    setup_data, 
+    setup_model, 
+    run_epoch,
+    )
 from utils import (
     create_logging_dirs,
-    write_parameters,
-    load_parameters,
     save_preproc_metrics,
-    params2text,
-    params2img,
-    check_parameters,
     save_checkpoint,
     clean_rundirs,
     create_lossovertime_pkl,
-    to_device_specifc_params,
     )
-from plotting import plot_preprocessed_input_data, plot_training_process
+from plotting import (
+    plot_preprocessed_input_data, 
+    plot_training_process,
+    )
+from config import OUTPUT_DIR, SPACER
 
 def evaluate_run(exp_name, run, which='training', recreate=True, 
                  use_prepend=False, which_data='test', **kwargs):
@@ -88,7 +88,7 @@ def evaluate_run(exp_name, run, which='training', recreate=True,
             os.makedirs(f'{RUN_DIR}/model_out', exist_ok=True)
             os.makedirs(f'{RUN_DIR}/astar_dists', exist_ok=True)
             if kwargs.get("assign_ids") and not os.path.exists(f'{RUN_DIR}/model_out/{data.name}_assigned_ids.csv'):
-                model.assign_detections_ids(data, parameters, RUN_DIR)
+                assign_detections_ids(data, model, parameters, RUN_DIR)
             model.predict_all(data, parameters, dest_dir=f'{RUN_DIR}/model_out', **kwargs)
              
 
@@ -135,7 +135,6 @@ def run_experiment(exp_name, parameters, save_results=True):
     torch.manual_seed(parameters['SEED'])
     np.random.seed(parameters['SEED'])
     torch.cuda.empty_cache()
-    # torch.multiprocessing.set_start_method('spawn')
 
     # Setup saving and parameter checking 
     print(f'Running Experiment: {exp_name}', flush=True)
@@ -188,20 +187,18 @@ def run_experiment(exp_name, parameters, save_results=True):
             # save the current epoch loss
             epoch_log.to_csv(f'{METRICS_DIR}/E{epoch:0>3}.csv')
             # save the model every 100 Epochs
-            if epoch and not (epoch % 500):
+            # if epoch and not (epoch % 500):
+            if not (epoch % 500):
                 save_checkpoint(model, optimizer, filename=f'{MODELS_DIR}/E{epoch:0>4}.pth')
             
             # check the model predictions every 20 Epochs
             # every 20th epoch, check how the model performs in eval model
-            if epoch and epoch%500 == 0:
+            # if epoch and epoch%500 == 0:
+            if epoch%500 == 0:
                 epoch_dir = f'{METRICS_DIR}/{epoch:0>3}_results/'
                 os.makedirs(epoch_dir)
-                model.predict_all(train_data, parameters['DEVICE'], 
-                                  parameters['BBOX_THRESHOLD'], dest_dir=epoch_dir, 
-                                  show=False)
-                model.predict_all(test_data, parameters['DEVICE'], 
-                                  parameters['BBOX_THRESHOLD'], dest_dir=epoch_dir, 
-                                  show=False)
+                model.predict_all(train_data, parameters, dest_dir=epoch_dir)
+                model.predict_all(test_data, parameters, dest_dir=epoch_dir)
 
         # print out current progress
         current_progress = pd.concat(print_log, axis=1).unstack(level=0)
@@ -219,11 +216,13 @@ if __name__ == '__main__':
     exp_name = 'v1Model_exp2_boxlossfocus'
     exp_name = 'v1Model_exp3_newcnn'
     exp_name = 'v1Model_exp4_NewCNN'
+    exp_name = 'v1Model_exp5_RefactIDFocus'
+    
     # from utils import print_models
     # print_models()
     # exit()
 
-    clean_rundirs(exp_name, delete_runs=50, keep_only_latest_model=True)
+    # clean_rundirs(exp_name, delete_runs=50, keep_only_latest_model=True)
     
     # prepend_prev_run(exp_name, 'run09', 'run23')
     # evaluate_run(exp_name, 'run99', which='training', recreate=False)
@@ -234,43 +233,24 @@ if __name__ == '__main__':
     # compare_two_runs(exp_name, ['run99', 'run59'])
     # evaluate_run(exp_name, 'run59', which='model_out', assign_ids=True, animated=True, show=False, which_data='train')
 
-    new_ARCHITECTURE = [
-        #kernelsize, out_channels, stride, groups
-        [(3, 20,  2,  1),      # y-x out: 256
-         (3, 40,  2,  1),      # y-x out: 128
-         (3, 80,  2,  1),      # y-x out: 64
-         (3, 80,  1,  1),      # y-x out: 64
-         (3, 80,  2,  1),      # y-x out: 32
-         (3, 80,  1,  1),      # y-x out: 32
-         (3, 80,  1,  1),      # y-x out: 32
-         ],      
-        [(3, 160, 2,  1),      # y-x out: 16
-         ],
-        [('FC', 1024),
-         ('activation', torch.nn.Sigmoid()), 
-         ('FC', 1024),
-         ('activation', torch.nn.Sigmoid()), 
-        ]     
-    ]
-
-    parameters = copy(default_parameters)
+    # parameters1 = copy(default_parameters)
     # parameters['CACHE'] = OUTPUT_DIR
     # parameters['DEVICE'] = 'cpu'
     # parameters['FROM_CACHE'] = None
-    parameters['USE_MOTION_DATA'] = 'exclude'
-    parameters['NUM_WORKERS'] = 4
-    parameters['BATCH_SIZE'] = 32
-    parameters['LR'] = 1e-4
-    parameters['SHUFFLE'] = True
-    parameters['USE_TRANSFORMS'] = []
-    parameters['USE_TRANSFORMS'] = ['vflip', 'hflip', 'rot', 'translateY', 'translateX']
-    parameters['BBOX_THRESHOLD'] = 4
-    # parameters['TEST_TIMEPOINTS'] = [4,5]
-    # parameters['TRAIN_TIMEPOINTS'] = [11,12,13]
-    parameters['ARCHITECTURE'] = new_ARCHITECTURE
-    parameters['TEMPORAL_CONTEXT'] = 2
-    parameters['NOTES'] = 'trying FP TP stuff'
-    run_experiment(exp_name, parameters, save_results=True)
+    # parameters['USE_MOTION_DATA'] = 'exclude'
+    # parameters['NUM_WORKERS'] = 4
+    # parameters['BATCH_SIZE'] = 32
+    # parameters['LR'] = 1e-4
+    # parameters['SHUFFLE'] = True
+    # parameters['USE_TRANSFORMS'] = []
+    # parameters['USE_TRANSFORMS'] = ['vflip', 'hflip', 'rot', 'translateY', 'translateX']
+    # parameters['BBOX_THRESHOLD'] = 4
+    # # parameters['TEST_TIMEPOINTS'] = [4,5]
+    # # parameters['TRAIN_TIMEPOINTS'] = [11,12,13]
+    # parameters['ARCHITECTURE'] = new_ARCHITECTURE
+    # parameters['TEMPORAL_CONTEXT'] = 2
+    # parameters['NOTES'] = 'trying FP TP stuff'
+    # run_experiment(exp_name, parameters, save_results=True)
 
 
     new_ARCHITECTURE_deeper = [
@@ -307,25 +287,25 @@ if __name__ == '__main__':
          
          [(3, 160, 1,  1),],     # y-x out: 16
     ]
+    parameters2 = load_parameters('v1Model_exp4_NewCNN', 'run59')
 
     # ========== GPU experiments ===========
     parameters = copy(default_parameters)
-    # parameters['DEVICE'] = 'cuda:1'
-    
-    parameters = load_parameters(exp_name, 'run59')
+    parameters['DEVICE'] = 'cuda:2'
     # parameters['DEVICE'] = 'cpu'
-    # parameters['FROM_CACHE'] = OUTPUT_DIR
-    # parameters['LR_DECAYRATE'] = 15
-    # parameters['LR'] = 5e-4
-    # parameters['EPOCHS'] = 2001
-    # parameters['NUM_WORKERS'] = 6
+    parameters['FROM_CACHE'] = OUTPUT_DIR
+    parameters['LR_DECAYRATE'] = 15
+    parameters['LR'] = 5e-4
+    parameters['EPOCHS'] = 2001
+    parameters['NUM_WORKERS'] = 6
     # parameters['FROM_CACHE'] = None
-    parameters['FROM_CACHE'] = None
-    parameters['CACHE'] = OUTPUT_DIR
-    parameters['STANDARDIZE_FRAMEWISE'] = True
-    parameters['TEMPORAL_CONTEXT'] = 2
-    parameters['STANDARDIZE'] = ('zscore', None)
+    # parameters['CACHE'] = OUTPUT_DIR
+    # parameters['STANDARDIZE_FRAMEWISE'] = True
+    # parameters['TEMPORAL_CONTEXT'] = 2
+    # parameters['STANDARDIZE'] = ('zscore', None)
+    # parameters['ARCHITECTURE'] = new_ARCHITECTURE_deeper
     parameters['NOTES'] = 'trying to reproduce R59'
+    compare_parameters(parameters2, parameters)
     # run_experiment(exp_name, parameters, save_results=True)
     
 

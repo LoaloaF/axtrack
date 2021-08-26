@@ -29,9 +29,4 @@ elif where.startswith('/content'):
     DEFAULT_NUM_WORKERS = 2
 
 OUTPUT_DIR = BASE_DIR + 'tl140_outputdata/'
-
-CODE_DIR = BASE_DIR + 'code/'
-PYTORCH_DIR = CODE_DIR + 'models/'
-sys.path.append(PYTORCH_DIR)
-sys.path.append(CODE_DIR)
 SPACER = '========================================================'

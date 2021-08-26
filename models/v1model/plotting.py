@@ -209,7 +209,7 @@ def plot_training_process(training_files, parameter_list, dest_dir=None,
 
 def draw_frame(image, target_anchors=None, pred_anchors=None, animation=None, 
                dest_dir=None, fname='image', draw_YOLO_grid=None, show=False,
-               color_true_ids=False, color_pred_ids=True):
+               color_true_ids=True, color_pred_ids=False):
     # make sure image data has the right format: HxWxC
     im = np.array(image.detach().cpu())
     if im.shape[0] <= 3:

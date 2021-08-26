@@ -1,25 +1,5 @@
-import os
-import glob
-import shutil
-import pickle
-from datetime import datetime
-from config import RAW_DATA_DIR, OUTPUT_DIR, CODE_DIR, PYTORCH_DIR, SPACER
-
-from concurrent.futures import ThreadPoolExecutor
-from itertools import repeat
-
-from torchvision import models
-
-import pyastar
-from scipy import sparse
-
-import numpy as np
-import torch
 import pandas as pd
-
-import matplotlib.pyplot as plt
-import matplotlib.patches as patches
-import matplotlib.font_manager
+import torch
 
 def yolo_coo2tile_coo(target_tensor, Sx, Sy, tilesize, device, with_batch_dim=True):
     # nobatch dim
@@ -83,13 +63,3 @@ def Y2pandas_anchors(Y, Sx, Sy, tilesize, device, conf_thr):
     for i in range(len(Ys_list_fltd)):
         Ys_list_fltd[i] = fltd_tensor2pandas(Ys_list_fltd[i])
     return Ys_list_fltd
-
-
-
-
-
-
-
-
-
-

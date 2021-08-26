@@ -1,33 +1,20 @@
 import os
 import pickle
-import time
-
-from config import RAW_DATA_DIR, OUTPUT_DIR, CODE_DIR, PYTORCH_DIR
-from pt_utils import rotate_indices, flip_indices, coo2tensor, gen_denseTensorChunk
-from plotting import draw_frame
-from utils import Y2pandas_anchors
 
 import numpy as np
 import pandas as pd
+from scipy.sparse import coo_matrix
+
 from tifffile import imread
 from skimage.util import img_as_float32
 from skimage.exposure import adjust_log
 from skimage.filters import gaussian
 
-from scipy.sparse import coo_matrix
-from scipy.sparse import load_npz
-from scipy.sparse import save_npz
-
-import matplotlib.pyplot as plt
-import seaborn as sns
-
 import torch
 from torch.utils.data import Dataset
 from torch.nn import ZeroPad2d
 
-import torchvision.transforms.functional as TF
-from skimage.transform import rotate, AffineTransform, warp
-
+from data_utils import apply_transformations, sprse_scipy2torch
 
 class Timelapse(Dataset):
     def __init__(self, imseq_path=None, labels_csv=None, mask_path=None, timepoints=None,
@@ -101,7 +88,6 @@ class Timelapse(Dataset):
 
             # convert scipy.COO (imseq, p_motion & n_motion) to sparse tensor
             self.X = self._construct_X_tensor()
-            # self.ID_assoc = self._construct_axon_identity_association_matrix()
 
             # final data to use is constructed before each epoch by calling 
             # construct_tiles(). empty tiles mask for reconstructing image from 
@@ -363,9 +349,9 @@ class Timelapse(Dataset):
     
     def _construct_X_tensor(self):
         print('Constructing sparse Tensor...', end='', flush=True)
-        imseq = torch.stack([coo2tensor(coo_frame) for coo_frame in self.imseq])
-        p_mot_seq = torch.stack([coo2tensor(coo_frame) for coo_frame in self.p_motion_seq])
-        n_mot_seq = torch.stack([coo2tensor(coo_frame) for coo_frame in self.n_motion_seq])
+        imseq = torch.stack([sprse_scipy2torch(coo_frame) for coo_frame in self.imseq])
+        p_mot_seq = torch.stack([sprse_scipy2torch(coo_frame) for coo_frame in self.p_motion_seq])
+        n_mot_seq = torch.stack([sprse_scipy2torch(coo_frame) for coo_frame in self.n_motion_seq])
         X = torch.stack([imseq, p_mot_seq, n_mot_seq], 1)
         print('Done.')
         return X
@@ -384,15 +370,58 @@ class Timelapse(Dataset):
                 print('Serializing datset for caching...', end='')
                 pickle.dump(self.__dict__, file)
                 print('Done.\n\n')
-    
+        
+    def tiled_target2yolo_format(self, target_tiled):
+        # yolo target switches dim order from y-x to x-y!
+        # dims: ytile x xtile x timepoint x yolo_x_grid x yolo_y_grid x label(conf, x_anchor, y_anchor)
+        yolo_target = torch.zeros((*target_tiled.shape[:-2], self.Sx, self.Sy, 4))
+
+        # scale x and y anchors to tilesize (0-1)
+        target_tiled = target_tiled/self.tilesize
+        # get the idices of each dimension where a label exists
+        target_tiled_idx = torch.where(target_tiled >= 0)
+        # construct a sparse tensor using these indices - useful because the 
+        # number of axons per differs
+        vals = target_tiled[target_tiled_idx]
+        target_tiled = torch.sparse_coo_tensor(torch.stack(target_tiled_idx), 
+                                               vals, size=target_tiled.shape)
+
+        # coordinate here is in range 0-1 wrt the tile (512x512 px) - unpack
+        y_anchors = target_tiled[..., 0].coalesce()
+        x_anchors = target_tiled[..., 1].coalesce()
+        # get the tile-specific coordinates that have positive labels
+        ytile_coo, xtile_coo, t_idx, axID_idx = y_anchors.indices()
+        
+        # this converts the values of the sparse tensors x_anchors, y_anchors
+        # from 0-1 to 0-S (0-12)
+        yolo_y = (self.Sy*y_anchors).values()
+        # the integer component of this variable gives the yolo box the label 
+        # belongs to (0-11)
+        yolo_y_box = yolo_y.to(int)
+        # the float component gives the position relative to the yolo-box size (0-1)
+        yolo_y_withinbox = yolo_y - yolo_y_box
+        # same for x
+        yolo_x = (self.Sx*x_anchors).values()
+        yolo_x_box = yolo_x.to(int)
+        yolo_x_withinbox = yolo_x - yolo_x_box
+        
+        # now finally set the values at the respective coordinates
+        yolo_target[ytile_coo, xtile_coo, t_idx, yolo_x_box, yolo_y_box, 0] = 1
+        yolo_target[ytile_coo, xtile_coo, t_idx, yolo_x_box, yolo_y_box, 1] = yolo_x_withinbox
+        yolo_target[ytile_coo, xtile_coo, t_idx, yolo_x_box, yolo_y_box, 2] = yolo_y_withinbox
+        yolo_target[ytile_coo, xtile_coo, t_idx, yolo_x_box, yolo_y_box, 3] = axID_idx.to(torch.float32)
+        return yolo_target
+
     def construct_tiles(self, device, force_no_transformation=False):
-        if not torch.cuda.is_available():
-            self.tile_info = torch.load(f'../tl140_outputdata/{self.name}_tileinfo.pth')
-            self.X_tiled = torch.load(f'../tl140_outputdata/{self.name}_X_tiled.pth')
-            self.target_tiled = torch.load(f'../tl140_outputdata/{self.name}_target_tiled.pth')
-            return
+        # if not torch.cuda.is_available():
+        #     self.tile_info = torch.load(f'../tl140_outputdata/{self.name}_tileinfo.pth')
+        #     self.X_tiled = torch.load(f'../tl140_outputdata/{self.name}_X_tiled.pth')
+        #     self.target_tiled = torch.load(f'../tl140_outputdata/{self.name}_target_tiled.pth')
+        #     return
         if self.transform_configs and not force_no_transformation:
-            X, target = self.apply_transformations(device)
+            X, target = apply_transformations(self.transform_configs, self.X, 
+                                              self.target, self.sizey, 
+                                              self.sizex, device)
         else:
             X, target = self.X.to_dense(), self.target
         print(f'Tiling data...', end='', flush=True)
@@ -458,157 +487,7 @@ class Timelapse(Dataset):
         #     torch.save(self.target_tiled, file)
         print('Done', flush=True) 
 
-    def apply_transformations(self, device):
-        def transform_X(X, tchunksize, angle, flip_dims, dy, dx):
-            # translating
-            if dx or dy:
-                X_coal = X.coalesce()
-                indices, vals = X_coal.indices(), X_coal.values()
-                oof = torch.ones(vals.shape, dtype=bool) # ~out of frame
-
-                if dy:
-                    indices[2] = (indices[2] + dy).to(torch.long)
-                    oof[(indices[2]>=self.sizey) | (indices[2]<0)] = False
-                if dx:
-                    indices[3] = (indices[3] + dx).to(torch.long)
-                    oof[(indices[3]>=self.sizex) | (indices[3]<0)] = False
-                
-                # torch doens't broadcast like numpy?
-                oof_brdcst = torch.stack([oof]*4)
-                indices = indices[oof_brdcst].reshape((4, oof.sum()))
-                X = torch.sparse_coo_tensor(indices, vals[oof], X.shape)
-            
-            if not flip_dims and not angle:
-                return X.to('cpu').to_dense()
-            else:
-                X_dense = []
-                for X_chunk in gen_denseTensorChunk(X, tchunksize):
-                   
-                    # flipping
-                    if flip_dims:
-                        X_chunk = torch.flip(X_chunk, flip_dims)
-                    # rotating
-                    if angle:
-                        X_chunk = TF.rotate(X_chunk, angle)
-                    X_dense.append(X_chunk.to('cpu'))
-
-                return torch.cat(X_dense)
-
-        def transform_Y(target, angle, flip_dims,  dy, dx):
-            # make a new dataframe with reset index (y-axis from 0 - last timepoint)
-            target_transf = target.copy()
-            # get the anchor points of all the bboxes (center point)
-            anchors = target.loc[:,(slice(None),['anchor_y', 'anchor_x'])].sort_index(1).copy()
-
-            # translating
-            if dy or dx:
-                y_anchor = anchors.loc[:, (slice(None), 'anchor_y')]
-                x_anchor = anchors.loc[:, (slice(None), 'anchor_x')]
-                if dy:
-                    y_anchor += dy
-                    oof = ((1 >= y_anchor) | (y_anchor >= self.sizey-1)).values
-                    y_anchor = y_anchor.where(~oof)
-                if dx:
-                    x_anchor += dx
-                    oof = ((1 >= x_anchor) | (x_anchor >= self.sizex-1)).values
-                    x_anchor = x_anchor.where(~oof)
-                # ----- check which bbox is lost after translation? -----
-                anchors.loc[:, (slice(None), 'anchor_y')] = y_anchor
-                anchors.loc[:, (slice(None), 'anchor_x')] = x_anchor
-
-            # flipping
-            if flip_dims:
-                anchors = flip_indices(anchors, (self.sizey, self.sizex), flip_dims)
-            
-            # rotating
-            if self.transform_configs.get('rot',0) > .5:
-                # ----- check which bbox is lost after rotation? -----
-                anchors = rotate_indices(anchors, (self.sizey, self.sizex), angle)
-            
-            # get the new x,y anchors and mask extend in case bboxes got lost in rotation
-            y_anchor = anchors.loc[:, (slice(None), 'anchor_y')].round()
-            x_anchor = anchors.loc[:, (slice(None), 'anchor_x')].round()
-            target_transf.loc[:, (slice(None),'anchor_y')] = y_anchor
-            target_transf.loc[:, (slice(None),'anchor_x')] = x_anchor
-            return target_transf
-
-        # make a transformation config: rotate, hflip, vflip translate - or not
-        self.transform_configs = {key: round(torch.rand(1).item(), 2)
-                                  for key in self.transform_configs}
-        print(f'New transform config set: {self.transform_configs}\n'
-               'Transforming data...', end='', flush=True)
-
-        # translating parameter
-        dy, dx = 0, 0
-        # dy and dx are in [-.25, +.25]
-        if self.transform_configs.get('translateY', 0) >.5:
-            dy = round(self.sizey *(self.transform_configs.get('translateY', 0)-.75))
-        if self.transform_configs.get('translateX', 0) >.5:
-            dx = round(self.sizex *(self.transform_configs.get('translateY', 0)-.75))
-
-        # flipping parameter
-        flip_dims = []
-        if self.transform_configs.get('hflip',0) > .5:
-            flip_dims.append(2)
-        if self.transform_configs.get('vflip',0) > .5:
-            flip_dims.append(3)
-
-        # rotating parameter
-        angle = None
-        if self.transform_configs.get('rot',0) > .5:
-            angle = ((self.transform_configs['rot'] * 40) -20)
-        
-        # apply the transformation using paramters above, do on GPU, return on CPU
-        tchunksize = 2
-        X = transform_X(self.X.to(device), tchunksize, angle, flip_dims, dy, dx)
-        # now transform the bboxes with the same paramters
-        target_transf = transform_Y(self.target, angle, flip_dims, dy, dx)
-        print('Done.')
-        torch.cuda.empty_cache()
-        return X, target_transf
-    
-    def tiled_target2yolo_format(self, target_tiled):
-        # yolo target switches dim order from y-x to x-y!
-        # dims: ytile x xtile x timepoint x yolo_x_grid x yolo_y_grid x label(conf, x_anchor, y_anchor)
-        yolo_target = torch.zeros((*target_tiled.shape[:-2], self.Sx, self.Sy, 4))
-
-        # scale x and y anchors to tilesize (0-1)
-        target_tiled = target_tiled/self.tilesize
-        # get the idices of each dimension where a label exists
-        target_tiled_idx = torch.where(target_tiled >= 0)
-        # construct a sparse tensor using these indices - useful because the 
-        # number of axons per differs
-        vals = target_tiled[target_tiled_idx]
-        target_tiled = torch.sparse_coo_tensor(torch.stack(target_tiled_idx), 
-                                               vals, size=target_tiled.shape)
-
-        # coordinate here is in range 0-1 wrt the tile (512x512 px) - unpack
-        y_anchors = target_tiled[..., 0].coalesce()
-        x_anchors = target_tiled[..., 1].coalesce()
-        # get the tile-specific coordinates that have positive labels
-        ytile_coo, xtile_coo, t_idx, axID_idx = y_anchors.indices()
-        
-        # this converts the values of the sparse tensors x_anchors, y_anchors
-        # from 0-1 to 0-S (0-12)
-        yolo_y = (self.Sy*y_anchors).values()
-        # the integer component of this variable gives the yolo box the label 
-        # belongs to (0-11)
-        yolo_y_box = yolo_y.to(int)
-        # the float component gives the position relative to the yolo-box size (0-1)
-        yolo_y_withinbox = yolo_y - yolo_y_box
-        # same for x
-        yolo_x = (self.Sx*x_anchors).values()
-        yolo_x_box = yolo_x.to(int)
-        yolo_x_withinbox = yolo_x - yolo_x_box
-        
-        # now finally set the values at the respective coordinates
-        yolo_target[ytile_coo, xtile_coo, t_idx, yolo_x_box, yolo_y_box, 0] = 1
-        yolo_target[ytile_coo, xtile_coo, t_idx, yolo_x_box, yolo_y_box, 1] = yolo_x_withinbox
-        yolo_target[ytile_coo, xtile_coo, t_idx, yolo_x_box, yolo_y_box, 2] = yolo_y_withinbox
-        yolo_target[ytile_coo, xtile_coo, t_idx, yolo_x_box, yolo_y_box, 3] = axID_idx.to(torch.float32)
-        return yolo_target
-
-    def stitch_tiles(self, X, Y, Y2=None, reset_Y_index=True):
+    def stitch_tiles(self, X, Y, Y2=None):
         from copy import copy
         ts = self.tilesize
         # get the yx coordinates of the tiles  
