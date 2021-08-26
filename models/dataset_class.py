@@ -44,14 +44,14 @@ class Timelapse(Dataset):
         # irrespective of cache, update these two bois
         self.use_motion_filtered = use_motion_filtered
         self.transform_configs = dict.fromkeys(use_transforms,0)
-        
+
         if not from_cache:
             # agg preprocessing steps data in this dict
             self.plot_data = {}
 
             # which input data to use
             self.timepoints = timepoints
-            self.pad = pad
+            self.pad = pad  
             self.use_sparse = use_sparse
             self.use_motion_filtered = use_motion_filtered #'both', 'only', 'exclude'
             self.motion_gaussian_filter_std = 3
@@ -97,7 +97,7 @@ class Timelapse(Dataset):
             self.target = self._load_bboxes(labels_csv)
 
             # slice to timeinterval
-            self.sizet, self.target, self.imseq, self.p_motion_seq, self.n_motion_seq = self._slice_timepoints()
+            self.timepoints_indices, self.sizet, self.target, self.imseq, self.p_motion_seq, self.n_motion_seq = self._slice_timepoints()
 
             # convert scipy.COO (imseq, p_motion & n_motion) to sparse tensor
             self.X = self._construct_X_tensor()
@@ -113,10 +113,8 @@ class Timelapse(Dataset):
 
     def __getitem__(self, idx):
         t_idx, tile_idx = self.unfold_idx(idx)
-        # print('Getting t: ', t_idx, end='')
-        t_idx += self.temporal_context
+        t_idx = self.timepoints_indices[t_idx]
         tstart, tstop = t_idx-self.temporal_context, t_idx+self.temporal_context+1
-        # print('   but really t, tstart, tstop: ', t_idx, tstart, tstop)
 
         if self.use_motion_filtered == 'include':
             X = self.X_tiled[tstart:tstop, tile_idx].flatten(end_dim=1)
@@ -335,16 +333,22 @@ class Timelapse(Dataset):
               f'{self.timepoints} (n={len(self.timepoints)})')
         tps = self.timepoints
         if self.temporal_context:
-            t0, tn1 = self.timepoints[0], self.timepoints[-1]
-            pre_padding = [t0-t for t in range(1, self.temporal_context+1)]
-            post_padding = [tn1+t for t in range(1, self.temporal_context+1)]
-            tps = [*pre_padding, *tps, *post_padding]
+            # get neighbouring timepoints 
+            tps = [[t-tpad,t,t+tpad] for t in self.timepoints for tpad in range(1,self.temporal_context+1)]
+            # unpack list and drop duplicates
+            tps = list(set([t for tp in tps for t in tp]))
+        # temporal padding makes things a bit messy... the list below holds the
+        # timepoints to actually feed into the model. This will be equal to
+        # self.timepoints if the passed timepoints are continuous, eg (2,3,4,5)
+        # in contrast to 2,3,34,35. For these cases below is needed for indexing
+        timepoints_indices = [tps.index(tp) for tp in self.timepoints]
+
         imseq = [self.imseq[t] for t in tps]
         p_motion_seq = [self.p_motion_seq[t] for t in tps]
         n_motion_seq = [self.n_motion_seq[t] for t in tps]
         target = self.target.iloc[tps]
         sizet = len(self.timepoints)
-        return sizet, target, imseq, p_motion_seq, n_motion_seq
+        return timepoints_indices, sizet, target, imseq, p_motion_seq, n_motion_seq
     
     def _get_channelsizes(self):
         if self.use_motion_filtered == 'exclude':
@@ -381,22 +385,17 @@ class Timelapse(Dataset):
                 pickle.dump(self.__dict__, file)
                 print('Done.\n\n')
     
-    def construct_tiles(self, device):
+    def construct_tiles(self, device, force_no_transformation=False):
         if not torch.cuda.is_available():
             self.tile_info = torch.load(f'../tl140_outputdata/{self.name}_tileinfo.pth')
             self.X_tiled = torch.load(f'../tl140_outputdata/{self.name}_X_tiled.pth')
             self.target_tiled = torch.load(f'../tl140_outputdata/{self.name}_target_tiled.pth')
             return
-        if self.transform_configs:
+        if self.transform_configs and not force_no_transformation:
             X, target = self.apply_transformations(device)
-            print(f'Tiling data...', end='', flush=True)
-        elif self.X_tiled is None:
-            print(f'Tiling data...', end='', flush=True)
-            X = self.X.to_dense()
-            target = self.target
         else:
-            print('Using tiled data from previous Epoch.', flush=True)
-            return
+            X, target = self.X.to_dense(), self.target
+        print(f'Tiling data...', end='', flush=True)
 
         # split X into tiles using .split function
         ts = self.tilesize
@@ -609,7 +608,7 @@ class Timelapse(Dataset):
         yolo_target[ytile_coo, xtile_coo, t_idx, yolo_x_box, yolo_y_box, 3] = axID_idx.to(torch.float32)
         return yolo_target
 
-    def stitch_tiles(self, X, Y, Y2=None):
+    def stitch_tiles(self, X, Y, Y2=None, reset_Y_index=True):
         from copy import copy
         ts = self.tilesize
         # get the yx coordinates of the tiles  
@@ -639,6 +638,7 @@ class Timelapse(Dataset):
                         Y2_stitched[flat_tile_idx].anchor_y += tile_ycoo*ts
                         Y2_stitched[flat_tile_idx].anchor_x += tile_xcoo*ts
         Y_stitched = pd.concat(Y_stitched)
+        Y_stitched.index = [f'Axon_{i:0>3}' for i in range(len(Y_stitched))]
         if Y2:
             Y2_stitched = pd.concat(Y2_stitched)
         return X_stitched, Y_stitched, Y2_stitched

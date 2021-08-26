@@ -30,15 +30,6 @@ def plot_preprocessed_input_data(preporc_dat_csv, dest_dir=None, show=False):
             
             train = data[('train', name, which_timpoint)]
             test = data[('test', name, which_timpoint)]
-            print('train', name, which_timpoint)
-            print(train[train!=0].mean())
-            print(np.std(train[train!=0]))
-            
-            print('test', name, which_timpoint)
-            print(test[test!=0].mean())
-            print(np.std(test[test!=0]))
-            print()
- 
             if name.startswith('Standardized'):
                 args = {'bins': 140, }
                 ax.set_ylim((0, 0.12))
@@ -219,7 +210,7 @@ def plot_training_process(training_files, parameter_list, dest_dir=None,
 
 def draw_frame(image, target_anchors=None, pred_anchors=None, animation=None, 
                dest_dir=None, fname='image', draw_YOLO_grid=None, show=False,
-               color_true_ids=True, color_pred_ids=False):
+               color_true_ids=False, color_pred_ids=True):
     # make sure image data has the right format: HxWxC
     im = np.array(image.detach().cpu())
     if im.shape[0] <= 3:
@@ -263,7 +254,7 @@ def draw_frame(image, target_anchors=None, pred_anchors=None, animation=None,
     # draw bounding boxes
     rectangles = []
     text_artists = []
-    boxs = 60
+    boxs = 70
     for i, anchors in enumerate((target_anchors, pred_anchors)):
         kwargs = {'edgecolor':'w', 'facecolor':'none', 'linewidth': 1, 
                 'linestyle':'solid'}
@@ -273,12 +264,10 @@ def draw_frame(image, target_anchors=None, pred_anchors=None, animation=None,
                 if i == 1:
                     kwargs.update({'alpha':conf, 'linestyle':'dashed'})
                 if (i==0 and color_true_ids) or (i==1 and color_pred_ids):
-                    if i == 1:
-                        print('ion')
                     ax_id_col = plt.cm.get_cmap('hsv', 20)(int(axon_id[-3:])%20)
                     kwargs.update({'edgecolor': ax_id_col})
-                    text_artists.append(ax.text(x-boxs/2, y-boxs/1.5, axon_id, 
-                                        fontsize=4, color=kwargs['edgecolor']))
+                    text_artists.append(ax.text(x-boxs/2, y-boxs/1.5, axon_id.replace('on_',''), 
+                                        fontsize=5.5, color=kwargs['edgecolor']))
                 axon_box = Rectangle((x-boxs/2, y-boxs/2), boxs, boxs, **kwargs)
                 rectangles.append(axon_box)
     [ax.add_patch(rec) for rec in rectangles]

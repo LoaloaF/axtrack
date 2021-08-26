@@ -34,7 +34,7 @@ from utils import (
 from plotting import plot_preprocessed_input_data, plot_training_process
 
 def evaluate_run(exp_name, run, which='training', recreate=True, 
-                 use_prepend=False, which_data='test'):
+                 use_prepend=False, which_data='test', **kwargs):
     EXP_DIR = f'{OUTPUT_DIR}/runs/{exp_name}/'
     RUN_DIR = f'{EXP_DIR}/{[rd for rd in os.listdir(EXP_DIR) if run in rd][0]}'
     parameters = load_parameters(exp_name, run)
@@ -73,9 +73,9 @@ def evaluate_run(exp_name, run, which='training', recreate=True,
             plot_training_process([training_file], [parameters], dest_dir=RUN_DIR, 
                                    show=False)
     
-    elif which in ('id_association', 'model_out'):
+    elif which == 'model_out':
         parameters = to_device_specifc_params(parameters, get_default_parameters())
-        parameters['LOAD_MODEL'] = [exp_name, run, 'latest']   
+        parameters['LOAD_MODEL'] = [exp_name, run, 'latest']
         parameters['USE_TRANSFORMS'] = []
         parameters['DEVICE'] = 'cpu'
 
@@ -84,15 +84,12 @@ def evaluate_run(exp_name, run, which='training', recreate=True,
         data = train_data if which_data == 'train' else test_data
         data.construct_tiles(parameters['DEVICE'])
 
-        if which == 'id_association':
-            os.makedirs(f'{RUN_DIR}/astar_dists', exist_ok=True)
-            os.makedirs(f'{RUN_DIR}/associated_detections', exist_ok=True)
-            model.assign_ids(data, parameters['DEVICE'], RUN_DIR)
-        
-        elif which == 'model_out':
+        if which == 'model_out':
             os.makedirs(f'{RUN_DIR}/model_out', exist_ok=True)
-            model.predict_all(data, parameters['DEVICE'], parameters['BBOX_THRESHOLD'], 
-                              animated=False, show=False, dest_dir=f'{RUN_DIR}/model_out')
+            os.makedirs(f'{RUN_DIR}/astar_dists', exist_ok=True)
+            if kwargs.get("assign_ids") and not os.path.exists(f'{RUN_DIR}/model_out/{data.name}_assigned_ids.csv'):
+                model.assign_detections_ids(data, parameters, RUN_DIR)
+            model.predict_all(data, parameters, dest_dir=f'{RUN_DIR}/model_out', **kwargs)
              
 
 
@@ -226,14 +223,16 @@ if __name__ == '__main__':
     # print_models()
     # exit()
 
-    clean_rundirs(exp_name, delete_runs=56, keep_only_latest_model=True)
+    clean_rundirs(exp_name, delete_runs=50, keep_only_latest_model=True)
     
     # prepend_prev_run(exp_name, 'run09', 'run23')
-    # evaluate_run(exp_name, 'run95', recreate=False)
-    # evaluate_run(exp_name, 'run96', recreate=False)
-    # compare_two_runs(exp_name, ['run96', 'run59'])
-    # evaluate_run(exp_name, 'run59', which='model_out')
-    # evaluate_run(exp_name, 'run97', which='id_association')
+    evaluate_run(exp_name, 'run90', which='training', recreate=True)
+    # compare_two_runs(exp_name, ['run90', 'run59'])
+    # evaluate_run(exp_name, 'run94', which='training', recreate=False)
+    # evaluate_run(exp_name, 'run95', which='training', recreate=False)
+    # evaluate_run(exp_name, 'run96', which='training', recreate=False)
+    # compare_two_runs(exp_name, ['run99', 'run59'])
+    # evaluate_run(exp_name, 'run59', which='model_out', assign_ids=True, animated=True, show=False, which_data='train')
 
     parameters = copy(default_parameters)
     parameters['CACHE'] = OUTPUT_DIR
@@ -244,7 +243,6 @@ if __name__ == '__main__':
     parameters['BATCH_SIZE'] = 32
     parameters['LR'] = 1e-4
     parameters['SHUFFLE'] = True
-    parameters['SEED'] = False
     parameters['USE_TRANSFORMS'] = []
     parameters['USE_TRANSFORMS'] = ['vflip', 'hflip', 'rot', 'translateY', 'translateX']
     parameters['BBOX_THRESHOLD'] = 4
@@ -252,10 +250,9 @@ if __name__ == '__main__':
     # parameters['TRAIN_TIMEPOINTS'] = [11,12,13]
     # parameters['ARCHITECTURE'] = 'resnet'
     parameters['TEMPORAL_CONTEXT'] = 2
-
     parameters['NOTES'] = 'trying FP TP stuff'
     # run_experiment(exp_name, parameters, save_results=True)
-    
+
     new_ARCHITECTURE_deeper = [
         #kernelsize, out_channels, stride, concat_to_feature_vector
 
@@ -293,13 +290,23 @@ if __name__ == '__main__':
 
     # ========== GPU experiments ===========
     parameters = copy(default_parameters)
-    parameters['DEVICE'] = 'cuda:1'
-    parameters['LR_DECAYRATE'] = 15
-    parameters['LR'] = 5e-4
-    parameters['EPOCHS'] = 2001
-    parameters['NUM_WORKERS'] = 6
-    parameters['NOTES'] = 'refactored, new data preproc., manually setting R59 params'
-    run_experiment(exp_name, parameters, save_results=True)
+    # parameters['DEVICE'] = 'cuda:1'
+    
+    parameters = load_parameters(exp_name, 'run59')
+    # parameters['DEVICE'] = 'cpu'
+    # parameters['FROM_CACHE'] = OUTPUT_DIR
+    # parameters['LR_DECAYRATE'] = 15
+    # parameters['LR'] = 5e-4
+    # parameters['EPOCHS'] = 2001
+    # parameters['NUM_WORKERS'] = 6
+    # parameters['FROM_CACHE'] = None
+    parameters['FROM_CACHE'] = None
+    parameters['CACHE'] = OUTPUT_DIR
+    parameters['STANDARDIZE_FRAMEWISE'] = True
+    parameters['TEMPORAL_CONTEXT'] = 2
+    parameters['STANDARDIZE'] = ('zscore', None)
+    parameters['NOTES'] = 'trying to reproduce R59'
+    # run_experiment(exp_name, parameters, save_results=True)
     
 
 

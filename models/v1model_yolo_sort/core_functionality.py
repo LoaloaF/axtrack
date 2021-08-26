@@ -29,7 +29,8 @@ def get_default_parameters():
     LOG_CORRECT = True
     PLOT_PREPROC = True
     STANDARDIZE = ('zscore', None)
-    # RETAIN_TEMPORAL_VAR = True
+    RETAIN_TEMPORAL_VAR = False
+
     STANDARDIZE_FRAMEWISE = False
     TEMPORAL_CONTEXT = 2
     USE_MOTION_DATA = 'include' #, 'exclude'  'only'
@@ -59,7 +60,8 @@ def get_default_parameters():
     IMG_DIM = 2920, 6364
     SY, SX = 12, 12
     TILESIZE = 512
-    # GROUPING = True
+    GROUPING = False
+
     WEIGHT_DECAY = 5e-4
     BATCH_SIZE = 32
     EPOCHS = 301

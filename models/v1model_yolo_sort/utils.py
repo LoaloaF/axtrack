@@ -3,8 +3,10 @@ import glob
 import shutil
 import pickle
 from datetime import datetime
-from collections import Counter
 from config import RAW_DATA_DIR, OUTPUT_DIR, CODE_DIR, PYTORCH_DIR, SPACER
+
+from concurrent.futures import ThreadPoolExecutor
+from itertools import repeat
 
 from torchvision import models
 
@@ -162,7 +164,7 @@ def create_logging_dirs(exp_name):
     runs = [int(r[3:5]) for r in os.listdir(EXP_DIR)]
     if 99 in runs:
         print('Run dir full (run99 in there), tidy up!')
-        exit(1)
+        # exit(1)
     run = 0 if not runs else max(runs)+1
     run_label = f'run{run:0>2}_' + datetime.now().strftime("%d.%m.%Y_%H.%M.%S")
 
@@ -296,7 +298,13 @@ def to_device_specifc_params(model_parameters, local_default_params):
     # MASK_FILE = OUTPUT_DIR + 'mask_wells_excl.npy'
     # DEVICE = DEFAULT_DEVICE
 
-def get_astar_path(source, target, weights, return_path=False):
+def generate_axon_id():
+    axon_id = 0
+    while True:
+        yield axon_id
+        axon_id += 1
+
+def compute_astar_path(source, target, weights, return_path=True):
     path_coo = pyastar.astar_path(weights, source, target)
     if return_path:
         ones, row, cols = np.ones(path_coo.shape[0]), path_coo[:,0], path_coo[:,1]
@@ -304,21 +312,40 @@ def get_astar_path(source, target, weights, return_path=False):
         return path_coo.shape[0], path
     return path_coo.shape[0]
 
-def rand_nRGB(n):
-    np.random.seed(42)
-    r, g, b = np.random.randint(0, 2**8, (3,n))
-    return r*2**16 + g*2**8 + b
+def get_detections_distance(t1_det, t0_det, weights, max_dist, fname):
+    # print(t1_det, t0_det, weights, max_dist)
+    t1id, t1y, t1x = t1_det 
+    t0id, t0y, t0x = t0_det
+    dist = np.sqrt((t1y-t0y)**2 + (t1x-t0x)**2)
+    if dist < max_dist:
+        dist, path = compute_astar_path((t1y,t1x), (t0y,t0x), weights)
+        sparse.save_npz(f'{fname}_id{t0id}-id{t1id}.npz', path)
+    dist = min((dist, max_dist))
+    return dist
 
-def nRGB2Hex(folded_RGB):
-    if folded_RGB == -1:
-        folded_RGB = rand_nRGB(1)[0]
-    r, rem = divmod(folded_RGB, 2**16)
-    g, b = divmod(rem, 2**8)
-    hex_rgb = f"#{r:02x}{g:02x}{b:02x}"
-    return hex_rgb
+def compute_astar_distances(t1_dets, t0_dets, mask, max_dist, num_workers, filename):
+    # check if a cached file exists, must hace the correct shape (lazy check)
+    if os.path.exists(filename+'.npy'):
+        distances = np.load(filename+'.npy')
+        if distances.shape == (t1_dets.shape[0], t0_dets.shape[0]):
+            return distances
+    
+    # get the cost matrix for finding the astar path
+    weights = np.where(mask==1, 1, 2**16).astype(np.float32)
+    # get the current ids (placeholders)
+    t1_ids = [int(idx[-3:]) for idx in t1_dets.index]
+    t0_ids = [int(idx[-3:]) for idx in t0_dets.index]
+    
+    # iterate t1_detections, compute its distance to all detections in t0_dets
+    distances = []
+    t0_dets = np.stack([t0_ids, t0_dets.anchor_y, t0_dets.anchor_x], -1)
+    for i, t1_det in enumerate(np.stack([t1_ids, t1_dets.anchor_y, t1_dets.anchor_x], -1)):
+        print(f'{i}/{len(t1_dets)}', end='...')
 
-def generate_axon_id():
-    axon_id = 0
-    while True:
-        yield axon_id
-        axon_id += 1
+        with ThreadPoolExecutor(num_workers) as executer:
+            args = repeat(t1_det), t0_dets, repeat(weights), repeat(max_dist), repeat(filename)
+            dists = executer.map(get_detections_distance, *args)
+        distances.append([d for d in dists])
+    distances = np.array(distances)
+    np.save(filename+'.npy', distances)
+    return distances

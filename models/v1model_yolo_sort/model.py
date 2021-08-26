@@ -4,12 +4,11 @@ import torch.nn as nn
 import pandas as pd
 import numpy as np
 from scipy.optimize import linear_sum_assignment
-from utils import get_astar_path, rand_nRGB, nRGB2Hex, generate_axon_id
 
 import matplotlib.pyplot as plt
 from matplotlib import animation
 
-from utils import Y2pandas_anchors
+from utils import Y2pandas_anchors, compute_astar_distances, generate_axon_id
 from plotting import draw_frame
 
 from torchvision import datasets, models, transforms
@@ -161,22 +160,6 @@ class YOLO_AXTrack(nn.Module):
             nn.Linear(FC_size, features_out),
         )
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
     def detect_axons_in_frame(self, X):
         self.eval()
         n_tiles = X.shape[0]
@@ -184,320 +167,40 @@ class YOLO_AXTrack(nn.Module):
             pred = self(X).reshape(n_tiles, self.Sx, self.Sy, -1)
         self.train()
         return pred
-
-    def compute_astar_distances(self, t0_target, t1_target, mask, max_dist, 
-                                filename, from_cache=False):
-        if not from_cache:
-            weights = np.where(mask==1, 1, 2**16).astype(np.float32)
-
-            # with concurrent.futures.ProcessPoolExecutor(max_workers=how['threads']) as executer:
-            #             [executer.submit(MUA_analyzeMouseParadigm, folder) for folder in dirs]
-
-            dists = []
-            for i, t0_det in enumerate(t0_target):
-                print(f'{i}/{(t0_target[:,0]!=-1).sum()}', end='...', flush=True)
-
-                t0_dists = []
-                for t1_det in t1_target:
-                    if (t0_det == -1).all() or (t1_det == -1).all():
-                        dist = -1
-                    else:
-                        dist = np.linalg.norm(t0_det-t1_det)
-                        if dist < max_dist:
-                            dist = get_astar_path(np.flip(t0_det), np.flip(t1_det), weights)
-                        dist = min((dist, max_dist))
-                    t0_dists.append(dist)
-                dists.append(t0_dists)
-
-            dists = np.array(dists)
-            np.save(filename, dists)
-        else:
-            dists = np.load(filename)
-        return dists
     
-    def compute_association_cost(self, D, Conf, alpha, beta, gamma, max_cost, conf_thr):
-        def compute_cost(which, dist=None, t0_conf=None, t1_conf=None):
-            if which in ('ID_continues', 'ID_created', 'ID_killed'):
-                if which == 'ID_continues': 
-                    c = (alpha*dist) * (1/(1 + np.e**(beta*(t0_conf+t1_conf-1))))
-                    c[no_IDt0_mask | no_IDt1_mask] = max_cost
-                    # c[(no_IDt0_mask & no_IDt1_mask) & diag_mask] = 0
+    def get_detections_ids(self, dets, t, run_dir, data_name):
+        assigned_ids = pd.read_csv(f'{run_dir}/{data_name}_assigned_ids.csv', index_col=(0,1))
+        dets.index = assigned_ids.loc[(t, dets.index),:].values[:,0]
+        return dets
 
-                elif which == 'ID_killed':
-                    c = 1/(1 + np.e**(beta*(t0_conf-.5)))
-                    c[no_IDt0_mask | ~diag_mask] = max_cost
+    def get_frame_detections(self, data, t, device, anchor_conf_thr, assign_ids=None):
+        # get a stack of tiles that makes up a frame
+        # batch dim of X corresbonds to all tiles in frame at time t
+        X, target = data.get_stack('image', t)
+        X = X.to(device)
+        # use the model to detect axons, output here follows target.shape
+        pred_target = self.detect_axons_in_frame(X)
 
-                elif which == 'ID_created':
-                    c = 1/(1 + np.e**(beta*(t1_conf-.5)))
-                    c[no_IDt1_mask | ~diag_mask] = max_cost
-                
-            elif which in ('ID_t0_FP', 'ID_t1_FP'):
-                c = gamma*np.eye(dist.shape[0])
-                
-                if which == 'ID_t0_FP':
-                    c[no_IDt0_mask | ~diag_mask] = max_cost
-                    # c[no_IDt0_mask & diag_mask] = 0
-                
-                if which == 'ID_t1_FP':
-                    c[no_IDt1_mask | ~diag_mask] = max_cost
-                    # c[no_IDt1_mask & diag_mask] = 0
-            return c.astype(float)
+        # convert the detected anchors in YOLO format to normal ones
+        pred_dets = Y2pandas_anchors(pred_target, self.Sx, self.Sy, 
+                                     self.tilesize, device, anchor_conf_thr) 
+        if target is not None:
+            true_dets = Y2pandas_anchors(target.to(device), self.Sx, self.Sy, 
+                                         self.tilesize, device, 1) 
 
-        capacity = D.shape[1]
-        filler_block = np.full((capacity,capacity), max_cost)
-        C = []
-        for t in range(D.shape[0]):
-            # t0 detection confidence vector to row-matrix
-            det_conf_t0 = np.tile(Conf[t], (400,1)).T
-            # t1 detection confidence vector to column-matrix
-            det_conf_t1 = np.tile(Conf[t+1], (400,1))
-            det_dists = D[t]
-
-            diag_mask = np.eye(det_dists.shape[0], dtype=bool)
-            # no_ID_mask = (det_conf_t0==-1) | (det_conf_t1==-1)
-            no_IDt0_mask = det_conf_t0 == -1
-            no_IDt1_mask = det_conf_t1 == -1
-
-            ID_cont = compute_cost('ID_continues', det_dists, det_conf_t0, det_conf_t1)
-            ID_killed = compute_cost('ID_killed', det_dists, det_conf_t0, det_conf_t1)
-            ID_created = compute_cost('ID_created', det_dists, det_conf_t0, det_conf_t1)
-            ID_t0_FP = compute_cost('ID_t0_FP', det_dists, det_conf_t0, det_conf_t1)
-            ID_t1_FP = compute_cost('ID_t1_FP', det_dists, det_conf_t0, det_conf_t1)
-
-            
-            # ID_killed = np.where((ID_killed>gamma) & diag_mask & ~no_IDt0_mask & ~no_IDt0_mask, 0, ID_killed)
-            # ID_created = np.where((ID_created>gamma) & diag_mask & ~no_IDt1_mask & ~no_IDt1_mask, 0, ID_created)
-
-            filler_block_diag = np.where(diag_mask, 0, filler_block)
-            filler_block_mod = np.minimum(ID_killed,ID_created)
-            cost_t0t1 = np.block([[ID_cont,   ID_killed],
-                                  [ID_created, filler_block]])
-
-            C.append(cost_t0t1)
-        return C
-            
-    def hungarian_algorithm(self, C):
-        # print(C)
-        # x_assignm = 0
-        # x_assignments = []
-        # for t0_id, t0_det in enumerate(C):
-        #     order = np.argsort(t0_det)
-        #     # t0_cost_sorted = t0_det[order]
-        #     # print(t0_cost_sorted)
-
-        #     while order[x_assignm] in x_assignments:
-        #         x_assignm += 1 
-        #     x_assignments.append(order[x_assignm])
-        #     print(x_assignments)
-        # print()
-        # print()
-        # print()
-        # print()
-        return linear_sum_assignment(C)
-
-    def assign_ids(self, data, device, run_dir, draw_assoc=True):
-        thr = .5
-        capacity = 400
-        alpha, beta, gamma = 0.1, 6, 0.2
-        max_dist = 400
-        max_cost = (alpha*max_dist) * (1/(1 + np.e**(beta*(thr+thr-1))))
-        conf_thr = np.log((1/gamma) -1)/beta +0.5
-
-        # aggregate all distances and confidences over timepoints
-        prv_t_pred_target = np.full((capacity, 3), -1) 
-        D, Conf, Coos = [], [], []
-        detections = []
-        images = []
-        for t in range(data.sizet):
-            # get a stack of tiles that makes up a frame
-            X, target = data.get_stack('image', t)
-            X, target = X.to(device), target.to(device)
-            # use the model to detect axons, output here follows target.shape
-            pred_target = self.detect_axons_in_frame(X)
-
-            # convert the detected anchors in YOLO format to normal ones
-            target = Y2pandas_anchors(target, self.Sx, self.Sy, self.tilesize, 
-                                      device, 1) 
-            pred_target = Y2pandas_anchors(pred_target, self.Sx, self.Sy, 
-                                           self.tilesize, device, thr) 
-
-            # stitch the prediction from tile format back to frame format
-            img, _, pred_target = data.stitch_tiles(X, target, pred_target)
-            images.append(img)
-            
-            # reorder detections by confidence
-            conf_order = pred_target.conf.sort_values(ascending=False).index
-            pred_target = pred_target.reindex(conf_order)
-            pred_target.conf[pred_target.conf>1] = 1
-            
-            # for the association, a consistent length is needed, pad with -1 yx and 0 conf
-            pad_to_cap = np.full((capacity-len(pred_target), 3), -1) 
-            pred_target = np.concatenate([pred_target.values, pad_to_cap])
-
-            # compute the a star distances between current frame- and followup
-            # frame detections 
-            fname = f'{run_dir}/astar_dists/dists_t{t:0>3}.npy'
-            dists = self.compute_astar_distances(prv_t_pred_target[:,1:3], 
-                                                 pred_target[:,1:], 
-                                                 data.mask, max_dist,
-                                                 filename=fname, 
-                                                 from_cache=False)
-
-            dists[dists==max_dist] = max_dist*10
-            D.append(dists)
-            
-            # concatenate an empty column for id label later 
-            prv_t_pred_target = np.concatenate([prv_t_pred_target, np.full((400,1), -1)], 1)
-            detections.append(prv_t_pred_target)
-            prv_t_pred_target = pred_target.copy()
-            # at last timepoint, append last result and an empty target (virtual 
-            # timepoint that serves as sink
-            if t == data.sizet-1:
-                D.append(D[0])
-                prv_t_pred_target = np.concatenate([prv_t_pred_target, np.full((400,1), -1)], 1)
-                detections.extend([prv_t_pred_target, np.full((capacity,4), -1)])
-
-        # a* distances
-        D = np.stack(D)
-        detections = np.stack(detections)
-
-        # pass distances D, confidences and hyperparameters
-        C = self.compute_association_cost(D, detections[:,:, 0], alpha, beta, 
-                                          gamma, max_cost, conf_thr)
-
-        axon_id_generator = generate_axon_id()
-        animation_frames = []
-        fig, ax = plt.subplots(figsize=(19,13), facecolor='k')
-        fig.subplots_adjust(left=0, right=1, top=1, bottom=0)
-        ax.axis('off')
-        for t in range(len(D)):
-            c = C[t]
-            n_t0 = (~(detections[t] == -1).all(1)).sum()
-            n_t1 = (~(detections[t+1] == -1).all(1)).sum()
-            
-            print('\n\n\n\n', t)
-            print(detections[t])
-            print('n at t0: ', n_t0)
-            print(detections[t+1])
-            print('n at t1: ', n_t1)
-
-            # hack for capacity, remove later
-            nmax = max((n_t0, n_t1))
-            diag_mask = np.eye(nmax, dtype=bool)
-            
-            # solve linear assignment between all detections t0 to t1
-            contnd_cost = c[:nmax, :nmax]
-            y_assignm, x_assignm = self.hungarian_algorithm(contnd_cost)
-
-            # get the assignments associated cost 
-            contd_cost = c[y_assignm, x_assignm]
-            create_cost = c[capacity:capacity+nmax, :nmax][diag_mask].flatten()[:nmax]
-            kill_cost = c[:nmax, capacity:capacity+nmax][diag_mask].flatten()[:nmax]
-
-            # check where create or kill id cost is lower than contnd cost
-            kill_lower_cost = contd_cost >= kill_cost[y_assignm]
-            create_lower_cost = contd_cost >= create_cost[x_assignm]
-            not_contd = np.zeros_like(kill_lower_cost, bool)
-
-            # if both kill and create are lower than cntd cost, change x_assignm, y_assigmn
-            not_contd = kill_lower_cost & create_lower_cost
-            if t in (0, len(D)-1):
-                # for first and last time point (source, sink, always create/kill)
-                not_contd = kill_lower_cost | create_lower_cost
-            
-            y_contd = y_assignm[~not_contd]
-            x_contd = x_assignm[~not_contd]
-            y_kill = y_assignm[not_contd]
-            x_kill = capacity+y_kill
-            x_create = x_assignm[not_contd]
-            y_create = capacity+x_create
-
-            print('\ncntd:')
-            print(np.stack((y_contd, x_contd),-1))
-            print(c[y_contd, x_contd])
-            print(y_contd.shape)
-            print('\nkill:')
-            print(np.stack((y_kill, x_kill),-1))
-            print(c[y_kill, x_kill])
-            print(y_kill.shape)
-            print('\ncreate:')
-            print(np.stack((y_create, x_create),-1))
-            print(c[y_create, x_create])
-            print(y_create.shape)
+        # stitch the prediction from tile format back to frame format
+        X_stch, pred_dets_stch, true_dets_stch = data.stitch_tiles(X, pred_dets, true_dets)
+        if assign_ids:
+            run_dir, data_name = assign_ids
+            pred_dets_stch = self.get_detections_ids(pred_dets_stch, t, run_dir, data_name)
+        return X,X_stch, pred_dets,pred_dets_stch, true_dets,true_dets_stch
 
 
-            # new id creation
-            new_axon_ids = [next(axon_id_generator) for _ in range(len(x_create))]
-            detections[t+1, x_create, 3] = new_axon_ids
-            # continued ids from last timepoint, t1
-            contd_axon_ids = detections[t, y_contd, 3]
-            detections[t+1, x_contd, 3] = contd_axon_ids
-
-            
-            xs_t0, ys_t0, ax_ids_t0 = detections[t, y_contd, 1:4].T
-            
-            t_animation_artists = []
-            if t < len(images):
-                im = ax.imshow(images[t][0,0], cmap='hot', animated=True)
-                for i, row in enumerate(detections[t+1]):
-                    if (row == -1).all():
-                        continue
-                    x, y, ax_id = row[1:]
-                    col = plt.cm.get_cmap('hsv', 20)(ax_id%20)
-                    path_coll = ax.scatter(x, y, color=col, s=500, facecolor='none', alpha=.4)
-                    t_animation_artists.append(path_coll)
-
-
-                    lbl = f'Axon_{ax_id:0>3}'
-                    if i in x_create:
-                        lbl += '_created'
-                    elif i in x_contd:
-                        lbl += '_cntd'
-
-                        if draw_assoc:
-                            prv_idx = np.where(ax_ids_t0==ax_id)[0][0]
-                        x_t0, y_t0 = xs_t0[prv_idx], ys_t0[prv_idx]
-                        path_coll = ax.plot((x,x_t0),(y,y_t0), color=col)
-                        print(type(path_coll))
-                        print(type(path_coll[0]))
-                        t_animation_artists.extend(path_coll)
-
-
-                    text = ax.text(x, y, lbl, color=col, alpha=.4, fontsize=10)
-                    t_animation_artists.append(text)
-                lbl = f'timepoint-{data.timepoints[t]:0>3}'
-                text = ax.text(100,100, lbl, fontsize=18, color='w')
-                
-                t_animation_artists.extend([text, im])
-                animation_frames.append(t_animation_artists)
-                # fig.savefig(f'{run_dir}/associated_detections/{lbl}')
-                # plt.close()
-
-        animation_frames.extend([animation_frames[-1],animation_frames[-1],animation_frames[-1]])
-        ani = animation.ArtistAnimation(fig, animation_frames, interval=1000, 
-                                        blit=True, repeat_delay=3000)
-        # plt.show()
-        print('encoding video...', end='')
-        Writer = animation.writers['ffmpeg'](fps=1)
-        ani.save(f'{run_dir}/associated_detections/assoc_dets.mp4', writer=Writer)
-
-            
-            # ass = np.zeros_like(c)
-            # ass[y_contd, x_contd] = 1
-            # ass[y_kill, x_kill] = 1
-            # ass[y_create, x_create] = 1
-            # _, ax = plt.subplots(1, 2,  sharex=True, sharey=True, tight_layout=True, figsize=(13,18))
-            # ax[0].imshow(ass)
-            # ax[1].imshow(c, vmin=0, vmax=10, cmap='nipy_spectral')
-            # tot_c = c[y_assignm, x_assignm].sum().round()
-            # plt.title(tot_c)
-            # plt.show()
-        return detections
-
-
-    def predict_all(self, data, device, anchor_conf_thr, dest_dir=None, show=False, 
-                    save_single_tiles=True, animated=False, **kwargs):
-        print('Computing [eval] model output...', end='')
+    def predict_all(self, data, params, dest_dir=None, show=False, 
+                    save_single_tiles=True, animated=False, assign_ids=False, **kwargs):
+        print('Drawing [eval] model output...', end='')
+        device, anchor_conf_thr = params['DEVICE'], params['BBOX_THRESHOLD']
+        data.construct_tiles(device, force_no_transformation=True)
         n_tiles = data.X_tiled.shape[1]
         if animated:
             anim_frames = []
@@ -509,22 +212,15 @@ class YOLO_AXTrack(nn.Module):
             lbl = f'{data.name}_t{t:0>2}|{data.sizet:0>2}_({data.timepoints[t]})'
             print(lbl, end='...', flush=True)
 
-            # get a stack of tiles that makes up a frame
-            X, target = data.get_stack('image', t)
-            X, target = X.to(device), target.to(device)
-            # use the model to detect axons, output here follows target.shape
-            pred_target = self.detect_axons_in_frame(X)
+            # get detections and stitch tiles to frame 
+            if assign_ids:
+                assign_ids = (dest_dir, data.name)
+            out = self.get_frame_detections(data, t, device, anchor_conf_thr, 
+                                            assign_ids=assign_ids)
+            X,X_stch, pred_dets,pred_dets_stch, true_dets,true_dets_stch = out
 
-            # convert the detected anchors in YOLO format to normal ones
-            target = Y2pandas_anchors(target, self.Sx, self.Sy, self.tilesize, 
-                                      device, 1) 
-            pred_target = Y2pandas_anchors(pred_target, self.Sx, self.Sy, 
-                                           self.tilesize, device, anchor_conf_thr) 
-
-            # stitch the prediction from tile format back to frame format and draw the frame
-            X_stch, target_stch, pred_target_stch = data.stitch_tiles(X, target, pred_target)
             # draw stitched frame
-            frame_artists = draw_frame(X_stch, target_stch, pred_target_stch, 
+            frame_artists = draw_frame(X_stch, true_dets_stch, pred_dets_stch, 
                                        animation=animated, dest_dir=dest_dir, 
                                        fname=lbl, show=show, **kwargs)
             if animated:
@@ -534,51 +230,153 @@ class YOLO_AXTrack(nn.Module):
             if save_single_tiles:
                 # for the current timepoints, iter non-empty tiles
                 for tile in range(n_tiles):
-                    draw_frame(X[tile, data.get_tcenter_idx()], target[tile],
-                               pred_target[tile], draw_YOLO_grid=(self.Sx, self.Sy),
+                    draw_frame(X[tile, data.get_tcenter_idx()], true_dets[tile],
+                               pred_dets[tile], draw_YOLO_grid=(self.Sx, self.Sy),
                                dest_dir=dest_dir, show=False, 
                                fname=f'{lbl}_tile{tile:0>2}|{n_tiles:0>2}')
 
         if animated:
-            anim_frames = [anim_frames[0]*3] + anim_frames + [anim_frames[-1]*3]
+            anim_frames = [anim_frames[0]*2] + anim_frames + [anim_frames[-1]*2]
             ani = animation.ArtistAnimation(animated[0], anim_frames, interval=1000, 
                                             blit=True, repeat_delay=3000)
             if show:
                 plt.show()
             Writer = animation.writers['imagemagick'](fps=1)
-            ani.save(f'{dest_dir}/assoc_dets.mp4', writer=Writer)
+            print('encoding animation...')
+            ani.save(f'{dest_dir}/{data.name}_assoc_dets.mp4', writer=Writer)
             print(f'{data.name} animation saved.')
         print(' - Done.')
 
 
-if __name__ == '__main__':
-    from core_functionality import get_default_parameters, setup_model
-    parameters = get_default_parameters()
-
-    ARCHITECTURE = [
-        #kernelsize, out_channels, stride, concat_to_feature_vector
-        [(3, 20,  2,  5),     # y-x out: 256
-         (3, 40,  2,  5),     # y-x out: 128
-         (3, 80,  2,  5),     # y-x out: 64
-         (3, 80,  1,  1)],     # y-x out: 64
-        [(3, 80,  2,  1),     # y-x out: 32
-         (3, 160, 2,  1)],     # y-x out: 16
-    ]
-    
-    parameters['ARCHITECTURE'] = ARCHITECTURE
-    parameters['GROUPING'] = False
-    parameters['USE_MOTION_DATA'] = 'include'
-    parameters['USE_MOTION_DATA'] = 'temp_context'
-
-    bs = 2
-    inchannels = 5
 
 
-    model, loss_fn, optimizer = setup_model(parameters)
 
-    X = torch.rand((bs, inchannels, parameters['TILESIZE'], parameters['TILESIZE']))
 
-    OUT = model(X)
 
-    # print(OUT)
-    print(OUT.shape)
+
+
+
+
+
+
+
+
+    def cntn_id_cost(self, t1_conf, t0_conf, dist, alpha, beta):
+        return ((alpha*dist) * (1/(1 + np.e**(beta*(t1_conf+t0_conf-1))))).astype(float)
+
+    def create_id_cost(self, conf, alpha, beta):
+        return 1/(1 + np.e**(beta*(conf-.5))).astype(float)
+
+    def dist2cntn_cost(self, dists_detections, alpha, beta):
+        for i in range(len(dists_detections)):
+            dist = dists_detections[i]
+            if i == 0:
+                t0_conf = dist.conf
+                continue
+            t1_conf = dist.conf
+
+            # t1 detection confidence vector to column-matrix
+            t1_conf_matrix = np.tile(t1_conf, (len(t0_conf),1)).T
+            # t0 detection confidence vector to row-matrix
+            t0_conf_matrix = np.tile(t0_conf, (len(t1_conf),1))
+            # get the distance between t0 and t1 detections 
+            t1_t0_dists_matrix = dist.iloc[:, 3:].values
+            
+            # pass distances and anchor conf to calculate assoc. cost between detections
+            dist.iloc[:,3:] = self.cntn_id_cost(t1_conf_matrix, t0_conf_matrix, 
+                                                t1_t0_dists_matrix, alpha, beta)
+            t0_conf = t1_conf
+        return dists_detections
+            
+    def greedy_linear_assignment(self, cntd_cost_detections):
+        pass
+
+    def hungarian_ID_assignment(self, cntd_cost_detections, alpha, beta):
+        t0_conf = pd.DataFrame([])
+        axon_id_generator = generate_axon_id()
+
+        # iterate detections: [(conf+anchor coo) + distances to prv frame dets]
+        assigned_ids = []
+        for t, cntn_c_dets in enumerate(cntd_cost_detections):
+            # unpack confidences of current t 
+            t1_conf = cntn_c_dets.iloc[:,0]
+            # each detections will have a new ID assigned to it, create empty here
+            ass_ids = pd.Series(-1, index=cntn_c_dets.index, name=t)
+            
+            if t == 0:
+                # at t=0 every detections is a new one, special case
+                ass_ids[:] = [next(axon_id_generator) for _ in range(len(ass_ids))]
+            else:
+                # t1 and t0 have different lengths, save shorter n of the two
+                nt1 = cntn_c_dets.shape[0]
+                ndet_min = min((nt1, cntn_c_dets.shape[1]-3))
+
+                # get the costs for creating t1 ID and killing t0 ID (dist indep.)
+                create_t1_c = self.create_id_cost(t1_conf, alpha, beta).values
+                kill_t0_c = self.create_id_cost(t0_conf, alpha, beta).values
+                
+                # get the costs for continuing IDs
+                cntn_c_matrix = cntn_c_dets.iloc[:,3:].values
+                # hungarian algorithm
+                t1_idx_cntn, t0_idx_cntn = linear_sum_assignment(cntn_c_matrix)
+                # index costs to assignments, associating t1 with t0, dim == ndet_min
+                cntn_t1_c = cntn_c_matrix[t1_idx_cntn, t0_idx_cntn]
+
+                # an ID is only NOT continued if the two associated detections both 
+                # have lower costs on their own (kill/create)
+                cntn_t1_mask = (cntn_t1_c<create_t1_c[:ndet_min]) | (cntn_t1_c<kill_t0_c[:ndet_min])
+                # pad t1 mask to length of t1 (in case t1 was shorter than t0)
+                cntn_t1_mask = np.pad(cntn_t1_mask, (0, nt1-ndet_min), constant_values=False)
+                created_t1_mask = ~cntn_t1_mask
+
+                # created IDs simply get a new ID from the generator
+                ass_ids[created_t1_mask] = [next(axon_id_generator) for _ in range(created_t1_mask.sum())]
+                # for cntn ID, mask the t0_idx (from hung. alg.) and use it as 
+                # indexer of previous assignments timpoint
+                assoc_id = t0_idx_cntn[cntn_t1_mask[:ndet_min]]
+                ass_ids[cntn_t1_mask] = assigned_ids[-1].iloc[assoc_id].values
+
+            t0_conf = t1_conf
+            assigned_ids.append(ass_ids)
+        assigned_ids = pd.concat(assigned_ids, axis=1).stack().swaplevel().sort_index()
+        assigned_ids = assigned_ids.apply(lambda ass_id: f'Axon_{int(ass_id):0>3}')
+        return assigned_ids
+
+    def assign_detections_ids(self, data, params, run_dir):
+        alpha, beta, gamma = 0.1, 6, 0.2
+        max_dist = 400
+        device, conf_thr, num_workers = params['DEVICE'], params['BBOX_THRESHOLD'], params['NUM_WORKERS']
+        # conf_thr = np.log((1/gamma) -1)/beta +0.5
+        max_cost = self.cntn_id_cost(conf_thr, conf_thr, np.array([max_dist]), alpha, beta)
+        print('Assigning axon IDs ...', end='')
+
+        # aggregate all confidences+anchor coo and distances over timepoints
+        dists_detections = []
+        for t in range(data.sizet):
+            if t == 0:
+                dets_t0 = self.get_frame_detections(data, t, device, conf_thr)[3]
+                dets_t0 = dets_t0.sort_values('conf', ascending=False)
+                dists_detections.append(dets_t0)
+                continue
+            lbl = f'{data.name}_t1:{t:0>3}-t0:{t-1:0>3}'
+            print(lbl, end='...')
+
+            # get detections and stitch tiles to frame, only get stitched prediction
+            dets_t1 = self.get_frame_detections(data, t, device, conf_thr)[3]
+            # reorder detections by confidence
+            dets_t1 = dets_t1.sort_values('conf', ascending=False)
+            
+            # compute a* dists_detections between followup and current frame detections 
+            dists = compute_astar_distances(dets_t1, dets_t0, data.mask, max_dist,
+                                            num_workers, filename=f'{run_dir}/astar_dists/{lbl}')
+
+            dists = pd.DataFrame(dists, index=dets_t1.index, columns=dets_t0.index)
+            dists_detections.append(pd.concat([dets_t1, dists], axis=1))
+            dets_t0 = dets_t1
+
+        # pass confidences, distances and hyperparameters to compute cost matrix
+        cntd_cost_detections = self.dist2cntn_cost(dists_detections, alpha, beta)
+
+        assigned_ids = self.hungarian_ID_assignment(cntd_cost_detections, alpha, beta)
+        assigned_ids.to_csv(f'{run_dir}/model_out/{data.name}_assigned_ids.csv')
+        print('Done.')
