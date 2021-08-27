@@ -159,7 +159,7 @@ def apply_transformations(transform_configs, X, target, sizey, sizex, device):
         angle = ((transform_configs['rot'] * 40) -20)
     
     # apply the transformation using paramters above, do on GPU, return on CPU
-    tchunksize = 2
+    tchunksize = 6
     X = transform_X(X.to(device), tchunksize, angle, flip_dims, dy, dx, sizey, sizex)
     # now transform the bboxes with the same paramters
     target_transf = transform_Y(target, angle, flip_dims, dy, dx, sizey, sizex)

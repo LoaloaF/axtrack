@@ -19,9 +19,8 @@ def get_default_parameters():
     LOG_CORRECT = True
     PLOT_PREPROC = True
     STANDARDIZE = ('zscore', None)
-    # RETAIN_TEMPORAL_VAR = False
 
-    STANDARDIZE_FRAMEWISE = False
+    STANDARDIZE_FRAMEWISE = True
     TEMPORAL_CONTEXT = 2
     USE_MOTION_DATA = 'exclude' #, 'include'  'only'
     USE_SPARSE = False
@@ -60,13 +59,11 @@ def get_default_parameters():
 
     WEIGHT_DECAY = 5e-4
     BATCH_SIZE = 32
-    EPOCHS = 301
-    LOAD_MODEL = None
-    # LOAD_MODEL = ['Exp1_yolo_only_firstfirst', 'run02', 'E0']   # [ExpName, #run, #epoch]
+    EPOCHS = 3001
+    LOAD_MODEL = None # ['Exp1_yolo_only_firstfirst', 'run02', 'E0']   # [ExpName, #run, #epoch]
     BBOX_THRESHOLD = .7
-    LR = 1e-4
-    LR_DECAYRATE = 0
-    # LR_DECAY_STARTEPOCH = 0
+    LR = 5e-4
+    LR_DECAYRATE = 15
 
     # LOSS
     L_OBJECT = 49.5

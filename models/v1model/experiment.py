@@ -4,6 +4,7 @@ from copy import copy
 import numpy as np
 import pandas as pd
 import torch
+import torch.nn as nn
 
 from exp_parameters import (
     get_default_parameters, 
@@ -31,6 +32,7 @@ from plotting import (
     plot_preprocessed_input_data, 
     plot_training_process,
     )
+from id_association import assign_detections_ids
 from config import OUTPUT_DIR, SPACER
 
 def evaluate_run(exp_name, run, which='training', recreate=True, 
@@ -187,14 +189,12 @@ def run_experiment(exp_name, parameters, save_results=True):
             # save the current epoch loss
             epoch_log.to_csv(f'{METRICS_DIR}/E{epoch:0>3}.csv')
             # save the model every 100 Epochs
-            # if epoch and not (epoch % 500):
-            if not (epoch % 500):
+            if epoch and not (epoch % 500):
                 save_checkpoint(model, optimizer, filename=f'{MODELS_DIR}/E{epoch:0>4}.pth')
             
             # check the model predictions every 20 Epochs
             # every 20th epoch, check how the model performs in eval model
-            # if epoch and epoch%500 == 0:
-            if epoch%500 == 0:
+            if epoch and epoch%500 == 0:
                 epoch_dir = f'{METRICS_DIR}/{epoch:0>3}_results/'
                 os.makedirs(epoch_dir)
                 model.predict_all(train_data, parameters, dest_dir=epoch_dir)
@@ -209,126 +209,98 @@ def run_experiment(exp_name, parameters, save_results=True):
 
 
 
-
-
 if __name__ == '__main__':
     default_parameters = get_default_parameters()
-    exp_name = 'v1Model_exp2_boxlossfocus'
-    exp_name = 'v1Model_exp3_newcnn'
-    exp_name = 'v1Model_exp4_NewCNN'
-    exp_name = 'v1Model_exp5_RefactIDFocus'
+    exp2_name = 'v1Model_exp2_boxlossfocus'
+    exp3_name = 'v1Model_exp3_newcnn'
+    exp4_name = 'v1Model_exp4_NewCNN'
+    exp5_name = 'v1Model_exp5_RefactIDFocus'
     
     # from utils import print_models
     # print_models()
     # exit()
+    # clean_rundirs(exp5_name, delete_runs=30, keep_only_latest_model=False)
 
-    # clean_rundirs(exp_name, delete_runs=50, keep_only_latest_model=True)
-    
-    # prepend_prev_run(exp_name, 'run09', 'run23')
-    # evaluate_run(exp_name, 'run99', which='training', recreate=False)
-    # compare_two_runs(exp_name, ['run90', 'run99'])
-    # evaluate_run(exp_name, 'run94', which='training', recreate=False)
-    # evaluate_run(exp_name, 'run95', which='training', recreate=False)
-    # evaluate_run(exp_name, 'run96', which='training', recreate=False)
-    # compare_two_runs(exp_name, ['run99', 'run59'])
-    # evaluate_run(exp_name, 'run59', which='model_out', assign_ids=True, animated=True, show=False, which_data='train')
-
-    # parameters1 = copy(default_parameters)
-    # parameters['CACHE'] = OUTPUT_DIR
-    # parameters['DEVICE'] = 'cpu'
-    # parameters['FROM_CACHE'] = None
-    # parameters['USE_MOTION_DATA'] = 'exclude'
-    # parameters['NUM_WORKERS'] = 4
-    # parameters['BATCH_SIZE'] = 32
-    # parameters['LR'] = 1e-4
-    # parameters['SHUFFLE'] = True
-    # parameters['USE_TRANSFORMS'] = []
-    # parameters['USE_TRANSFORMS'] = ['vflip', 'hflip', 'rot', 'translateY', 'translateX']
-    # parameters['BBOX_THRESHOLD'] = 4
-    # # parameters['TEST_TIMEPOINTS'] = [4,5]
-    # # parameters['TRAIN_TIMEPOINTS'] = [11,12,13]
-    # parameters['ARCHITECTURE'] = new_ARCHITECTURE
-    # parameters['TEMPORAL_CONTEXT'] = 2
-    # parameters['NOTES'] = 'trying FP TP stuff'
-    # run_experiment(exp_name, parameters, save_results=True)
-
-
-    new_ARCHITECTURE_deeper = [
-        #kernelsize, out_channels, stride, concat_to_feature_vector
-
+    maxp_arch = [
+        #kernelsize, out_channels, stride, groups
         [(3, 20,  2,  1),      # y-x out: 256
          (3, 40,  2,  1),      # y-x out: 128
-
-         (3, 80,  2,  1),      # y-x out: 64
-         (3, 80,  1,  1),     # y-x out: 64
-         (3, 80,  2,  1),      # y-x out: 32
-         # new
-         (3, 80,  1,  1),      # y-x out: 32
-         (3, 80,  1,  1)],      # y-x out: 32
-         
-         [(3, 160, 2,  1)],     # y-x out: 16
-    ]
-    new_ARCHITECTURE_deeper_Maxpool = [
-        #kernelsize, out_channels, stride, concat_to_feature_vector
-
-        [(3, 20,  2,  1),      # y-x out: 256
-         (3, 40,  2,  1),      # y-x out: 128
-
          (3, 80,  1,  1),      # y-x out: 64
          'M',
-         (3, 80,  1,  1),     # y-x out: 64
-         (3, 80,  1,  1),      #   y-x out: 32
+         (3, 80,  1,  1),      # y-x out: 64
+         (3, 80,  1,  1),      # y-x out: 32
          'M',
-         
-         # new
          (3, 80,  1,  1),      # y-x out: 32
          (3, 80,  1,  1),      # y-x out: 32
-         'M'],
-         
-         [(3, 160, 1,  1),],     # y-x out: 16
+         'M',
+         ],      
+        [(3, 160, 1,  1),      # y-x out: 16
+         ],
+        [('FC', 1024),
+         ('activation', nn.Sigmoid()), 
+         ('FC', 1024),
+         ('activation', nn.Sigmoid()), 
+        ]     
     ]
-    parameters2 = load_parameters('v1Model_exp4_NewCNN', 'run59')
+    dropout25_arch = [
+        #kernelsize, out_channels, stride, groups
+        [(3, 20,  2,  1),      # y-x out: 256
+         (3, 40,  2,  1),      # y-x out: 128
+         (3, 80,  2,  1),      # y-x out: 64
+         (3, 80,  1,  1),      # y-x out: 64
+         (3, 80,  2,  1),      # y-x out: 32
+         (3, 80,  1,  1),      # y-x out: 32
+         (3, 80,  1,  1),      # y-x out: 32
+         ],      
+        [(3, 160, 2,  1),      # y-x out: 16
+         ],
+        [('FC', 1024),
+         ('activation', nn.Sigmoid()), 
+         ('dropout', 0.25),
+         ('FC', 1024),
+         ('activation', nn.Sigmoid()), 
+        ]     
+    ]
+    dropout35_arch = [
+        #kernelsize, out_channels, stride, groups
+        [(3, 20,  2,  1),      # y-x out: 256
+         (3, 40,  2,  1),      # y-x out: 128
+         (3, 80,  2,  1),      # y-x out: 64
+         (3, 80,  1,  1),      # y-x out: 64
+         (3, 80,  2,  1),      # y-x out: 32
+         (3, 80,  1,  1),      # y-x out: 32
+         (3, 80,  1,  1),      # y-x out: 32
+         ],      
+        [(3, 160, 2,  1),      # y-x out: 16
+         ],
+        [('FC', 1024),
+         ('activation', nn.Sigmoid()), 
+         ('dropout', 0.35),
+         ('FC', 1024),
+         ('activation', nn.Sigmoid()), 
+        ]     
+    ]
 
     # ========== GPU experiments ===========
     parameters = copy(default_parameters)
-    parameters['DEVICE'] = 'cuda:2'
-    # parameters['DEVICE'] = 'cpu'
-    parameters['FROM_CACHE'] = OUTPUT_DIR
-    parameters['LR_DECAYRATE'] = 15
-    parameters['LR'] = 5e-4
-    parameters['EPOCHS'] = 2001
-    parameters['NUM_WORKERS'] = 6
-    # parameters['FROM_CACHE'] = None
-    # parameters['CACHE'] = OUTPUT_DIR
-    # parameters['STANDARDIZE_FRAMEWISE'] = True
-    # parameters['TEMPORAL_CONTEXT'] = 2
-    # parameters['STANDARDIZE'] = ('zscore', None)
-    # parameters['ARCHITECTURE'] = new_ARCHITECTURE_deeper
-    parameters['NOTES'] = 'trying to reproduce R59'
-    compare_parameters(parameters2, parameters)
-    # run_experiment(exp_name, parameters, save_results=True)
-    
-
-
-
-    parameters = load_parameters(exp_name, 'run59')
     parameters['DEVICE'] = 'cuda:1'
-    parameters['EPOCHS'] = 2001
-    parameters['NUM_WORKERS'] = 3
-    parameters['NOTES'] = 'r59params Dropout(FC now) 0.5, higher'
-    # run_experiment(exp_name, parameters, save_results=True)
+    parameters['NOTES'] = 'T1_baseline'
+    # run_experiment(exp5_name, parameters, save_results=True)
     
-    parameters = load_parameters(exp_name, 'run59')
+    parameters = copy(default_parameters)
     parameters['DEVICE'] = 'cuda:2'
-    parameters['EPOCHS'] = 2001
-    parameters['NUM_WORKERS'] = 3
-    parameters['NOTES'] = 'TPR thr (all4) r59params Dropout(FC now) 0.15, lower'
-    # run_experiment(exp_name, parameters, save_results=True)
+    parameters['ARCHITECTURE'] = maxp_arch
+    parameters['NOTES'] = 'T1_maxpool'
+    # run_experiment(exp5_name, parameters, save_results=True)
     
-    parameters = load_parameters(exp_name, 'run59')
+    parameters = copy(default_parameters)
     parameters['DEVICE'] = 'cuda:3'
-    parameters['EPOCHS'] = 2001
-    parameters['NUM_WORKERS'] = 3
-    parameters['ARCHITECTURE'] = new_ARCHITECTURE_deeper_Maxpool
-    parameters['NOTES'] = 'r59params MaxPoolArch.'
-    # run_experiment(exp_name, parameters, save_results=True)
+    parameters['ARCHITECTURE'] = dropout25_arch
+    parameters['NOTES'] = 'T1_dropout0.25'
+    # run_experiment(exp5_name, parameters, save_results=True)
+    
+    parameters = copy(default_parameters)
+    parameters['DEVICE'] = 'cuda:0'
+    parameters['ARCHITECTURE'] = dropout35_arch
+    parameters['NOTES'] = 'T1_dropout0.35'
+    # run_experiment(exp5_name, parameters, save_results=True)
