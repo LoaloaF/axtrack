@@ -8,6 +8,7 @@ import matplotlib.pyplot as plt
 import matplotlib.font_manager as font_manager
 
 from config import RAW_DATA_DIR, OUTPUT_DIR, DEFAULT_DEVICE, DEFAULT_NUM_WORKERS, SPACER
+from utils import get_run_dir, architecture_to_text
 
 def get_default_parameters():
     # DATA
@@ -87,9 +88,12 @@ def write_parameters(file, params):
 
 def load_parameters(exp_name, run):
     EXP_DIR = f'{OUTPUT_DIR}/runs/{exp_name}/'
-    RUN_DIR = f'{EXP_DIR}/{[rd for rd in os.listdir(EXP_DIR) if run in rd][0]}'
+    RUN_DIR = get_run_dir(EXP_DIR, run)
     file = f'{RUN_DIR}/params.pkl'
     return pickle.load(open(file, 'rb'))
+
+def get_notes(exp_name, run):
+    return load_parameters(exp_name, run)['NOTES']
 
 def params2text(params):
     text = SPACER +'\n'
@@ -98,15 +102,8 @@ def params2text(params):
             text += '\n\t>> data parameters <<\n'
         elif key == 'ARCHITECTURE':
             text += '\n\t>> model & training <<\n'
-            text += f'\t\t{key:20} {val[0][0]}\n'
-            for layer in val[0][1:]:
-                text += f'\t\t\t\t\t\t\t {layer}\n'
-            text += '\t\t\t\t\t\t\t== cat CNN features ==\n'
-            for layer in val[1]:
-                text += f'\t\t\t\t\t\t\t {layer}\n'
-            text += '\t\t\t\t\t\t\t== FullyConnected Head ==\n'
-            for layer in val[2]:
-                text += f'\t\t\t\t\t\t\t {layer}\n'
+            text += f'\t\t{key}'
+            text += architecture_to_text(val)
             continue
         elif key == 'LOSS':
             text += '\n\t>> loss <<\n'
@@ -145,21 +142,26 @@ def to_device_specifc_params(model_parameters, local_default_params):
     return model_parameters
 
 def compare_parameters(param1, param2):
-    text = SPACER
+    text = '\n'+SPACER
     param1_only = [key for key in param1 if key not in param2]
     param2_only = [key for key in param2 if key not in param1]
-    text += '\nParamters only in P1:\n'
-    text += '\n'.join([f'\t{key}: {param1[key]}'for key in param1_only])
-    text += '\nParamters only in P2:\n'
-    text += '\n'.join([f'\t{key}: {param2[key]}'for key in param2_only])
-    text += '\n'+SPACER
+    if param1_only:
+        text += '\nParamters only in P1:\n'
+        text += '\n'.join([f'\t{key}: {param1[key]}'for key in param1_only])
+    if param2_only:
+        text += '\nParamters only in P2:\n'
+        text += '\n'.join([f'\t{key}: {param2[key]}'for key in param2_only])
 
     for key in param1.keys():
         if key in param1_only: 
             continue
         if param1[key] != param2[key]:
             text += f'\n{key}:'
-            text += f'\n\tP1: {param1[key]}:'
-            text += f'\n\tP2: {param2[key]}:'
-    
-    print(text)
+            if key == 'ARCHITECTURE':
+                text += f'\n\t\t\t\tP1: {architecture_to_text(param1[key])}:'
+                text += f'\n\t\t\t\tP2: {architecture_to_text(param2[key])}:'
+            else:
+                text += f'\n\tP1: {param1[key]}:'
+                text += f'\n\tP2: {param2[key]}:'
+    text += SPACER+'\n'
+    return text

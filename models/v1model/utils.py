@@ -35,10 +35,11 @@ def create_logging_dirs(exp_name):
 def clean_rundirs(exp_name, delete_runs=None, keep_runs=None, keep_only_latest_model=False):
     EXP_DIR = f'{OUTPUT_DIR}/runs/{exp_name}'
     for d in sorted(os.listdir(EXP_DIR)):
-        n_metrics = len(glob.glob(f'{EXP_DIR}/{d}/metrics/E*.csv'))
+        all_epoch_files = glob.glob(f'{EXP_DIR}/{d}/metrics/E*.csv')
+        n_metrics = len([f for f in all_epoch_files if not f.endswith('_metrics.csv')])
         n_models = len(glob.glob(f'{EXP_DIR}/{d}/models/*.pth'))
         notes = pickle.load(open(f'{EXP_DIR}/{d}/params.pkl', 'rb'))['NOTES']
-        print(f'{d} - Epochs: {n_metrics}, models saved: {n_models}, {notes}')
+        print(f'{d} - Epochs: {n_metrics}, models saved: {n_models}, {notes}', flush=True)
 
         if keep_only_latest_model and n_models>1:
             [os.remove(model) for model in glob.glob(f'{EXP_DIR}/{d}/models/*.pth')[:-1]]
@@ -46,25 +47,53 @@ def clean_rundirs(exp_name, delete_runs=None, keep_runs=None, keep_only_latest_m
         if delete_runs and n_metrics<delete_runs:
             shutil.rmtree(f'{EXP_DIR}/{d}')
             print('--deleted--\n')
-        elif keep_runs is not None and int(d[3:5]) not in keep_runs:
+        elif keep_runs is not None and int(d[3:d.find('_')]) not in keep_runs:
             shutil.rmtree(f'{EXP_DIR}/{d}')
             print('--deleted--\n')
 
+def get_run_dir(exp_dir, run):
+    run_dir = [rd for rd in os.listdir(exp_dir) if run in rd]
+    if not run_dir:
+        print(f'Run not found: exp_dir: {exp_dir}\nrun: {run}')
+        exit()
+    return f'{exp_dir}/{run_dir[0]}'
+
+def create_metricsovertime_pkl(metrics_dir):
+    metrics_files = [f for f in glob.glob(metrics_dir+'/E*.csv') if f.endswith('_metrics.csv')]
+    # metrics_files = [f for f in glob.glob(metrics_dir+'/E*.pkl') if f.endswith('_metrics.pkl')]
+    metrics = [pd.read_csv(E, header=[0,1,2], index_col=0) for E in metrics_files]
+    metrics = pd.concat(metrics, axis=1)
+
+    vals = [(int(E), which_d, round(float(thr), 2)) for E, which_d, thr in metrics.columns]
+    metrics.columns = pd.MultiIndex.from_tuples(vals)
+    trn, tst = metrics.loc[:, (slice(None),'train')], metrics.loc[:, (slice(None),'test')]
+    
+    metric_at_best_thr = lambda E: E.iloc[:,np.argmax(E.loc['F1']):np.argmax(E.loc['F1'])+1]
+    trn = trn.groupby(axis=1, level=0).apply(metric_at_best_thr).droplevel(1,1)
+    tst = tst.groupby(axis=1, level=0).apply(metric_at_best_thr).droplevel(1,1)
+    metrics = pd.concat([trn,tst], axis=1).sort_index(axis=1)
+
+    fname = f'{metrics_dir}/metrics_all_epochs.pkl'
+    metrics.to_pickle(fname)
+    return fname
+
 def create_lossovertime_pkl(metrics_dir):
     print('Recreating loss-over-time pickle from CSVs...', end='')
-    data = [pd.read_csv(E, header=[0,1,2], index_col=0) for E in glob.glob(metrics_dir+'/E*.csv')]
-    data = pd.concat(data, axis=1)
-
+    loss_files = [f for f in glob.glob(metrics_dir+'/E*.csv') if not f.endswith('_metrics.csv')]
+    # loss_files = [f for f in glob.glob(metrics_dir+'/E*.pkl') if not f.endswith('_metrics.pkl')]
+    loss = [pd.read_csv(E, header=[0,1,2], index_col=0) for E in loss_files]
+    loss = pd.concat(loss, axis=1)
+    
     # str columns to int....
-    order = data.index
-    data_stacked = data.stack((1,2))
-    data_stacked.columns = data_stacked.columns.astype(int)
-    data_stacked = data_stacked.unstack(2).stack(0)
-    data_stacked.columns = data_stacked.columns.astype(int)
-    data = data_stacked.unstack((1,2)).reindex(order).swaplevel(0,2,axis=1)
+    order = loss.index
+    loss = loss.stack((1,2))
+    loss.columns = loss.columns.astype(int)
+    loss = loss.unstack(2).stack(0)
+    loss.columns = loss.columns.astype(int)
+    loss = loss.unstack((1,2)).reindex(order).swaplevel(0,2,axis=1)
 
-    fname = f'{metrics_dir}/all_epochs.pkl'
-    data.to_pickle(fname)
+    fname = f'{metrics_dir}/loss_all_epochs.pkl'
+    loss.to_pickle(fname)
     print('Done.')
     return fname
 
@@ -87,7 +116,7 @@ def save_preproc_metrics(run_dir, train_data, test_data):
 
     pd.concat(samples, axis=1).to_csv(f'{run_dir}/preproc_data/preprocessed_data.csv')
 
-def save_checkpoint(model, optimizer, filename="my_checkpoint.pth.tar"):
+def save_checkpoint(model, optimizer, filename):
     print("=> Saving checkpoint")
     checkpoint = {"state_dict": model.state_dict(),
                    "optimizer": optimizer.state_dict(),}
@@ -100,7 +129,7 @@ def load_checkpoint(load_model, model, optimizer, device):
     if load_model[2] == 'latest':
         file = [pthfile for pthfile in glob.glob(f'{exp_dir}/{run_dir}/models/*.pth')][-1]
     elif load_model[2]:
-        file = f'{exp_dir}/{run_dir}/models/E{load_model[2]}.pth'
+        file = f'{exp_dir}/{run_dir}/models/E{load_model[2]:0>4}.pth'
 
     checkpoint = torch.load(file, map_location=torch.device(device))
     model.load_state_dict(checkpoint["state_dict"])
@@ -127,3 +156,50 @@ def print_torchvision_models(initial_in_channels, tilesize):
         print(f'\n\n\n{name}\n')
         model.to('cuda:0')
         summary(model, input_size=(initial_in_channels, tilesize, tilesize))
+
+def merge_axes(axes, fig, merge):
+    axes = list(axes.flatten())
+    # get size  of 2 bottom right plots
+    gs = axes[min(merge)].get_gridspec()
+    # remove them
+    [axes.pop(ax_i).remove() for ax_i in range(merge)]
+    # add one big one
+    axes.append(fig.add_subplot(gs[min(merge):]))
+    return axes
+
+def set_seed(seed):
+    torch.manual_seed(seed)
+    np.random.seed(seed)
+
+def architecture_to_text(arch):
+    text = ''
+    empty = ''
+    for i, arch_group in enumerate(arch):
+        if i == 1:
+            text += f'{empty:28}== cat CNN features ==\n'
+        elif i == 2:
+            text += f'{empty:28}== FullyConnected Head ==\n'
+        for j, layer in enumerate(arch_group):
+            if i == j == 0:
+                text += f'{empty:8} {layer}\n'
+            text += f'{empty:28} {layer}\n'
+    return text
+
+def prepend_prev_run(exp_name, older_run, newer_run):
+    EXP_DIR = f'{OUTPUT_DIR}/runs/{exp_name}/'
+
+    data = []
+    for i, run in enumerate([older_run, newer_run]):
+        RUN_DIR = get_run_dir(EXP_DIR, run)
+        if i == 0:
+            last_epoch = dat.columns.unique(0)[-1]
+            training_file = f'{RUN_DIR}/metrics/all_epochs.pkl'
+            dat = pd.read_pickle(training_file)
+
+        else:
+            dat = dat.stack(level=(-1,-2))
+            dat.columns = dat.columns.values + last_epoch+1
+            dat = dat.unstack(level=(-1,-2))
+        data.append(dat)
+    data = pd.concat(data, axis=1)
+    data.to_pickle(training_file.replace('all_epochs', 'all_epochs_prepend'))

@@ -30,3 +30,7 @@ elif where.startswith('/content'):
 
 OUTPUT_DIR = BASE_DIR + 'tl140_outputdata/'
 SPACER = '========================================================'
+
+# plotting 
+TRAIN_Ps = {'linewidth':1, 'alpha':.7, 'linestyle':'-.'}
+TEST_Ps = {'linewidth':1, 'alpha':.7}

@@ -10,6 +10,7 @@ from model import YOLO_AXTrack
 from loss import YOLO_AXTrack_loss
 from dataset_class import Timelapse
 from utils import load_checkpoint
+from model_out_utils import compute_metrics
 
 def setup_data(P):
     # training data
@@ -101,25 +102,8 @@ def setup_data_loaders(P, dataset):
         drop_last = P['DROP_LAST'],)
     return data_loader
 
-def prepare_data(device, dataset):
-    dataset.construct_tiles(device)
-    ntiles = (dataset.tile_info[..., 0] >0).sum().item()
-    npos_labels = dataset.tile_info[..., 1].sum().item()
-    tpr = npos_labels/ntiles
-    print(f' - {dataset.name} data - n_positive_labels:{npos_labels} / ntiles'
-        f':{ntiles} = {tpr:.3f} per tile - ', end='')
-    return tpr
-
-# this iterates over the entire dataset once
-def run_epoch(dataset, model, loss_fn, params, epoch, optimizer=None, 
-              lr_scheduler=None):
-    which_dataset = 'train' if optimizer is not None else 'test'
-    
-    while prepare_data(params['DEVICE'], dataset) < 1:
-        print('Bad data augmentation -- Doing it again --')
-    
+def run_epoch(data_loader, model, loss_fn, params, epoch, which_dataset, optimizer):
     epoch_loss = []
-    data_loader = setup_data_loaders(params, dataset)
     print(f'LOSS: ', end='')
     for batch, (x,y) in enumerate(data_loader):
         x, y = x.to(params['DEVICE']), y.to(params['DEVICE'])
@@ -139,8 +123,31 @@ def run_epoch(dataset, model, loss_fn, params, epoch, optimizer=None,
     epoch_loss = pd.concat(epoch_loss, axis=1)
     epoch_loss.columns.names = ('epoch', 'dataset', 'batch')
     print(f'\n++++ Mean: {epoch_loss.loc["total_summed_loss"].mean():.3f} ++++')
+    return epoch_loss
+
+def prepare_data(device, dataset):
+    dataset.construct_tiles(device)
+    ntiles = (dataset.tile_info[..., 0] >0).sum().item()
+    npos_labels = dataset.tile_info[..., 1].sum().item()
+    avg_pos_rate = npos_labels/ntiles
+    print(f' - {dataset.name} data - n_positive_labels:{npos_labels} / ntiles'
+        f':{ntiles} = {avg_pos_rate:.3f} per tile - ', end='')
+    return avg_pos_rate
+
+# this iterates over the entire dataset once
+def one_epoch(dataset, model, loss_fn, params, epoch, optimizer=None, lr_scheduler=None):
+    which_dataset = 'train' if optimizer is not None else 'test'
     
+    while prepare_data(params['DEVICE'], dataset) < 1:
+        print('Bad data augmentation -- Doing it again --')
+    data_loader = setup_data_loaders(params, dataset)
+    
+    epoch_loss = run_epoch(data_loader, model, loss_fn, params, epoch, 
+                           which_dataset, optimizer)
+    metrics = compute_metrics(data_loader, model, params['DEVICE'], epoch, 
+                              which_dataset)
+
     if which_dataset == 'train' and lr_scheduler:
         lr_scheduler.step()
     torch.cuda.empty_cache()
-    return epoch_loss
+    return epoch_loss, metrics

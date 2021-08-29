@@ -1,4 +1,5 @@
 import pandas as pd
+import numpy as np
 import torch
 
 def yolo_coo2tile_coo(target_tensor, Sx, Sy, tilesize, device, with_batch_dim=True):
@@ -63,3 +64,31 @@ def Y2pandas_anchors(Y, Sx, Sy, tilesize, device, conf_thr):
     for i in range(len(Ys_list_fltd)):
         Ys_list_fltd[i] = fltd_tensor2pandas(Ys_list_fltd[i])
     return Ys_list_fltd
+
+def compute_metrics(data_loader, model, device, epoch, which_data):
+    print('Computing precision & recall...', end='', flush=True)
+    
+    conf_thresholds = np.arange(0.5, 1.01, 0.01)
+    confus_mtrx = np.zeros((3, 51))
+    for batch, (x,y) in enumerate(data_loader):
+        X, target = x.to(device), y.to(device)
+        pred_target = model.detect_axons(X)
+            
+        obj_exists = target[..., 0].to(bool)
+        pred_obj_exists = pred_target[..., 0]
+        
+        TP, FP, FN = [], [], []
+        for thr in conf_thresholds:
+            pos_pred = torch.where(pred_obj_exists>thr, 1, 0).to(bool)
+            TP.append((pos_pred & obj_exists).sum().item())
+            FP.append((pos_pred & ~obj_exists).sum().item())
+            FN.append((~pos_pred & obj_exists).sum().item())
+        confus_mtrx += np.array([TP, FP, FN])
+    
+    prc = confus_mtrx[0] / (confus_mtrx[0]+confus_mtrx[1]+0.000001)
+    rcl = confus_mtrx[0] / (confus_mtrx[0]+confus_mtrx[2]+0.000001)
+    f1 =  2*(prc*rcl)/(prc+rcl)
+    
+    index = pd.MultiIndex.from_product([[epoch],[which_data],conf_thresholds])
+    print('Done.')
+    return pd.DataFrame([prc, rcl, f1], columns=index, index=('precision', 'recall', 'F1'))

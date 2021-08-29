@@ -179,7 +179,7 @@ class YOLO_AXTrack(nn.Module):
         seq.append(nn.Linear(in_c, self.Sy * self.Sx *3))
         return nn.Sequential(*seq)
             
-    def detect_axons_in_frame(self, X):
+    def detect_axons(self, X):
         self.eval()
         n_tiles = X.shape[0]
         with torch.no_grad():
@@ -193,7 +193,7 @@ class YOLO_AXTrack(nn.Module):
         X, target = data.get_stack('image', t)
         X = X.to(device)
         # use the model to detect axons, output here follows target.shape
-        pred_target = self.detect_axons_in_frame(X)
+        pred_target = self.detect_axons(X)
 
         # convert the detected anchors in YOLO format to normal ones
         pred_dets = Y2pandas_anchors(pred_target, self.Sx, self.Sy, 

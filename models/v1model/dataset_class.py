@@ -413,11 +413,11 @@ class Timelapse(Dataset):
         return yolo_target
 
     def construct_tiles(self, device, force_no_transformation=False):
-        # if not torch.cuda.is_available():
-        #     self.tile_info = torch.load(f'../tl140_outputdata/{self.name}_tileinfo.pth')
-        #     self.X_tiled = torch.load(f'../tl140_outputdata/{self.name}_X_tiled.pth')
-        #     self.target_tiled = torch.load(f'../tl140_outputdata/{self.name}_target_tiled.pth')
-        #     return
+        if not torch.cuda.is_available():
+            self.tile_info = torch.load(f'/home/loaloa/.cache/axtrack/{self.name}_tileinfo.pth')
+            self.X_tiled = torch.load(f'/home/loaloa/.cache/axtrack/{self.name}_X_tiled.pth')
+            self.target_tiled = torch.load(f'/home/loaloa/.cache/axtrack/{self.name}_target_tiled.pth')
+            return
         if self.transform_configs and not force_no_transformation:
             X, target = apply_transformations(self.transform_configs, self.X, 
                                               self.target, self.sizey, 
@@ -479,12 +479,11 @@ class Timelapse(Dataset):
         self.X_tiled = X[non_empty_tiles.all(-1)].swapaxes(0,1)
         self.target_tiled = target_tiled[non_empty_tiles.all(-1)].swapaxes(0,1)
 
-        # with open(f'../tl140_outputdata/{self.name}_tileinfo.pth', 'wb') as file:
-        #     torch.save(self.tile_info, file)
-        # with open(f'../tl140_outputdata/{self.name}_X_tiled.pth', 'wb') as file:
-        #     torch.save(self.X_tiled, file)
-        # with open(f'../tl140_outputdata/{self.name}_target_tiled.pth', 'wb') as file:
-        #     torch.save(self.target_tiled, file)
+        if not torch.cuda.is_available():
+            # lazy mode
+            torch.save(self.tile_info, f'/home/loaloa/.cache/axtrack/{self.name}_tileinfo.pth')
+            torch.save(self.X_tiled, f'/home/loaloa/.cache/axtrack/{self.name}_X_tiled.pth')
+            torch.save(self.target_tiled, f'/home/loaloa/.cache/axtrack/{self.name}_target_tiled.pth')
         print('Done', flush=True) 
 
     def stitch_tiles(self, X, Y, Y2=None):
