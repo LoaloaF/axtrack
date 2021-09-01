@@ -31,6 +31,7 @@ from evaluation import (
     evaluate_preprocssing,
     evaluate_training,
     evaluate_precision_recall,
+    evaluate_model,
 )
 from config import OUTPUT_DIR, SPACER
 
@@ -53,16 +54,6 @@ def run_experiment(exp_name, parameters, save_results=True):
     # setup model and data
     model, loss_fn, optimizer, lr_scheduler = setup_model(parameters)
     train_data, test_data = setup_data(parameters)
-    # train_data.construct_tiles(parameters['DEVICE'])
-    # test_data.construct_tiles(parameters['DEVICE'])
-    
-    # PREPROC_DATA_DIR = f'{RUN_DIR}/preproc_data/'
-    # preproc_file = f'{PREPROC_DATA_DIR}/preprocessed_data.csv'
-    # save_preproc_metrics(RUN_DIR, train_data, test_data)
-    # plot_preprocessed_input_data(preproc_file, dest_dir=RUN_DIR, show=True)
-
-
-
 
     print_log = []                      
     for epoch in range(parameters['EPOCHS']):
@@ -79,21 +70,25 @@ def run_experiment(exp_name, parameters, save_results=True):
 
         # keep track of the loss development
         epoch_log = pd.concat([epoch_loss, epoch_test_loss], axis=1)
-        epoch_log_mean = epoch_log.groupby(axis=1, level=1).mean().unstack().rename(epoch)
-        metrics_log = pd.concat([epoch_metrics, epoch_test_metrics], axis=1)
-        # metrics_log_maxF1 = metrics_log.loc['F1']
-        print_log.append(epoch_log_mean)
+        epoch_log_mean = epoch_log.iloc[-3:-1].groupby(axis=1,level=1).mean().unstack().rename(epoch)
         
+        metrics_log = pd.concat([epoch_metrics, epoch_test_metrics], axis=1)
+        maxF1_idx = metrics_log.loc['F1'].groupby(level=1).apply(lambda s: s.index[s.argmax()])
+        metrics_log_maxF1 = metrics_log.loc[:, maxF1_idx].droplevel((0,2),1).unstack().rename(epoch)
+        print_log.append(pd.concat([epoch_log_mean, metrics_log_maxF1]))
+
         if save_results:
             # save the current epoch loss
             epoch_log.to_pickle(f'{METRICS_DIR}/E{epoch:0>4}.pkl')
             metrics_log.to_pickle(f'{METRICS_DIR}/E{epoch:0>4}_metrics.pkl')
             # save the model every 100 Epochs
-            if epoch and not (epoch % 500):
+            # if epoch and not (epoch % 500):
+            if not (epoch % 500):
                 save_checkpoint(model, optimizer, filename=f'{MODELS_DIR}/E{epoch:0>4}.pth')
             
             # check the model predictions every 20 Epochs
-            if epoch and epoch%500 == 0:
+            # if epoch and epoch%500 == 0:
+            if epoch%500 == 0:
                 epoch_dir = f'{METRICS_DIR}/{epoch:0>4}_results/'
                 os.makedirs(epoch_dir)
                 model.predict_all(train_data, parameters, dest_dir=epoch_dir)
@@ -104,13 +99,12 @@ def run_experiment(exp_name, parameters, save_results=True):
 
         # print out current progress
         current_progress = pd.concat(print_log, axis=1).unstack(level=0)
-        current_progress.index = [lbl[6:lbl.rfind('_loss')] for lbl in current_progress.index]
         print(SPACER)
         print(parameters['NOTES'], parameters['DEVICE'])
         print(current_progress.stack(level=1).T.round(3).to_string())
-        print(metrics_log.loc['F1'])
-        print(metrics_log.loc['F1'].max(0))
-
+        print(SPACER)
+        print('Running mean (last 20 epochs):')
+        print(current_progress.stack(level=1).iloc[-20:].mean(1).round(3).to_frame().T.to_string())
 
 
 if __name__ == '__main__':
@@ -123,15 +117,15 @@ if __name__ == '__main__':
     # from utils import print_models
     # print_models()
     # exit()
-    # clean_rundirs(exp4_name, keep_runs=[59,99,100], keep_only_latest_model=False)
-    # clean_rundirs(exp5_name, delete_runs=5, keep_only_latest_model=True)
-    # compare_precision_recall([(exp5_name, 'run18', 1600),(exp5_name, 'run20', 1600), (exp4_name, 'run59', 3000)])
-    # evaluate_preprocssing(exp5_name, 'run17')
-    # evaluate_precision_recall([(exp5_name, 'run18', 1500), (exp5_name, 'run18', 2000), (exp5_name, 'run18', 2500), (exp5_name, 'run18', 2985)])
-    # evaluate_training([(exp5_name, 'run17'),])
-    # evaluate_training([(exp5_name, 'run17'), (exp5_name, 'run18'), (exp5_name, 'run19'), (exp5_name, 'run20')], recreate=False)
-    # evaluate_training([(exp5_name, 'run17')])
 
+    # clean_rundirs(exp5_name, keep_runs=[17,18,19,20], keep_only_latest_model=False)
+    
+    # evaluate_precision_recall([(exp5_name, 'run18', 3000),(exp5_name, 'run28', 0)])
+    # evaluate_preprocssing(exp5_name, 'run17')
+    # evaluate_precision_recall([(exp5_name, 'run17', 2985), (exp5_name, 'run18', 2985), (exp5_name, 'run19', 2985), (exp5_name, 'run20', 2985), 
+    # evaluate_training([(exp5_name, 'run18')], recreate=False)
+    # evaluate_precision_recall([(exp5_name, 'run26', 15), (exp5_name, 'run27', 15)])
+    # evaluate_model(exp5_name, 'run22', show=True)
 
     parameters = copy(default_parameters)
     # parameters['CACHE'] = OUTPUT_DIR
@@ -203,31 +197,28 @@ if __name__ == '__main__':
     # ========== GPU experiments ===========
     parameters = copy(default_parameters)
     parameters['DEVICE'] = 'cuda:1'
-    parameters['EPOCHS'] = 1501
-    parameters['LOAD_MODEL'] = [exp5_name, 'run17', 3000]
-    parameters['NOTES'] = 'T2_load17-E3000_baseline'
+    parameters['EPOCHS'] = 4501
+    parameters['NOTES'] = 'T3_17-again-baseline, NMS18'
     # run_experiment(exp5_name, parameters, save_results=True)
     
     parameters = copy(default_parameters)
     parameters['DEVICE'] = 'cuda:2'
-    parameters['EPOCHS'] = 1501
+    parameters['EPOCHS'] = 4501
     parameters['ARCHITECTURE'] = maxp_arch
-    parameters['LOAD_MODEL'] = [exp5_name, 'run18', 3000]
-    parameters['NOTES'] = 'T2_load18-E3000_maxpool'
+    parameters['NOTES'] = 'T3_18-again-maxpool, NMS18'
     # run_experiment(exp5_name, parameters, save_results=True)
     
     parameters = copy(default_parameters)
     parameters['DEVICE'] = 'cuda:3'
-    parameters['EPOCHS'] = 1501
+    parameters['EPOCHS'] = 4501
     parameters['ARCHITECTURE'] = dropout25_arch
-    parameters['LOAD_MODEL'] = [exp5_name, 'run19', 3000]
-    parameters['NOTES'] = 'T2_load19-E3000_dropout0.25'
-    # run_experiment(exp5_name, parameters, save_results=True)
-    
-    parameters = copy(default_parameters)
-    parameters['DEVICE'] = 'cuda:4'
-    parameters['EPOCHS'] = 1501
-    parameters['ARCHITECTURE'] = dropout35_arch
-    parameters['LOAD_MODEL'] = [exp5_name, 'run20', 3000]
-    parameters['NOTES'] = 'T2_load20-E3000_dropout0.35'
+    parameters['NOTES'] = 'T3_19-again-dropout0.25, NMS18'
     run_experiment(exp5_name, parameters, save_results=True)
+    
+    # parameters = copy(default_parameters)
+    # parameters['DEVICE'] = 'cuda:4'
+    # parameters['EPOCHS'] = 1501
+    # parameters['ARCHITECTURE'] = dropout35_arch
+    # parameters['LOAD_MODEL'] = [exp5_name, 'run20', 3000]
+    # parameters['NOTES'] = 'T2_load20-E3000_dropout0.35'
+    # # run_experiment(exp5_name, parameters, save_results=True)

@@ -148,7 +148,7 @@ def plot_training_process(training_data_files, draw_detailed_loss=False,
         fig.savefig(fname, dpi=450)
 
 def draw_frame(image, target_anchors=None, pred_anchors=None, animation=None, 
-               dest_dir=None, fname='image', draw_YOLO_grid=None, show=False,
+               dest_dir=None, fname='image', draw_grid=None, show=False,
                color_true_ids=True, color_pred_ids=False, draw_astar_paths=None):
     # make sure image data has the right format: HxWxC
     im = np.array(image.detach().cpu())
@@ -182,11 +182,12 @@ def draw_frame(image, target_anchors=None, pred_anchors=None, animation=None,
     ax.set_facecolor('#242424')
 
     # draw yolo lines
-    if draw_YOLO_grid is not None:
-        xlines = np.linspace(0, width, draw_YOLO_grid[0]+1)
-        ylines = np.linspace(0, height, draw_YOLO_grid[1]+1)
-        ax.hlines(ylines, 0, width, color='white', linewidth=.5, alpha=.2)
-        ax.vlines(xlines, 0, height, color='white', linewidth=.5, alpha=.2)
+    if draw_grid:
+        gridsize = round(draw_grid)
+        at_x = [gridsize*i for i in range(width//gridsize+1)]
+        at_y = [gridsize*i for i in range(width//gridsize+1)]
+        ax.vlines(at_x, 0, height, color='white', linewidth=.5, alpha=.2)
+        ax.hlines(at_y, 0, width, color='white', linewidth=.5, alpha=.2)
         ax.set_xlim(0, width)
         ax.set_ylim(height, 0)
 
@@ -232,7 +233,6 @@ def plot_prc_rcl(metrics_files, dest_dir=None, show=None):
     ticks = np.arange(0.2, 1.1, 0.1)
     lims = (.25, 1.04)
 
-    print(len(metrics_files))
     # setup both axes
     for i, ax in enumerate(axes):
         ax.set_ylim(*lims) 
@@ -261,9 +261,10 @@ def plot_prc_rcl(metrics_files, dest_dir=None, show=None):
 
         # not only the metrics file for the epoch is passed, but also the 15  
         # epochs before and after. the average over these 30 is computed below
-        metrics = [pd.read_csv(file, index_col=0, header=[0,1,2]).droplevel(0,1) for file in files]
+        metrics = [pd.read_pickle(file) for file in files]
         metric = np.stack([df.values for df in metrics]).mean(0)
-        metric = pd.DataFrame(metric, index=metrics[0].index, columns=metrics[0].columns)
+        metric = pd.DataFrame(metric, index=metrics[0].index, 
+                              columns=metrics[0].columns.droplevel(0))
         thrs = metric.columns.unique(1).values.astype(float)
 
         # unpack data
@@ -284,10 +285,11 @@ def plot_prc_rcl(metrics_files, dest_dir=None, show=None):
 
         # legend 
         legend_elements.extend([
-            Line2D([0], [0], label=f'Train - {name}', **TRAIN_Ps, color=col),
-            Line2D([0], [0], label=f'Test', **TEST_Ps, color=col),])
-    axes[0].legend(handles=legend_elements, bbox_to_anchor=(0, 1.05), ncol=1,
-                   loc='lower left', fontsize=9)
+            Line2D([0], [0], label=f'Train - {name}', color=col, **dict(TRAIN_Ps, **{'linewidth':4})),
+            Line2D([0], [0], label=f'Test', color=col, **dict(TEST_Ps, **{'linewidth':3}))
+            ])
+    axes[0].legend(handles=legend_elements, bbox_to_anchor=(-.2, 1.05), ncol=2,
+                   loc='lower left', fontsize=8,)
     if show:
         plt.show()
     if dest_dir:

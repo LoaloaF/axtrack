@@ -27,12 +27,10 @@ def yolo_coo2tile_coo(target_tensor, Sx, Sy, tilesize, device, with_batch_dim=Tr
     target_tensor[box_mask] = 0
     return target_tensor
 
-def filter_anchors(target_tensor, conf_threshold, ceil_conf=True):
+def filter_anchors(target_tensor, conf_threshold):
     # convert the target tensor to shape (batchsize, Sx*Sy, 3)
     batch_size, labelsize = target_tensor.shape[0], target_tensor.shape[-1]
     target_tensor = target_tensor.reshape((batch_size, -1, labelsize))
-    if ceil_conf:
-        target_tensor[..., 0][target_tensor[..., 0]>1] = 1
     
     # split batches into list because of variable sizes 
     frame_targets = list(torch.tensor_split(target_tensor, batch_size))
@@ -65,30 +63,89 @@ def Y2pandas_anchors(Y, Sx, Sy, tilesize, device, conf_thr):
         Ys_list_fltd[i] = fltd_tensor2pandas(Ys_list_fltd[i])
     return Ys_list_fltd
 
-def compute_metrics(data_loader, model, device, epoch, which_data):
-    print('Computing precision & recall...', end='', flush=True)
+def compute_TP_FP_FN(pred_target, target):
+    obj_exists = target[..., 0].to(bool)
+    pred_obj_exists = pred_target[..., 0]
     
+    TP, FP, FN = [], [], []
     conf_thresholds = np.arange(0.5, 1.01, 0.01)
-    confus_mtrx = np.zeros((3, 51))
-    for batch, (x,y) in enumerate(data_loader):
-        X, target = x.to(device), y.to(device)
-        pred_target = model.detect_axons(X)
-            
-        obj_exists = target[..., 0].to(bool)
-        pred_obj_exists = pred_target[..., 0]
-        
-        TP, FP, FN = [], [], []
-        for thr in conf_thresholds:
-            pos_pred = torch.where(pred_obj_exists>thr, 1, 0).to(bool)
-            TP.append((pos_pred & obj_exists).sum().item())
-            FP.append((pos_pred & ~obj_exists).sum().item())
-            FN.append((~pos_pred & obj_exists).sum().item())
-        confus_mtrx += np.array([TP, FP, FN])
-    
+    for thr in conf_thresholds:
+        pos_pred = torch.where(pred_obj_exists>thr, 1, 0).to(bool)
+        TP.append((pos_pred & obj_exists).sum().item())
+        FP.append((pos_pred & ~obj_exists).sum().item())
+        FN.append((~pos_pred & obj_exists).sum().item())
+    return np.array([TP, FP, FN])
+
+def compute_prc_rcl_F1(confus_mtrx, epoch=None, which_data=None):
     prc = confus_mtrx[0] / (confus_mtrx[0]+confus_mtrx[1]+0.000001)
     rcl = confus_mtrx[0] / (confus_mtrx[0]+confus_mtrx[2]+0.000001)
     f1 =  2*(prc*rcl)/(prc+rcl)
+
+    if epoch is not None and which_data is not None:
+        conf_thresholds = np.arange(0.5, 1.01, 0.01)
+        index = pd.MultiIndex.from_product([[epoch],[which_data],conf_thresholds])
+        return pd.DataFrame([prc, rcl, f1], columns=index, index=('precision', 'recall', 'F1'))
+    else:
+        return np.array([prc, rcl, f1])
+
+def non_max_supression_pandas(pred, min_dist=18):
+    # order by confidence
+    pred = pred.sort_values('conf', ascending=False)
+    i = 0
+    # get most confident anchor first
+    while i < pred.shape[0]:
+        xs, ys = pred[['anchor_x', 'anchor_y']].values.T
+        x,y = pred.iloc[i, 1:]
+
+        # compute distances of that anchor to all others
+        dists = np.sqrt(((xs-x)**2 + (ys-y)**2).astype(int))
+        # check where its < thr, skip the first one (dist. with itself = 0)
+        non_max_indices = np.where(dists<min_dist)[0][1:]
+        # drop those anchors
+        pred.drop(pred.index[non_max_indices], inplace=True)
+        i += 1
+    return pred
     
-    index = pd.MultiIndex.from_product([[epoch],[which_data],conf_thresholds])
-    print('Done.')
-    return pd.DataFrame([prc, rcl, f1], columns=index, index=('precision', 'recall', 'F1'))
+def non_max_supress_pred(pred, Sx, Sy, tilesize, device, min_dist=18):
+    batchs = pred.shape[0]
+    # take the raw flat model output and reshape to standard yolo target shape
+    pred = pred.reshape((batchs, Sx, Sy, 3))
+    # convert coordinates to tile coordinates 
+    pred_tilecoo = yolo_coo2tile_coo(pred.clone(), Sx, Sy, tilesize, device)
+
+    # iterate the tiles/ batch
+    for tile_i in range(batchs):
+        # index to the tile and flatten the SxSy dim (12x120) -> 144 anchors
+        tile_pred = pred_tilecoo[tile_i]
+        tile_pred_flat = tile_pred.flatten(0,1)
+
+        # get the indices where the anchor confidence is at least above 0.5
+        pos_pred_idx = torch.where(tile_pred_flat[:,0] > 0.5)[0]
+        # sort these by their associated confidences 
+        pos_pred_idx = pos_pred_idx[tile_pred_flat[pos_pred_idx, 0].argsort(descending=True)]
+        
+        i = 0
+        # iterate the conf-sorted anchor indices that were above 0.5
+        while i < len(pos_pred_idx):
+            # get the coordianates of all the anchors above 0.5
+            xs, ys = tile_pred_flat[pos_pred_idx, 1:].T
+            # and the specifc anchor being tested in this iteration
+            x,y = tile_pred_flat[pos_pred_idx[i], 1:]
+
+            # compute euclidian distances of that anchor to all others
+            dists = torch.sqrt(((xs-x)**2 + (ys-y)**2))
+                
+            # check where it is < thr, skip the first one (dist. with itself = 0)
+            non_max_indices = torch.where(dists<min_dist)[0][1:]
+            # if any of the conf-above-0.5 anchors was smaller than distance:
+            if len(non_max_indices):
+                # set the confidence at those indices to 0
+                tile_pred_flat[pos_pred_idx[non_max_indices], 0] = 0
+                # remove those anchor indices, they shouldn't be checked after being dropped
+                pos_pred_idx = torch.tensor([pos_pred_idx[idx] for idx in range(len(pos_pred_idx)) if idx not in non_max_indices])
+            i += 1
+
+        # undo the flattening and set the tile-coo confidences to the yolo box confs.
+        tile_pred = tile_pred.reshape(Sx, Sy, 3)
+        pred[tile_i, :, :, 0] = tile_pred.reshape(Sx, Sy, 3)[:, :, 0]
+    return pred

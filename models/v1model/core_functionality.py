@@ -10,7 +10,7 @@ from model import YOLO_AXTrack
 from loss import YOLO_AXTrack_loss
 from dataset_class import Timelapse
 from utils import load_checkpoint
-from model_out_utils import compute_metrics
+from model_out_utils import compute_TP_FP_FN, compute_prc_rcl_F1, non_max_supress_pred
 
 def setup_data(P):
     # training data
@@ -102,14 +102,17 @@ def setup_data_loaders(P, dataset):
         drop_last = P['DROP_LAST'],)
     return data_loader
 
-def run_epoch(data_loader, model, loss_fn, params, epoch, which_dataset, optimizer):
+def run_epoch(data_loader, model, loss_fn, device, epoch, which_dataset, optimizer):
     epoch_loss = []
+    confus_mtrx = np.zeros((3, 51))
     print(f'LOSS: ', end='')
     for batch, (x,y) in enumerate(data_loader):
-        x, y = x.to(params['DEVICE']), y.to(params['DEVICE'])
+        X, target = x.to(device), y.to(device)
             
-        out = model(x)
-        loss, loss_components = loss_fn(out, y)
+        pred = model(X)
+        loss, loss_components = loss_fn(pred, target)
+        loss_components.rename((epoch, which_dataset, batch), inplace=True)
+        epoch_loss.append(loss_components)
         print(f'{loss.item():.3f}', end='...', flush=True)
         
         if which_dataset == 'train':
@@ -117,13 +120,16 @@ def run_epoch(data_loader, model, loss_fn, params, epoch, which_dataset, optimiz
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
+        
+        pred_nms = non_max_supress_pred(pred.detach(), model.Sy, model.Sx, model.tilesize, device)
+        confus_mtrx += compute_TP_FP_FN(pred_nms, target)
 
-        loss_components.rename((epoch, which_dataset, batch), inplace=True)
-        epoch_loss.append(loss_components)
+    epoch_metrics = compute_prc_rcl_F1(confus_mtrx, epoch, which_dataset)
     epoch_loss = pd.concat(epoch_loss, axis=1)
     epoch_loss.columns.names = ('epoch', 'dataset', 'batch')
-    print(f'\n++++ Mean: {epoch_loss.loc["total_summed_loss"].mean():.3f} ++++')
-    return epoch_loss
+    print((f'\n++++ Mean: {epoch_loss.loc["total_summed_loss"].mean():.3f}, F1'
+           f' {epoch_metrics.loc["F1"].max():.3f} ++++'))
+    return epoch_loss, epoch_metrics
 
 def prepare_data(device, dataset):
     dataset.construct_tiles(device)
@@ -142,12 +148,10 @@ def one_epoch(dataset, model, loss_fn, params, epoch, optimizer=None, lr_schedul
         print('Bad data augmentation -- Doing it again --')
     data_loader = setup_data_loaders(params, dataset)
     
-    epoch_loss = run_epoch(data_loader, model, loss_fn, params, epoch, 
-                           which_dataset, optimizer)
-    metrics = compute_metrics(data_loader, model, params['DEVICE'], epoch, 
-                              which_dataset)
+    epoch_loss, epoch_metrics = run_epoch(data_loader, model, loss_fn, params['DEVICE'], epoch, 
+                                          which_dataset, optimizer)
 
     if which_dataset == 'train' and lr_scheduler:
         lr_scheduler.step()
     torch.cuda.empty_cache()
-    return epoch_loss, metrics
+    return epoch_loss, epoch_metrics

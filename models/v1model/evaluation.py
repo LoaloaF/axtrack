@@ -115,7 +115,7 @@ def evaluate_precision_recall(exp_run_epoch_ids, show=True):
         else:
             print(compare_parameters(base_params, params))
 
-        metrics_files = [f'{RUN_DIR}/metrics/E{e:0>4}_metrics.csv' for e in range(epoch-15,epoch+15)]
+        metrics_files = [f'{RUN_DIR}/metrics/E{e:0>4}_metrics.pkl' for e in range(epoch-15,epoch+15)]
         # for the last Epoch, there are no 15 epochs into the future, delete those
         metrics_files = [file for file in metrics_files if os.path.exists(file)]
         metrics[lbl] = metrics_files

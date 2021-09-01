@@ -305,8 +305,6 @@ class Timelapse(Dataset):
     def _load_bboxes(self, labels_csv):
         bboxes = pd.read_csv(labels_csv, index_col=0, header=[0,1])
         bboxinfo_cols = ['anchor_x', 'anchor_y']
-        # bboxinfo_cols = ['extend', 'anchor_x', 'anchor_y', 'topleft_x', 
-        #                 'topleft_y', 'bottomright_x', 'bottomright_y']
         bboxes = bboxes.loc[:, (slice(None), bboxinfo_cols)].sort_index()
         bboxes = bboxes.reset_index(drop=True)
         if self.pad[0] or self.pad[3]:

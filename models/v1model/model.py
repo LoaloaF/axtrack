@@ -9,7 +9,7 @@ from torchvision import models
 import matplotlib.pyplot as plt
 from matplotlib import animation
 
-from model_out_utils import Y2pandas_anchors
+from model_out_utils import Y2pandas_anchors, non_max_supression_pandas, non_max_supress_pred
 from plotting import draw_frame
 
 class CNNBlock(nn.Module):
@@ -187,23 +187,29 @@ class YOLO_AXTrack(nn.Module):
         self.train()
         return pred
     
-    def get_frame_detections(self, data, t, device, anchor_conf_thr, assign_ids=None):
+    def get_frame_detections(self, data, t, device, anchor_conf_thr, assign_ids=None, nms=True):
         # get a stack of tiles that makes up a frame
         # batch dim of X corresbonds to all tiles in frame at time t
         X, target = data.get_stack('image', t)
         X = X.to(device)
         # use the model to detect axons, output here follows target.shape
         pred_target = self.detect_axons(X)
+        if nms:
+            pred_target = non_max_supress_pred(pred_target, self.Sx, self.Sy, self.tilesize, device)
 
         # convert the detected anchors in YOLO format to normal ones
         pred_dets = Y2pandas_anchors(pred_target, self.Sx, self.Sy, 
                                      self.tilesize, device, anchor_conf_thr) 
+        # non max supression on stichted data supressing detections of neighboring tiles
+        pred_dets = [non_max_supression_pandas(pred_det) for pred_det in pred_dets]
+        
         if target is not None:
             true_dets = Y2pandas_anchors(target.to(device), self.Sx, self.Sy, 
                                          self.tilesize, device, 1) 
 
         # stitch the prediction from tile format back to frame format
         X_stch, pred_dets_stch, true_dets_stch = data.stitch_tiles(X, pred_dets, true_dets)
+        # pred_dets_stch = non_max_supression_pandas(pred_dets_stch)
         if assign_ids:
             run_dir, data_name = assign_ids
             pred_dets_stch = self.get_detections_ids(pred_dets_stch, t, run_dir, data_name)
@@ -215,7 +221,8 @@ class YOLO_AXTrack(nn.Module):
         return dets
 
     def predict_all(self, data, params, dest_dir=None, show=False, 
-                    save_single_tiles=True, animated=False, assign_ids=False, **kwargs):
+                    save_single_tiles=False, animated=False, assign_ids=False, 
+                    **kwargs):
         print('Drawing [eval] model output...', end='')
         device, anchor_conf_thr = params['DEVICE'], params['BBOX_THRESHOLD']
         data.construct_tiles(device, force_no_transformation=True)
@@ -227,7 +234,7 @@ class YOLO_AXTrack(nn.Module):
 
         # iterate the timepoints
         for t in range(data.sizet):
-            lbl = f'{data.name}_t{t:0>2}|{data.sizet:0>2}_({data.timepoints[t]})'
+            lbl = f'{data.name}_t{t:0>2}|{data.sizet:0>2}_({data.timepoints[t]})_{params["NOTES"]}'
             print(lbl, end='...', flush=True)
 
             # get detections and stitch tiles to frame 
@@ -238,9 +245,10 @@ class YOLO_AXTrack(nn.Module):
             X,X_stch, pred_dets,pred_dets_stch, true_dets,true_dets_stch = out
 
             # draw stitched frame
-            frame_artists = draw_frame(X_stch, true_dets_stch, pred_dets_stch, 
+            frame_artists = draw_frame(X_stch, true_dets_stch, pred_dets_stch,
                                        animation=animated, dest_dir=dest_dir, 
-                                       fname=lbl, show=show, **kwargs)
+                                       draw_grid=self.tilesize, fname=lbl, 
+                                       show=show, **kwargs)
             if animated:
                 anim_frames.append(frame_artists)
 
@@ -249,8 +257,8 @@ class YOLO_AXTrack(nn.Module):
                 # for the current timepoints, iter non-empty tiles
                 for tile in range(n_tiles):
                     draw_frame(X[tile, data.get_tcenter_idx()], true_dets[tile],
-                               pred_dets[tile], draw_YOLO_grid=(self.Sx, self.Sy),
-                               dest_dir=dest_dir, show=False, 
+                               pred_dets[tile], draw_grid=self.tilesize/self.Sx,
+                               dest_dir=dest_dir, show=True, 
                                fname=f'{lbl}_tile{tile:0>2}|{n_tiles:0>2}')
 
         if animated:

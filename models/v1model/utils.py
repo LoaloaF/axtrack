@@ -32,11 +32,11 @@ def create_logging_dirs(exp_name):
     [os.makedirs(d) for d in [RUN_DIR, MODELS_DIR, METRICS_DIR, PREPROC_DATA_DIR]]
     return (RUN_DIR, MODELS_DIR, METRICS_DIR, PREPROC_DATA_DIR), run_label
 
-def clean_rundirs(exp_name, delete_runs=None, keep_runs=None, keep_only_latest_model=False):
+def clean_rundirs(exp_name, delete_runs=None, keep_runs=None, keep_only_latest_model=False, filetype='pkl'):
     EXP_DIR = f'{OUTPUT_DIR}/runs/{exp_name}'
     for d in sorted(os.listdir(EXP_DIR)):
-        all_epoch_files = glob.glob(f'{EXP_DIR}/{d}/metrics/E*.csv')
-        n_metrics = len([f for f in all_epoch_files if not f.endswith('_metrics.csv')])
+        all_epoch_files = glob.glob(f'{EXP_DIR}/{d}/metrics/E*.{filetype}')
+        n_metrics = len([f for f in all_epoch_files if not f.endswith(f'_metrics.{filetype}')])
         n_models = len(glob.glob(f'{EXP_DIR}/{d}/models/*.pth'))
         notes = pickle.load(open(f'{EXP_DIR}/{d}/params.pkl', 'rb'))['NOTES']
         print(f'{d} - Epochs: {n_metrics}, models saved: {n_models}, {notes}', flush=True)
@@ -59,38 +59,25 @@ def get_run_dir(exp_dir, run):
     return f'{exp_dir}/{run_dir[0]}'
 
 def create_metricsovertime_pkl(metrics_dir):
-    metrics_files = [f for f in glob.glob(metrics_dir+'/E*.csv') if f.endswith('_metrics.csv')]
-    # metrics_files = [f for f in glob.glob(metrics_dir+'/E*.pkl') if f.endswith('_metrics.pkl')]
-    metrics = [pd.read_csv(E, header=[0,1,2], index_col=0) for E in metrics_files]
+    print('Recreating metric-over-time pickle from pkl\'s...', end='')
+    metrics_files = [f for f in glob.glob(metrics_dir+'/E*.pkl') if f.endswith('_metrics.pkl')]
+    metrics = [pd.read_pickle(E) for E in metrics_files]
     metrics = pd.concat(metrics, axis=1)
-
-    vals = [(int(E), which_d, round(float(thr), 2)) for E, which_d, thr in metrics.columns]
-    metrics.columns = pd.MultiIndex.from_tuples(vals)
-    trn, tst = metrics.loc[:, (slice(None),'train')], metrics.loc[:, (slice(None),'test')]
     
-    metric_at_best_thr = lambda E: E.iloc[:,np.argmax(E.loc['F1']):np.argmax(E.loc['F1'])+1]
-    trn = trn.groupby(axis=1, level=0).apply(metric_at_best_thr).droplevel(1,1)
-    tst = tst.groupby(axis=1, level=0).apply(metric_at_best_thr).droplevel(1,1)
-    metrics = pd.concat([trn,tst], axis=1).sort_index(axis=1)
+    # select best threshold based on best F1
+    maxF1_idx = metrics.loc['F1'].groupby(level=(0,1)).apply(lambda s: s.index[s.argmax()])
+    metrics = metrics.loc[:, maxF1_idx]#.droplevel((0,2),1).unstack()
 
     fname = f'{metrics_dir}/metrics_all_epochs.pkl'
     metrics.to_pickle(fname)
+    print('Done.')
     return fname
 
 def create_lossovertime_pkl(metrics_dir):
-    print('Recreating loss-over-time pickle from CSVs...', end='')
-    loss_files = [f for f in glob.glob(metrics_dir+'/E*.csv') if not f.endswith('_metrics.csv')]
-    # loss_files = [f for f in glob.glob(metrics_dir+'/E*.pkl') if not f.endswith('_metrics.pkl')]
-    loss = [pd.read_csv(E, header=[0,1,2], index_col=0) for E in loss_files]
+    print('Recreating loss-over-time pickle from pkl\'s...', end='')
+    loss_files = [f for f in glob.glob(metrics_dir+'/E*.pkl') if not f.endswith('_metrics.pkl')]
+    loss = [pd.read_pickle(E) for E in loss_files]
     loss = pd.concat(loss, axis=1)
-    
-    # str columns to int....
-    order = loss.index
-    loss = loss.stack((1,2))
-    loss.columns = loss.columns.astype(int)
-    loss = loss.unstack(2).stack(0)
-    loss.columns = loss.columns.astype(int)
-    loss = loss.unstack((1,2)).reindex(order).swaplevel(0,2,axis=1)
 
     fname = f'{metrics_dir}/loss_all_epochs.pkl'
     loss.to_pickle(fname)
