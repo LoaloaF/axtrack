@@ -9,7 +9,7 @@ if where.startswith('/home/ssteffens'):
     BASE_DIR = '/home/ssteffens/'
     RAW_DATA_DIR = BASE_DIR + 'raw_data_dir/'
     DEFAULT_DEVICE = 'cuda:0'
-    DEFAULT_NUM_WORKERS = 3
+    DEFAULT_NUM_WORKERS = 2
 
 # local
 elif where.startswith('/home/loaloa/gdrive/'):

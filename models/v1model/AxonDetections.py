@@ -18,7 +18,7 @@ import pyastar
 
 class AxonDetections():
     def __init__(self, model, dataset, parameters, directory=None, 
-                 detect_at_init=True, assign_id_at_init=True, calc_target_dist_at_init=False):
+                 detect_at_init=True, assign_id_at_init=False, calc_target_dist_at_init=False):
         
         self.model = model
         self.dataset = dataset 

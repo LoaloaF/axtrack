@@ -305,6 +305,8 @@ def plot_prc_rcl(metrics_files, dest_dir=None, show=None):
 
 def draw_all(axon_dets, filename, dest_dir=None, notes='', show=False, filter2FP_FN=False,
              save_single_tiles=False, animated=False, **kwargs):
+    if not dest_dir:
+        dest_dir = axon_detections.dir
     if animated:
         anim_frames = []
         animated = plt.subplots(1, figsize=(axon_dets.dataset.sizex/350, 
@@ -324,8 +326,8 @@ def draw_all(axon_dets, filename, dest_dir=None, notes='', show=False, filter2FP
             det1, det2 = FP_dets, FN_dets
 
         # draw stitched frame
-        # frame_artists = draw_frame(img, det1, det2, animation=animated, 
-        frame_artists = draw_frame(img, det1, None, animation=animated, 
+        frame_artists = draw_frame(img, det1, det2, animation=animated, 
+        # frame_artists = draw_frame(img, det1, None, animation=animated, 
                                    dest_dir=dest_dir, draw_grid=axon_dets.tilesize, 
                                    fname=fname, lbl=lbl, show=show, **kwargs)
         if animated:

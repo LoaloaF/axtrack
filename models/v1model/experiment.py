@@ -1,5 +1,6 @@
 import os
 from copy import copy
+from os import environ as cuda_environment
 
 from AxonDetections import AxonDetections
 
@@ -37,10 +38,13 @@ from evaluation import (
     evaluate_model,
 )
 from config import OUTPUT_DIR, SPACER
+from plotting import draw_all
 
 def run_experiment(exp_name, parameters, save_results=True):
     set_seed(parameters['SEED'])
-    # torch.multiprocessing.set_start_method('spawn')
+    if torch.cuda.is_available():
+        # torch.multiprocessing.set_start_method('spawn')
+        torch.cuda.set_device(parameters['DEVICE'])
 
     # Setup saving and parameter checking 
     print(f'Running Experiment: {exp_name}', flush=True)
@@ -90,11 +94,21 @@ def run_experiment(exp_name, parameters, save_results=True):
                 save_checkpoint(model, optimizer, lr_scheduler, filename=f'{MODELS_DIR}/E{epoch:0>4}.pth')
             
             # check the model predictions every 20 Epochs
+            # if epoch%500 == 0:
             if epoch and epoch%500 == 0:
                 epoch_dir = f'{METRICS_DIR}/{epoch:0>4}_results/'
                 os.makedirs(epoch_dir)
-                model.predict_all(train_data, parameters, dest_dir=epoch_dir)
-                model.predict_all(test_data, parameters, dest_dir=epoch_dir)
+
+                # predict everything in train data and plot result
+                train_axon_dets = AxonDetections(model, train_data, parameters, None)
+                train_fname = f'train_E:{epoch}_timepoint:---|{train_data.sizet}'
+                draw_all(train_axon_dets, train_fname, dest_dir=epoch_dir, notes=parameters["NOTES"])
+                
+                # predict everything in test data and plot result
+                test_axon_dets = AxonDetections(model, test_data, parameters, None)
+                test_fname = f'test_E:{epoch}_timepoint:---|{test_data.sizet}'
+                draw_all(test_axon_dets, test_fname, dest_dir=epoch_dir, notes=parameters["NOTES"])
+
             # save preprocessing of input data for plotting 
             if epoch == 0 and parameters['PLOT_PREPROC']:
                 save_preproc_metrics(RUN_DIR, train_data, test_data)
@@ -103,7 +117,7 @@ def run_experiment(exp_name, parameters, save_results=True):
         current_progress = pd.concat(print_log, axis=1).unstack(level=0)
         print(SPACER)
         print(parameters['NOTES'], parameters['DEVICE'])
-        print(current_progress.stack(level=1).T.round(3).to_string())
+        print(current_progress.stack(level=1).T.round(3).tail(400).to_string())
         print(SPACER)
         print('Running mean (last 20 epochs):')
         print(current_progress.stack(level=1).iloc[-20:].mean(1).round(3).to_frame().T.to_string())
@@ -121,19 +135,29 @@ if __name__ == '__main__':
     # print_models()
     # exit()
 
-    # clean_rundirs(exp5_name, keep_runs=[17,18,19,20,32], keep_only_latest_model=True)
-    # clean_rundirs(exp5_name, delete_runs=31, keep_only_latest_model=False)
+    # clean_rundirs(exp5_name, delete_runs=30, keep_only_latest_model=False)
+    # clean_rundirs(exp6_name, delete_runs=30, keep_only_latest_model=False)
     
     # evaluate_precision_recall([(exp5_name, 'run18', 3000),(exp5_name, 'run28', 0)])
     # evaluate_preprocssing(exp5_name, 'run17')
     # evaluate_precision_recall([(exp5_name, 'run17', 2985), (exp5_name, 'run18', 2985), (exp5_name, 'run19', 2985), (exp5_name, 'run20', 2985), 
-    # evaluate_training([(exp5_name, 'run32')], recreate=False)
-    # evaluate_precision_recall([(exp5_name, 'run32', 485)])
-    evaluate_model(exp5_name, 'run32', show=True, color_det1_ids=True, color_det2_ids=False)
+    # evaluate_training([(exp5_name, 'run35'), (exp5_name, 'run34')], recreate=False)
+    # evaluate_precision_recall([(exp5_name, 'run35', 1500),
+    #                            (exp5_name, 'run35', 2000),
+    #                            (exp5_name, 'run35', 2500),
+    #                            (exp5_name, 'run35', 3000),
+    #                            (exp5_name, 'run35', 3500),
+    #                            (exp5_name, 'run34', 2500),
+    #                            (exp5_name, 'run34', 3000),
+    #                            (exp5_name, 'run34', 3500),
+    #                            (exp5_name, 'run34', 4000),
+    # ])
+    # evaluate_model(exp5_name, 'run34', 4000, animated=True)
+    # evaluate_model(exp5_name, 'run34', 3500, animated=True)
+    # evaluate_model(exp5_name, 'run34', 3000, animated=True)
+    # evaluate_model(exp5_name, 'run34', 2000, animated=True)
+    # evaluate_model(exp5_name, 'run34', 4000 animated=True)
 
-    parameters = copy(default_parameters)
-    parameters['LR_DECAYRATE'] = None
-    run_experiment(exp6_name, parameters, save_results=True)
     # parameters['CACHE'] = OUTPUT_DIR
     # parameters['FROM_CACHE'] = None
     # parameters['DEVICE'] = 'cuda:0'
@@ -144,9 +168,9 @@ if __name__ == '__main__':
     parameters['EPOCHS'] = 2
     parameters['LOAD_MODEL'] = [exp5_name, 'run32', 500]
     parameters['NOTES'] = 'continue 32, LR schedular with loading'
-    run_experiment(exp6_name, parameters, save_results=True)
+    # run_experiment(exp6_name, parameters, save_results=True)
 
-    maxp_arch = [
+    maxp_do25_arch = [
         #kernelsize, out_channels, stride, groups
         [(3, 20,  2,  1),      # y-x out: 256
          (3, 40,  2,  1),      # y-x out: 128
@@ -163,21 +187,28 @@ if __name__ == '__main__':
          ],
         [('FC', 1024),
          ('activation', nn.Sigmoid()), 
+         ('dropout', 0.25),
          ('FC', 1024),
          ('activation', nn.Sigmoid()), 
         ]     
     ]
-    dropout25_arch = [
+
+    maxp_do25_arch_deeper = [
         #kernelsize, out_channels, stride, groups
         [(3, 20,  2,  1),      # y-x out: 256
          (3, 40,  2,  1),      # y-x out: 128
-         (3, 80,  2,  1),      # y-x out: 64
          (3, 80,  1,  1),      # y-x out: 64
-         (3, 80,  2,  1),      # y-x out: 32
+         (3, 80,  1,  1),      # y-x out: 64    #new
+         'M',
+         (3, 80,  1,  1),      # y-x out: 64
+         (3, 80,  1,  1),      # y-x out: 32
+         'M',
          (3, 80,  1,  1),      # y-x out: 32
          (3, 80,  1,  1),      # y-x out: 32
+         'M',
          ],      
-        [(3, 160, 2,  1),      # y-x out: 16
+        [(3, 160, 1,  1),      # y-x out: 16
+         (3, 80, 2,  1),       # y-x out: 8     #new
          ],
         [('FC', 1024),
          ('activation', nn.Sigmoid()), 
@@ -186,51 +217,54 @@ if __name__ == '__main__':
          ('activation', nn.Sigmoid()), 
         ]     
     ]
-    dropout35_arch = [
+
+    maxp_do25_do25_arch = [
         #kernelsize, out_channels, stride, groups
         [(3, 20,  2,  1),      # y-x out: 256
          (3, 40,  2,  1),      # y-x out: 128
-         (3, 80,  2,  1),      # y-x out: 64
          (3, 80,  1,  1),      # y-x out: 64
-         (3, 80,  2,  1),      # y-x out: 32
+         'M',
+         (3, 80,  1,  1),      # y-x out: 64
+         (3, 80,  1,  1),      # y-x out: 32
+         'M',
          (3, 80,  1,  1),      # y-x out: 32
          (3, 80,  1,  1),      # y-x out: 32
+         'M',
          ],      
-        [(3, 160, 2,  1),      # y-x out: 16
+        [(3, 160, 1,  1),      # y-x out: 16
          ],
         [('FC', 1024),
          ('activation', nn.Sigmoid()), 
-         ('dropout', 0.35),
+         ('dropout', 0.25),
          ('FC', 1024),
          ('activation', nn.Sigmoid()), 
+         ('dropout', 0.25),
         ]     
     ]
-
+    
     # ========== GPU experiments ===========
     parameters = copy(default_parameters)
-    parameters['DEVICE'] = 'cuda:1'
-    parameters['EPOCHS'] = 4501
-    parameters['NOTES'] = 'T3_17-again-baseline, NMS18'
-    # run_experiment(exp5_name, parameters, save_results=True)
+    parameters['DEVICE'] = 'cuda:0'
+    parameters['ARCHITECTURE'] = maxp_do25_arch
+    parameters['NOTES'] = 'T1_MaxP-DO.25'
+    # run_experiment(exp6_name, parameters, save_results=True)
     
     parameters = copy(default_parameters)
-    parameters['DEVICE'] = 'cuda:2'
-    parameters['EPOCHS'] = 4501
-    parameters['ARCHITECTURE'] = maxp_arch
-    parameters['NOTES'] = 'T3_18-again-maxpool, NMS18'
-    # run_experiment(exp5_name, parameters, save_results=True)
+    parameters['DEVICE'] = 'cuda:1'
+    parameters['ARCHITECTURE'] = maxp_do25_do25_arch
+    parameters['NOTES'] = 'T1_MaxP-DO.25-DO.25'
+    # run_experiment(exp6_name, parameters, save_results=True)
     
     parameters = copy(default_parameters)
     parameters['DEVICE'] = 'cuda:3'
-    parameters['EPOCHS'] = 4501
-    parameters['ARCHITECTURE'] = dropout25_arch
-    parameters['NOTES'] = 'T3_19-again-dropout0.25, NMS18'
-    # run_experiment(exp5_name, parameters, save_results=True)
+    parameters['ARCHITECTURE'] = maxp_do25_arch_deeper
+    parameters['NOTES'] = 'T1_MaxP-DO.25-deeper'
+    # run_experiment(exp6_name, parameters, save_results=True)
     
-    # parameters = copy(default_parameters)
-    # parameters['DEVICE'] = 'cuda:4'
-    # parameters['EPOCHS'] = 1501
-    # parameters['ARCHITECTURE'] = dropout35_arch
-    # parameters['LOAD_MODEL'] = [exp5_name, 'run20', 3000]
-    # parameters['NOTES'] = 'T2_load20-E3000_dropout0.35'
-    # # run_experiment(exp5_name, parameters, save_results=True)
+    parameters = copy(default_parameters)
+    parameters['DEVICE'] = 'cuda:2'
+    parameters['ARCHITECTURE'] = maxp_do25_arch
+    parameters['L_OBJECT'] = 50
+    parameters['L_NOBJECT'] = 0.5
+    parameters['NOTES'] = 'T1_MaxP_DO.25_Obj-LossWeightUp'
+    run_experiment(exp6_name, parameters, save_results=True)
