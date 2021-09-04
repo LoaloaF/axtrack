@@ -103,13 +103,14 @@ def save_preproc_metrics(run_dir, train_data, test_data):
 
     pd.concat(samples, axis=1).to_csv(f'{run_dir}/preproc_data/preprocessed_data.csv')
 
-def save_checkpoint(model, optimizer, filename):
+def save_checkpoint(model, optimizer, lr_schedular, filename):
     print("=> Saving checkpoint")
     checkpoint = {"state_dict": model.state_dict(),
-                   "optimizer": optimizer.state_dict(),}
+                   "optimizer": optimizer.state_dict(),
+                   "lr_schedular": lr_schedular.state_dict(), }
     torch.save(checkpoint, filename)
 
-def load_checkpoint(load_model, model, optimizer, device):
+def load_checkpoint(load_model, model, optimizer, lr_schedular, device):
     print("=> Loading checkpoint...", end='')
     exp_dir = f'{OUTPUT_DIR}/runs/{load_model[0]}/'
     run_dir = [rd for rd in os.listdir(exp_dir) if load_model[1] in rd][0]
@@ -121,6 +122,8 @@ def load_checkpoint(load_model, model, optimizer, device):
     checkpoint = torch.load(file, map_location=torch.device(device))
     model.load_state_dict(checkpoint["state_dict"])
     optimizer.load_state_dict(checkpoint["optimizer"])
+    if 'lr_schedular' in checkpoint:
+        lr_schedular.load_state_dict(checkpoint["lr_schedular"])
     print(f' - {file} - Done.')
 
 def print_torchvision_models(initial_in_channels, tilesize):

@@ -10,7 +10,8 @@ from model import YOLO_AXTrack
 from loss import YOLO_AXTrack_loss
 from dataset_class import Timelapse
 from utils import load_checkpoint
-from model_out_utils import compute_TP_FP_FN, compute_prc_rcl_F1, non_max_supress_pred
+
+from AxonDetections import AxonDetections
 
 def setup_data(P):
     # training data
@@ -76,10 +77,10 @@ def setup_model(P):
     optimizer = optim.Adam(model.parameters(), lr=P['LR'], weight_decay=P['WEIGHT_DECAY'])
 
     if P['LR_DECAYRATE']:
-        sqrt_LR_decay = lambda E: np.e**((-1/P['LR_DECAYRATE']) * np.sqrt(E)) 
-        lr_scheduler = optim.lr_scheduler.LambdaLR(optimizer, sqrt_LR_decay)
+        decay = lambda E: np.e**((-1/P['LR_DECAYRATE']) * np.sqrt(E)) 
     else:
-        lr_scheduler = None
+        decay = lambda E: 1
+    lr_scheduler = optim.lr_scheduler.LambdaLR(optimizer, decay)
     
     loss_fn = YOLO_AXTrack_loss(Sy = P['SX'], 
                                 Sx = P['SX'],
@@ -89,7 +90,7 @@ def setup_model(P):
                                 lambda_coord_anchor = P['L_COORD_ANCHOR'],)
     
     if P['LOAD_MODEL']:
-        load_checkpoint(P['LOAD_MODEL'], model, optimizer, P['DEVICE'])
+        load_checkpoint(P['LOAD_MODEL'], model, optimizer, lr_scheduler,  P['DEVICE'])
     return model, loss_fn, optimizer, lr_scheduler
 
 def setup_data_loaders(P, dataset):
@@ -102,12 +103,16 @@ def setup_data_loaders(P, dataset):
         drop_last = P['DROP_LAST'],)
     return data_loader
 
-def run_epoch(data_loader, model, loss_fn, device, epoch, which_dataset, optimizer):
+def run_epoch(dataset, model, loss_fn, params, epoch, which_dataset, optimizer):
+    device = params['DEVICE']
+    nms_min_dist = 18
+    data_loader = setup_data_loaders(params, dataset)
+    print(f'LOSS: ', end='')
+    
     epoch_loss = []
     confus_mtrx = np.zeros((3, 51))
-    print(f'LOSS: ', end='')
-    for batch, (x,y) in enumerate(data_loader):
-        X, target = x.to(device), y.to(device)
+    for batch, (X, target) in enumerate(data_loader):
+        X, target = X.to(device), target.to(device)
             
         pred = model(X)
         loss, loss_components = loss_fn(pred, target)
@@ -121,14 +126,13 @@ def run_epoch(data_loader, model, loss_fn, device, epoch, which_dataset, optimiz
             loss.backward()
             optimizer.step()
         
-        pred_nms = non_max_supress_pred(pred.detach(), model.Sy, model.Sx, model.tilesize, device)
-        confus_mtrx += compute_TP_FP_FN(pred_nms, target)
+        ads = AxonDetections(model, dataset, params, None, False, False, False)
+        pred_nms = ads.non_max_supress_yolo_det(pred.detach())
+        confus_mtrx += ads.compute_TP_FP_FN(pred_nms, target)
 
-    epoch_metrics = compute_prc_rcl_F1(confus_mtrx, epoch, which_dataset)
     epoch_loss = pd.concat(epoch_loss, axis=1)
     epoch_loss.columns.names = ('epoch', 'dataset', 'batch')
-    print((f'\n++++ Mean: {epoch_loss.loc["total_summed_loss"].mean():.3f}, F1'
-           f' {epoch_metrics.loc["F1"].max():.3f} ++++'))
+    epoch_metrics = ads.compute_prc_rcl_F1(confus_mtrx, epoch, which_dataset)
     return epoch_loss, epoch_metrics
 
 def prepare_data(device, dataset):
@@ -143,13 +147,13 @@ def prepare_data(device, dataset):
 # this iterates over the entire dataset once
 def one_epoch(dataset, model, loss_fn, params, epoch, optimizer=None, lr_scheduler=None):
     which_dataset = 'train' if optimizer is not None else 'test'
-    
     while prepare_data(params['DEVICE'], dataset) < 1:
         print('Bad data augmentation -- Doing it again --')
-    data_loader = setup_data_loaders(params, dataset)
     
-    epoch_loss, epoch_metrics = run_epoch(data_loader, model, loss_fn, params['DEVICE'], epoch, 
-                                          which_dataset, optimizer)
+    epoch_loss, epoch_metrics = run_epoch(dataset, model, loss_fn, params,
+                                          epoch, which_dataset, optimizer)
+    print((f'\n++++ Mean: {epoch_loss.loc["total_summed_loss"].mean():.3f}, F1'
+           f' {epoch_metrics.loc["F1"].max():.3f} ++++'))
 
     if which_dataset == 'train' and lr_scheduler:
         lr_scheduler.step()

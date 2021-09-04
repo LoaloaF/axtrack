@@ -12,6 +12,8 @@ from matplotlib import animation
 from model_out_utils import Y2pandas_anchors, non_max_supression_pandas, non_max_supress_pred
 from plotting import draw_frame
 
+from AxonDetections import AxonDetections
+
 class CNNBlock(nn.Module):
     def __init__(self, in_channels, out_channels, activation_function, **kwargs):
         super(CNNBlock, self).__init__()
@@ -195,20 +197,21 @@ class YOLO_AXTrack(nn.Module):
         # use the model to detect axons, output here follows target.shape
         pred_target = self.detect_axons(X)
         if nms:
-            pred_target = non_max_supress_pred(pred_target, self.Sx, self.Sy, self.tilesize, device)
+            pred_target = non_max_supress_pred(pred_target, self.Sx, self.Sy, self.tilesize, device, 18)
 
         # convert the detected anchors in YOLO format to normal ones
         pred_dets = Y2pandas_anchors(pred_target, self.Sx, self.Sy, 
                                      self.tilesize, device, anchor_conf_thr) 
         # non max supression on stichted data supressing detections of neighboring tiles
-        pred_dets = [non_max_supression_pandas(pred_det) for pred_det in pred_dets]
+        pred_dets = [non_max_supression_pandas(pred_det, 18) for pred_det in pred_dets]
         
         if target is not None:
             true_dets = Y2pandas_anchors(target.to(device), self.Sx, self.Sy, 
                                          self.tilesize, device, 1) 
 
         # stitch the prediction from tile format back to frame format
-        X_stch, pred_dets_stch, true_dets_stch = data.stitch_tiles(X, pred_dets, true_dets)
+        pred_dets_stch, X_stch = data.stitch_tiles(pred_dets, X)
+        true_dets_stch, _ = data.stitch_tiles(true_dets, X)
         # pred_dets_stch = non_max_supression_pandas(pred_dets_stch)
         if assign_ids:
             run_dir, data_name = assign_ids
@@ -225,8 +228,17 @@ class YOLO_AXTrack(nn.Module):
                     **kwargs):
         print('Drawing [eval] model output...', end='')
         device, anchor_conf_thr = params['DEVICE'], params['BBOX_THRESHOLD']
+
+
+        axon_detections = AxonDetections(self, data, params, dest_dir+'/../.')
+
+        axon_detections.detect_dataset()
+
+
+
         data.construct_tiles(device, force_no_transformation=True)
         n_tiles = data.X_tiled.shape[1]
+
         if animated:
             anim_frames = []
             animated = plt.subplots(1, figsize=(data.sizex/350, data.sizey/350), 
@@ -243,9 +255,11 @@ class YOLO_AXTrack(nn.Module):
             out = self.get_frame_detections(data, t, device, anchor_conf_thr, 
                                             assign_ids=assign_ids)
             X,X_stch, pred_dets,pred_dets_stch, true_dets,true_dets_stch = out
+            print(pred_dets_stch)
+            print(axon_detections.detections[t])
 
             # draw stitched frame
-            frame_artists = draw_frame(X_stch, true_dets_stch, pred_dets_stch,
+            frame_artists = draw_frame(X_stch, true_dets_stch, axon_detections.detections[t],
                                        animation=animated, dest_dir=dest_dir, 
                                        draw_grid=self.tilesize, fname=lbl, 
                                        show=show, **kwargs)

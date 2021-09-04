@@ -58,6 +58,9 @@ def get_default_parameters():
     # GROUPING = False
     ACTIVATION_FUNCTION = nn.LeakyReLU(0.1)
 
+    # ID stuff
+    NON_MAX_SUPRESSION_DIST = 18
+
     WEIGHT_DECAY = 5e-4
     BATCH_SIZE = 32
     EPOCHS = 3001

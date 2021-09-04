@@ -1,6 +1,8 @@
 import os
 from copy import copy
 
+from AxonDetections import AxonDetections
+
 import numpy as np
 import pandas as pd
 import torch
@@ -13,6 +15,7 @@ from exp_parameters import (
     load_parameters, 
     params2text, 
     params2img,
+    to_device_specifc_params,
     )
 from core_functionality import (
     setup_data, 
@@ -37,6 +40,7 @@ from config import OUTPUT_DIR, SPACER
 
 def run_experiment(exp_name, parameters, save_results=True):
     set_seed(parameters['SEED'])
+    # torch.multiprocessing.set_start_method('spawn')
 
     # Setup saving and parameter checking 
     print(f'Running Experiment: {exp_name}', flush=True)
@@ -82,13 +86,11 @@ def run_experiment(exp_name, parameters, save_results=True):
             epoch_log.to_pickle(f'{METRICS_DIR}/E{epoch:0>4}.pkl')
             metrics_log.to_pickle(f'{METRICS_DIR}/E{epoch:0>4}_metrics.pkl')
             # save the model every 100 Epochs
-            # if epoch and not (epoch % 500):
-            if not (epoch % 500):
-                save_checkpoint(model, optimizer, filename=f'{MODELS_DIR}/E{epoch:0>4}.pth')
+            if epoch and not (epoch % 500):
+                save_checkpoint(model, optimizer, lr_scheduler, filename=f'{MODELS_DIR}/E{epoch:0>4}.pth')
             
             # check the model predictions every 20 Epochs
-            # if epoch and epoch%500 == 0:
-            if epoch%500 == 0:
+            if epoch and epoch%500 == 0:
                 epoch_dir = f'{METRICS_DIR}/{epoch:0>4}_results/'
                 os.makedirs(epoch_dir)
                 model.predict_all(train_data, parameters, dest_dir=epoch_dir)
@@ -113,26 +115,36 @@ if __name__ == '__main__':
     exp3_name = 'v1Model_exp3_newcnn'
     exp4_name = 'v1Model_exp4_NewCNN'
     exp5_name = 'v1Model_exp5_RefactIDFocus'
+    exp6_name = 'v1Model_exp6_AxonDetClass'
     
     # from utils import print_models
     # print_models()
     # exit()
 
-    # clean_rundirs(exp5_name, keep_runs=[17,18,19,20], keep_only_latest_model=False)
+    # clean_rundirs(exp5_name, keep_runs=[17,18,19,20,32], keep_only_latest_model=True)
+    # clean_rundirs(exp5_name, delete_runs=31, keep_only_latest_model=False)
     
     # evaluate_precision_recall([(exp5_name, 'run18', 3000),(exp5_name, 'run28', 0)])
     # evaluate_preprocssing(exp5_name, 'run17')
     # evaluate_precision_recall([(exp5_name, 'run17', 2985), (exp5_name, 'run18', 2985), (exp5_name, 'run19', 2985), (exp5_name, 'run20', 2985), 
-    # evaluate_training([(exp5_name, 'run18')], recreate=False)
-    # evaluate_precision_recall([(exp5_name, 'run26', 15), (exp5_name, 'run27', 15)])
-    # evaluate_model(exp5_name, 'run22', show=True)
+    # evaluate_training([(exp5_name, 'run32')], recreate=False)
+    # evaluate_precision_recall([(exp5_name, 'run32', 485)])
+    evaluate_model(exp5_name, 'run32', show=True, color_det1_ids=True, color_det2_ids=False)
 
     parameters = copy(default_parameters)
+    parameters['LR_DECAYRATE'] = None
+    run_experiment(exp6_name, parameters, save_results=True)
     # parameters['CACHE'] = OUTPUT_DIR
     # parameters['FROM_CACHE'] = None
-    parameters['USE_TRANSFORMS'] = []
-    parameters['NOTES'] = 'implmenting FP1 metrics'
-    # run_experiment(exp5_name, parameters, save_results=False)
+    # parameters['DEVICE'] = 'cuda:0'
+    # parameters['USE_TRANSFORMS'] = []
+    parameters = load_parameters(exp5_name, 'run32')
+    parameters = to_device_specifc_params(parameters, get_default_parameters())
+    parameters['NON_MAX_SUPRESSION_DIST'] = 18
+    parameters['EPOCHS'] = 2
+    parameters['LOAD_MODEL'] = [exp5_name, 'run32', 500]
+    parameters['NOTES'] = 'continue 32, LR schedular with loading'
+    run_experiment(exp6_name, parameters, save_results=True)
 
     maxp_arch = [
         #kernelsize, out_channels, stride, groups
@@ -213,7 +225,7 @@ if __name__ == '__main__':
     parameters['EPOCHS'] = 4501
     parameters['ARCHITECTURE'] = dropout25_arch
     parameters['NOTES'] = 'T3_19-again-dropout0.25, NMS18'
-    run_experiment(exp5_name, parameters, save_results=True)
+    # run_experiment(exp5_name, parameters, save_results=True)
     
     # parameters = copy(default_parameters)
     # parameters['DEVICE'] = 'cuda:4'

@@ -88,7 +88,7 @@ def compute_prc_rcl_F1(confus_mtrx, epoch=None, which_data=None):
     else:
         return np.array([prc, rcl, f1])
 
-def non_max_supression_pandas(pred, min_dist=18):
+def non_max_supression_pandas(pred, min_dist):
     # order by confidence
     pred = pred.sort_values('conf', ascending=False)
     i = 0
@@ -106,7 +106,7 @@ def non_max_supression_pandas(pred, min_dist=18):
         i += 1
     return pred
     
-def non_max_supress_pred(pred, Sx, Sy, tilesize, device, min_dist=18):
+def non_max_supress_pred(pred, Sx, Sy, tilesize, device, min_dist):
     batchs = pred.shape[0]
     # take the raw flat model output and reshape to standard yolo target shape
     pred = pred.reshape((batchs, Sx, Sy, 3))

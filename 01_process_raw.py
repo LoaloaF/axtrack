@@ -33,7 +33,7 @@ def start_java_vm():
     logLevel = javabridge.get_static_field("ch/qos/logback/classic/Level",myloglevel, "Lch/qos/logback/classic/Level;")
     javabridge.call(rootLogger, "setLevel", "(Lch/qos/logback/classic/Level;)V", logLevel)
 
-def oir_to_tiffstack(oir_file, channel, sizey, sizex, sizet, area):
+def oir_to_tiffstack(oir_file, channel, sizey, sizex, sizet, structure_idx):
     with bioformats.ImageReader(oir_file) as reader:
         # ffmpeg can't handle odd pixel numbers...
         if sizex %2:
@@ -54,32 +54,39 @@ def oir_to_tiffstack(oir_file, channel, sizey, sizex, sizet, area):
         if sizey > sizex:
             sizex, sizey = sizey, sizex
             stacked_img = np.swapaxes(stacked_img, 1, 2)
-        if hflip_G1_G4 and int(area[1:]) <= 4:
+        
+        if hflip and (structure_idx%8) <= 4:
             stacked_img = np.flip(stacked_img, axis=1).copy()
         return stacked_img
 
 def process_dir(all_files, inp_dir, outp_dir, notes):
+    designgroup_order = [1, 3, 2, 4, 5]
     dt_idx = inp_dir.rfind('dt')
     dt = float(inp_dir[dt_idx+2:inp_dir.find('_', dt_idx)])
     print(f'Found {len(all_files)} areas - dt={dt}')
     for oir_file in all_files:
-        print(oir_file)
         area_index = oir_file.find('_G0')+1
         area = oir_file[area_index:area_index+4]
+        
+        structure_idx = int(area[1:])
+        designgroup_idx = (structure_idx-1) // 8
+        which_designgroup = designgroup_order[designgroup_idx] -1
+        design_idx = (structure_idx-1) % 4
+        design = f'D{which_designgroup*4 + design_idx +1:0>2}'
 
-        print(f'Processing {area} now...')
+        print(f'Processing {area} now - {design}...')
         # metadata handling
         sizey, sizex, sizet, channel_dict, summary, meta_dict = get_metadata(oir_file, notes, dt)
-        summary = f'Area {area}, ' + summary
-        with open(f"{outp_dir}/{area}_meatadata.pkl", "wb") as pkl_file:
+        summary = f'Area {area}, {design} ' + summary
+        with open(f"{outp_dir}/{design}_{area}_meatadata.pkl", "wb") as pkl_file:
             pickle.dump(meta_dict, pkl_file)
             print(f'{area}_meatadata.pkl saved.\n')
 
         for channel_color, channel in channel_dict.items():
-            fname = f'{area}_{channel_color}_compr.{compress}.tif'
+            fname = f'{design}_{area}_{channel_color}_compr.{compress}.tif'
             print(f'\tReading in {channel_color} channel...\n{channel["summary"]}')
             stacked_img = oir_to_tiffstack(oir_file, channel['id'], sizey, sizex, 
-                                        sizet if channel_color != 'Transmission' else 1, area)
+                                        sizet if channel_color != 'Transmission' else 1, structure_idx)
 
             # save single channels
             if save_tifs:
@@ -144,10 +151,16 @@ inp_dir = []
 outp_dir = []
 all_files = []
 
-notes.append("tl12, 1.5h incubation-2hinc, Exp7,\ndt=42:42min")
-inp_dir.append('/run/media/loaloa/lbb_ssd/timelapse12_Exp7/Exp7_dt42.42_Cycle/')
-outp_dir.append('/run/media/loaloa/lbb_ssd/timelapse12_processed/')
+
+notes.append("tl13, undergrowth_24h-52h-inc, Exp9,\ndt=31:00min")
+inp_dir.append('/run/media/loaloa/lbb_ssd/timelapse13_Exp9/Exp09_dt31_infect_undergrowth_24h-52h-inc_Cycle/')
+outp_dir.append('/run/media/loaloa/lbb_ssd/timelapse13_processed/')
 all_files.append(sorted(glob(inp_dir[-1]+'Stitch*_G0*.oir')))
+
+# notes.append("tl12, 1.5h incubation-2hinc, Exp7,\ndt=42:42min")
+# inp_dir.append('/run/media/loaloa/lbb_ssd/timelapse12_Exp7/Exp7_dt42.42_Cycle/')
+# outp_dir.append('/run/media/loaloa/lbb_ssd/timelapse12_processed/')
+# all_files.append(sorted(glob(inp_dir[-1]+'Stitch*_G0*.oir')))
 
 # notes.append("tl10.1, oldCtx_20hinc_5hinc, Exp5.1,")
 # inp_dir.append('/run/media/loaloa/lbb_ssd/timelapse10.1_Exp5.1/Exp5.1_dt12_1to10GFOvir_20+5hinc_Cycle/')
@@ -165,11 +178,15 @@ all_files.append(sorted(glob(inp_dir[-1]+'Stitch*_G0*.oir')))
 # all_files.append(sorted(glob(inp_dir[-1]+'Stitch*_G0*.oir')))
 
 save_tifs = True
-hflip_G1_G4 = False
+hflip = True
 compress = 'deflate'
 make_video = True
 annotate_video = True
 textsize = 1.3
+
+{
+    'G001'
+}
 
 def main():
     start_java_vm()

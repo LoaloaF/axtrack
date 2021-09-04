@@ -21,9 +21,11 @@ from plotting import (
     plot_preprocessed_input_data, 
     plot_training_process,
     plot_prc_rcl,
+    draw_all,
+    plot_axon_IDs,
     )
+from AxonDetections import AxonDetections
 from exp_parameters import load_parameters, params2text
-from id_association import assign_detections_ids
 from config import OUTPUT_DIR, SPACER
 
 def setup_evaluation(exp_name, run, print_params=True):
@@ -50,7 +52,7 @@ def evaluate_preprocssing(exp_name, run, show=True):
     plot_preprocessed_input_data(preproc_file, dest_dir=RUN_DIR, show=show)
     print('Done.')
 
-def evaluate_training(exp_run_ids, recreate=False, use_prepend_ifavail=True):
+def evaluate_training(exp_run_ids, recreate=False, use_prepend_ifavail=True, show=True):
     # aggregate the loss, metics and params for each of the passed exp-run combs
     training = {}
     for i, (exp_name, run) in enumerate(exp_run_ids):
@@ -73,24 +75,18 @@ def evaluate_training(exp_run_ids, recreate=False, use_prepend_ifavail=True):
         metrics_file_prd = metrics_file.replace('.pkl', '_prepend.pkl')
         if use_prepend_ifavail and os.path.exists(loss_file_prd) and os.path.exists(metrics_file_prd):
             loss_file, metrics_file = loss_file_prd, metrics_file_prd
-        if os.path.exists(loss_file) and not recreate:
-            show = True
         # if files files don't exists yet, make them here 
-        else:
+        if not os.path.exists(loss_file) or recreate:
             loss_file = create_lossovertime_pkl(METRICS_DIR)
             metrics_file = create_metricsovertime_pkl(METRICS_DIR)
-            show = False
         training[lbl] = [loss_file, metrics_file, params]
 
     # plot the loss and metrics over epochs
     plot_training_process(training, dest_dir=dest_dir, show=show)
     print('Done. ')
     
-def evaluate_model(exp_name, run, epoch='latest', **kwargs):
+def evaluate_model(exp_name, run, epoch='latest', assign_ids=True, **kwargs):
     RUN_DIR, params = setup_evaluation(exp_name, run)
-    os.makedirs(f'{RUN_DIR}/model_out', exist_ok=True)
-    os.makedirs(f'{RUN_DIR}/astar_dists', exist_ok=True)
-
     params = to_device_specifc_params(params, get_default_parameters())
     params['LOAD_MODEL'] = [exp_name, run, epoch]
     params['DEVICE'] = 'cpu'
@@ -98,9 +94,13 @@ def evaluate_model(exp_name, run, epoch='latest', **kwargs):
     model, _, _, _ = setup_model(params)
     train_data, test_data = setup_data(params)
     for data in test_data, train_data:
-        if kwargs.get("assign_ids") and not os.path.exists(f'{RUN_DIR}/model_out/{data.name}_assigned_ids.csv'):
-            assign_detections_ids(data, model, params, RUN_DIR)
-        model.predict_all(data, params, dest_dir=f'{RUN_DIR}/model_out', **kwargs)
+        
+        axon_detections = AxonDetections(model, data, params, f'{RUN_DIR}/axon_detections')
+        
+        # fname = f'{data.name}_timepoint:---|{data.sizet}'
+        # draw_all(axon_detections, fname, dest_dir=f'{RUN_DIR}/model_out', notes=params["NOTES"], **kwargs)
+
+        plot_axon_IDs(axon_detections, dest_dir=f'{RUN_DIR}/model_out', show=False)
 
 def evaluate_precision_recall(exp_run_epoch_ids, show=True):
     metrics = {}

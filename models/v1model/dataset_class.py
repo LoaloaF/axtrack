@@ -1,5 +1,6 @@
 import os
 import pickle
+from copy import copy
 
 import numpy as np
 import pandas as pd
@@ -17,7 +18,7 @@ from torch.nn import ZeroPad2d
 from data_utils import apply_transformations, sprse_scipy2torch
 
 class Timelapse(Dataset):
-    def __init__(self, imseq_path=None, labels_csv=None, mask_path=None, timepoints=None,
+    def __init__(self, imseq_path=None, labels_csv=None, mask_path=None, timepoints=None, structure_outputchannel_coo=(550, 3000),
                 log_correct=True, standardize_framewise=False, standardize=('zscore', None), name='', use_motion_filtered='only', 
                 use_sparse=False, use_transforms = ['vflip', 'hflip', 'rot', 'translateY', 'translateX'],
                 contrast_llim=43/2**16, plot=True, pad=[0,300,0,300], Sy=12, Sx=12, tilesize=512,
@@ -31,6 +32,8 @@ class Timelapse(Dataset):
         # irrespective of cache, update these two bois
         self.use_motion_filtered = use_motion_filtered
         self.transform_configs = dict.fromkeys(use_transforms,0)
+        
+        self.structure_outputchannel_coo = structure_outputchannel_coo
 
         if not from_cache:
             # agg preprocessing steps data in this dict
@@ -51,6 +54,7 @@ class Timelapse(Dataset):
             # X: here, still a numpy array, later becomes scipy.sparse, then tensor
             # read tiff file
             self.imseq, self.mask = self._read_tiff(imseq_path, mask_path, plot)
+            self.structure_outputchannel_coo = structure_outputchannel_coo
             
             # define basic attributes of X
             self.sizet = self.imseq.shape[0]
@@ -136,7 +140,7 @@ class Timelapse(Dataset):
         ycoo, xcoo = divmod(folded_idxs_non_empty[tile_idx].item(), self.xtiles)
         return ycoo, xcoo
     
-    def get_stack(self, which, major_index):
+    def get_stack(self, which, major_index, device=None, X2drawable_img=False):
         X, target = [], []
         if which == 'image':
             n_imagetiles = self.X_tiled.shape[1]
@@ -155,8 +159,12 @@ class Timelapse(Dataset):
                 indexer = (minor_idx, major_index)
 
             x, tar = self[self.fold_idx(indexer)]
+            if X2drawable_img:
+                x = x[self.get_tcenter_idx()]
             X.append(x)
             target.append(tar)
+        if device:
+            return torch.stack(X, 0).to(device), torch.stack(target, 0).to(device)
         return torch.stack(X, 0), torch.stack(target, 0)
         
     def get_tcenter_idx(self):
@@ -484,17 +492,15 @@ class Timelapse(Dataset):
             torch.save(self.target_tiled, f'/home/loaloa/.cache/axtrack/{self.name}_target_tiled.pth')
         print('Done', flush=True) 
 
-    def stitch_tiles(self, X, Y, Y2=None):
-        from copy import copy
+    def stitch_tiles(self, pd_tiled_det, img_tiled=None):
         ts = self.tilesize
         # get the yx coordinates of the tiles  
         tile_coos = torch.tensor([self.flat_tile_idx2yx_tile_idx(tile) 
-                                  for tile in range(X.shape[0])])
+                                  for tile in range(len(pd_tiled_det))])
 
         # make an empty img, then iter over tile grid 
-        X_stitched = torch.zeros((self.size_colchnls, self.sizey, self.sizex))
-        Y_stitched = [y.copy() for y in Y]
-        Y2_stitched = [y.copy() for y in Y2] if Y2 is not None else None
+        img = torch.zeros((self.size_colchnls, self.sizey, self.sizex)) if img_tiled is not None else None
+        pd_det = [tile_det.copy() for tile_det in pd_tiled_det]
         for tile_ycoo in range(self.ytiles):
             for tile_xcoo in range(self.xtiles):
                 non_empty_tile = (tile_coos[:,0] == tile_ycoo) & (tile_coos[:,1] == tile_xcoo)
@@ -504,17 +510,13 @@ class Timelapse(Dataset):
                     # when there is a nonempty tile, place its values in img_new
                     yslice = slice(ts*tile_ycoo, ts*(tile_ycoo+1))
                     xslice = slice(ts*tile_xcoo, ts*(tile_xcoo+1))
-                    X_stitched[:, yslice, xslice] = X[flat_tile_idx, self.get_tcenter_idx()]
+                    if img is not None:
+                        img[:, yslice, xslice] = img_tiled[flat_tile_idx]
 
                     # and transform the anchor coordinates into img coordinates
-                    Y_stitched[flat_tile_idx].anchor_y += tile_ycoo*ts
-                    Y_stitched[flat_tile_idx].anchor_x += tile_xcoo*ts
+                    pd_det[flat_tile_idx].anchor_y += tile_ycoo*ts
+                    pd_det[flat_tile_idx].anchor_x += tile_xcoo*ts
                     
-                    if Y2 is not None:
-                        Y2_stitched[flat_tile_idx].anchor_y += tile_ycoo*ts
-                        Y2_stitched[flat_tile_idx].anchor_x += tile_xcoo*ts
-        Y_stitched = pd.concat(Y_stitched)
-        Y_stitched.index = [f'Axon_{i:0>3}' for i in range(len(Y_stitched))]
-        if Y2:
-            Y2_stitched = pd.concat(Y2_stitched)
-        return X_stitched, Y_stitched, Y2_stitched
+        pd_det = pd.concat(pd_det)
+        pd_det.index = [f'Axon_{i:0>3}' for i in range(len(pd_det))]
+        return pd_det, img
