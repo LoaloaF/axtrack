@@ -23,6 +23,7 @@ from plotting import (
     plot_prc_rcl,
     draw_all,
     plot_axon_IDs,
+    plot_dist_to_target,
     )
 from AxonDetections import AxonDetections
 from exp_parameters import load_parameters, params2text
@@ -93,16 +94,20 @@ def evaluate_model(exp_name, run, epoch='latest', assign_ids=False, **kwargs):
 
     model, _, _, _ = setup_model(params)
     train_data, test_data = setup_data(params)
-    for data in test_data, train_data:
+    for data in train_data, test_data:
         
-        axon_detections = AxonDetections(model, data, params, f'{RUN_DIR}/axon_detections', assign_id_at_init=assign_ids)
+        axon_detections = AxonDetections(model, data, params, f'{RUN_DIR}/axon_detections', 
+                                         assign_id_at_init=assign_ids, calc_target_dist_at_init=True)
         
         os.makedirs(f'{RUN_DIR}/model_out', exist_ok=True)
-        fname = f'{data.name}_E:{epoch}_timepoint:---|{data.sizet}'
-        draw_all(axon_detections, fname, dest_dir=f'{RUN_DIR}/model_out', notes=params["NOTES"], **kwargs)
-        break
+        
+        # fname = f'{data.name}_E:{epoch}_timepoint:---|{data.sizet}'
+        # draw_all(axon_detections, fname, dest_dir=f'{RUN_DIR}/model_out', notes=params["NOTES"], **kwargs)
 
-        plot_axon_IDs(axon_detections, dest_dir=f'{RUN_DIR}/model_out', show=False)
+        # plot_axon_IDs(axon_detections, dest_dir=f'{RUN_DIR}/model_out', show=False)
+
+        plot_dist_to_target(axon_detections, dest_dir=f'{RUN_DIR}/model_out', show=False)
+        break
 
 def evaluate_precision_recall(exp_run_epoch_ids, show=True):
     metrics = {}

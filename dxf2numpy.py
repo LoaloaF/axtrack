@@ -25,7 +25,7 @@ def convert_dxf2img(dxf_fname, img_format=default_img_format, img_res=default_im
         
         ctx = RenderContext(doc)
         ctx.set_current_layout(msp)
-        ctx.current_layout.set_colors(bg='#FFFFFF')
+        # ctx.current_layout.set_colors(bg='#FFFFFF')
         out = MatplotlibBackend(ax)
         Frontend(ctx, out).draw_layout(msp, finalize=True)
 

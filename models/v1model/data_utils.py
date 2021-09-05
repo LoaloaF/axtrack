@@ -134,7 +134,7 @@ def transform_Y(target, angle, flip_dims,  dy, dx, sizey, sizex):
 
 def apply_transformations(transform_configs, X, target, sizey, sizex, device):
     # make a transformation config: rotate, hflip, vflip translate - or not
-    transform_configs = {key: round(torch.rand(1).item(), 2) for key in transform_configs}
+    transform_configs = {key: round(torch.rand(1).item(), 3) for key in transform_configs}
     print(f'New transform config set: {transform_configs}\n'
             'Transforming data...', end='', flush=True)
 
@@ -156,7 +156,8 @@ def apply_transformations(transform_configs, X, target, sizey, sizex, device):
     # rotating parameter
     angle = None
     if transform_configs.get('rot',0) > .5:
-        angle = ((transform_configs['rot'] * 40) -20)
+        angle = ((transform_configs['rot'] * 90) -45)
+        print('angle: ', angle)
     
     # apply the transformation using paramters above, do on GPU, return on CPU
     tchunksize = 2

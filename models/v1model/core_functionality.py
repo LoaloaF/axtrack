@@ -139,7 +139,7 @@ def prepare_data(device, dataset):
     dataset.construct_tiles(device)
     ntiles = (dataset.tile_info[..., 0] >0).sum().item()
     npos_labels = dataset.tile_info[..., 1].sum().item()
-    avg_pos_rate = npos_labels/ntiles
+    avg_pos_rate = npos_labels/(ntiles+1)
     print(f' - {dataset.name} data - n_positive_labels:{npos_labels} / ntiles'
         f':{ntiles} = {avg_pos_rate:.3f} per tile - ', end='')
     return avg_pos_rate

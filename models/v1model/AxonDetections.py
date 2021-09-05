@@ -13,9 +13,6 @@ from itertools import repeat
 
 import pyastar
 
-# from model_out_utils import compute_TP_FP_FN, compute_prc_rcl_F1, Y2pandas_anchors
-# from model_out_utils import non_max_supress_pred, non_max_supression_pandas
-
 class AxonDetections():
     def __init__(self, model, dataset, parameters, directory=None, 
                  detect_at_init=True, assign_id_at_init=False, calc_target_dist_at_init=False):
@@ -52,9 +49,8 @@ class AxonDetections():
             self.all_detections = self._assign_IDs_to_detections()
         
         if calc_target_dist_at_init:
-            target_astar_paths = self._compute_dets_path_to_target(cache='from')
+            self.target_astar_paths = self._compute_dets_path_to_target(cache='to')
             dists = self._get_astar_path_distances(self.target_astar_paths)
-            print(dists)
 
 
     def __len__(self):
@@ -452,10 +448,24 @@ class AxonDetections():
                 print('caching...', end='')
                 with open(cache_fname, 'wb') as file:
                     pickle.dump(target_astar_paths, file)
-            print('Done.')
-            return target_astar_paths
+        print('Done.')
+        return target_astar_paths
 
 
+    def get_dists_to_target(self, window_size=3):
+        all_dists = self._get_astar_path_distances(self.target_astar_paths)
+        all_dists = [pd.Series(all_dists[t], index=self.detections[t].index, name=t) for t in range(len(self))]
+        all_dists = pd.concat(all_dists, axis=1)
+
+        # get the initial timepoints distance
+        init_dist = all_dists.groupby(level=0).apply(lambda row: row.dropna(axis=1).iloc[:,0])
+        # subtract that distance
+        all_dists = all_dists.apply(lambda col: col-init_dist.values)
+
+        # smooth over window_size timpoints
+        all_dists = all_dists.rolling(window_size, axis=1, center=True).mean()
+        return all_dists
+        
 
 
 

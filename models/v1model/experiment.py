@@ -120,7 +120,7 @@ def run_experiment(exp_name, parameters, save_results=True):
         print(current_progress.stack(level=1).T.round(3).tail(400).to_string())
         print(SPACER)
         print('Running mean (last 20 epochs):')
-        print(current_progress.stack(level=1).iloc[-20:].mean(1).round(3).to_frame().T.to_string())
+        print(current_progress.stack(level=1).iloc[:, -20:].mean(1).round(3).to_frame().T.to_string())
 
 
 if __name__ == '__main__':
@@ -156,7 +156,7 @@ if __name__ == '__main__':
     # evaluate_model(exp5_name, 'run34', 3500, animated=True)
     # evaluate_model(exp5_name, 'run34', 3000, animated=True)
     # evaluate_model(exp5_name, 'run34', 2000, animated=True)
-    # evaluate_model(exp5_name, 'run34', 4000 animated=True)
+    # evaluate_model(exp5_name, 'run32', 500,  show=True, assign_ids=True)
 
     # parameters['CACHE'] = OUTPUT_DIR
     # parameters['FROM_CACHE'] = None
@@ -252,12 +252,13 @@ if __name__ == '__main__':
     parameters = copy(default_parameters)
     parameters['DEVICE'] = 'cuda:1'
     parameters['ARCHITECTURE'] = maxp_do25_do25_arch
-    parameters['NOTES'] = 'T1_MaxP-DO.25-DO.25'
-    # run_experiment(exp6_name, parameters, save_results=True)
+    parameters['NOTES'] = 'T1_MaxP-DO.25-DO.25, more augm.angle'
+    run_experiment(exp6_name, parameters, save_results=True)
     
     parameters = copy(default_parameters)
     parameters['DEVICE'] = 'cuda:3'
     parameters['ARCHITECTURE'] = maxp_do25_arch_deeper
+    parameters['NUM_WORKERS'] = 1
     parameters['NOTES'] = 'T1_MaxP-DO.25-deeper'
     # run_experiment(exp6_name, parameters, save_results=True)
     
@@ -266,5 +267,6 @@ if __name__ == '__main__':
     parameters['ARCHITECTURE'] = maxp_do25_arch
     parameters['L_OBJECT'] = 50
     parameters['L_NOBJECT'] = 0.5
+    parameters['NUM_WORKERS'] = 1
     parameters['NOTES'] = 'T1_MaxP_DO.25_Obj-LossWeightUp'
-    run_experiment(exp6_name, parameters, save_results=True)
+    # run_experiment(exp6_name, parameters, save_results=True)

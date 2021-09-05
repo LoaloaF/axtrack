@@ -380,3 +380,30 @@ def plot_axon_IDs(axon_dets, dest_dir, show=False):
     if dest_dir:
         plt.savefig(f'{dest_dir}/{axon_dets.dataset.name}_id_lifetime_a{axon_dets.alpha}_b{axon_dets.beta}.png')
         
+
+def plot_dist_to_target(axon_dets, dest_dir, show=False):
+    dets = axon_dets.get_dists_to_target(window_size=1)
+    print(dets)
+
+    fig, ax = plt.subplots(figsize=(7, 4), facecolor='k',)
+    ax.set_facecolor('k')
+
+    ymin, ymax = dets.min().min()-200, dets.max().max()+200
+    xmin, xmax = -1, len(axon_dets)+1
+    ax.set_ylim(ymin, ymax)
+    ax.set_xlim(xmin, xmax)
+
+    ax.axline((0, ymin), (0, ymax), color='grey', linewidth=1)
+    ax.axline((xmin, 0), (xmax, 0), color='grey', linewidth=1)
+    ax.vlines(range(1,len(axon_dets)), ymax+10, ymax+20, color='grey', linewidth=1)
+    ax.set_ylabel('distance to outputchannel', color='white', fontsize=12)
+    ax.text(-1, 0, 'increases                  decreases', ha='center', va='center', color='white', fontsize=10, rotation=90)
+    
+    
+    ax.plot(dets.T)
+    # for t in range(len(axon_dets)):
+    #     dets[t]
+
+    plt.show()
+
+

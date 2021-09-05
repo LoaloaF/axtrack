@@ -55,7 +55,7 @@ def oir_to_tiffstack(oir_file, channel, sizey, sizex, sizet, structure_idx):
             sizex, sizey = sizey, sizex
             stacked_img = np.swapaxes(stacked_img, 1, 2)
         
-        if hflip and (structure_idx%8) <= 4:
+        if hflip and ((structure_idx-1)%8) < 4:
             stacked_img = np.flip(stacked_img, axis=1).copy()
         return stacked_img
 
