@@ -135,28 +135,28 @@ if __name__ == '__main__':
     # print_models()
     # exit()
 
-    # clean_rundirs(exp5_name, delete_runs=30, keep_only_latest_model=False)
-    # clean_rundirs(exp6_name, delete_runs=30, keep_only_latest_model=False)
+    # clean_rundirs(exp6_name, delete_runs=1, keep_only_latest_model=True)
+    # clean_rundirs(exp6_name, delete_runs=100, keep_only_latest_model=False)
     
     # evaluate_precision_recall([(exp5_name, 'run18', 3000),(exp5_name, 'run28', 0)])
     # evaluate_preprocssing(exp5_name, 'run17')
     # evaluate_precision_recall([(exp5_name, 'run17', 2985), (exp5_name, 'run18', 2985), (exp5_name, 'run19', 2985), (exp5_name, 'run20', 2985), 
-    # evaluate_training([(exp5_name, 'run35'), (exp5_name, 'run34')], recreate=False)
-    # evaluate_precision_recall([(exp5_name, 'run35', 1500),
-    #                            (exp5_name, 'run35', 2000),
-    #                            (exp5_name, 'run35', 2500),
-    #                            (exp5_name, 'run35', 3000),
-    #                            (exp5_name, 'run35', 3500),
-    #                            (exp5_name, 'run34', 2500),
+    # evaluate_training([(exp5_name, 'run35'), (exp5_name, 'run34')])
+    # evaluate_training([(exp6_name, 'run00'), (exp5_name, 'run34')])
+    # evaluate_training([(exp6_name, 'run02'), (exp6_name, 'run00')])
+    # evaluate_training([(exp6_name, 'run06'), (exp5_name, 'run34')])
+    # evaluate_training([(exp6_name, 'run12'), (exp6_name, 'run16')])
+    # evaluate_precision_recall([(exp6_name, 'run12', 3000),
+    #                            (exp6_name, 'run13', 2500),
+    #                            (exp6_name, 'run14', 2500),
+    #                            (exp6_name, 'run16', 2500),
     #                            (exp5_name, 'run34', 3000),
-    #                            (exp5_name, 'run34', 3500),
-    #                            (exp5_name, 'run34', 4000),
     # ])
     # evaluate_model(exp5_name, 'run34', 4000, animated=True)
     # evaluate_model(exp5_name, 'run34', 3500, animated=True)
     # evaluate_model(exp5_name, 'run34', 3000, animated=True)
-    # evaluate_model(exp5_name, 'run34', 2000, animated=True)
-    # evaluate_model(exp5_name, 'run32', 500,  show=True, assign_ids=True)
+    # evaluate_model(exp5_name, 'run34', 3000, assign_ids=True)
+    evaluate_model(exp6_name, 'run12', 3000,  show=True, assign_ids=True)
 
     # parameters['CACHE'] = OUTPUT_DIR
     # parameters['FROM_CACHE'] = None
@@ -170,7 +170,7 @@ if __name__ == '__main__':
     parameters['NOTES'] = 'continue 32, LR schedular with loading'
     # run_experiment(exp6_name, parameters, save_results=True)
 
-    maxp_do25_arch = [
+    maxp_do10_arch = [
         #kernelsize, out_channels, stride, groups
         [(3, 20,  2,  1),      # y-x out: 256
          (3, 40,  2,  1),      # y-x out: 128
@@ -187,18 +187,17 @@ if __name__ == '__main__':
          ],
         [('FC', 1024),
          ('activation', nn.Sigmoid()), 
-         ('dropout', 0.25),
+         ('dropout', 0.10),
          ('FC', 1024),
          ('activation', nn.Sigmoid()), 
         ]     
     ]
 
-    maxp_do25_arch_deeper = [
+    maxp_arch = [
         #kernelsize, out_channels, stride, groups
         [(3, 20,  2,  1),      # y-x out: 256
          (3, 40,  2,  1),      # y-x out: 128
          (3, 80,  1,  1),      # y-x out: 64
-         (3, 80,  1,  1),      # y-x out: 64    #new
          'M',
          (3, 80,  1,  1),      # y-x out: 64
          (3, 80,  1,  1),      # y-x out: 32
@@ -208,17 +207,14 @@ if __name__ == '__main__':
          'M',
          ],      
         [(3, 160, 1,  1),      # y-x out: 16
-         (3, 80, 2,  1),       # y-x out: 8     #new
          ],
         [('FC', 1024),
          ('activation', nn.Sigmoid()), 
-         ('dropout', 0.25),
          ('FC', 1024),
          ('activation', nn.Sigmoid()), 
         ]     
     ]
-
-    maxp_do25_do25_arch = [
+    maxp_arch_reluonly = [
         #kernelsize, out_channels, stride, groups
         [(3, 20,  2,  1),      # y-x out: 256
          (3, 40,  2,  1),      # y-x out: 128
@@ -234,39 +230,34 @@ if __name__ == '__main__':
         [(3, 160, 1,  1),      # y-x out: 16
          ],
         [('FC', 1024),
-         ('activation', nn.Sigmoid()), 
-         ('dropout', 0.25),
+         ('activation', nn.LeakyReLU()), 
          ('FC', 1024),
-         ('activation', nn.Sigmoid()), 
-         ('dropout', 0.25),
+         ('activation', nn.LeakyReLU()), 
         ]     
     ]
     
     # ========== GPU experiments ===========
     parameters = copy(default_parameters)
     parameters['DEVICE'] = 'cuda:0'
-    parameters['ARCHITECTURE'] = maxp_do25_arch
-    parameters['NOTES'] = 'T1_MaxP-DO.25'
+    parameters['ARCHITECTURE'] = maxp_arch
+    parameters['NOTES'] = 'T2_MaxP'
     # run_experiment(exp6_name, parameters, save_results=True)
     
     parameters = copy(default_parameters)
     parameters['DEVICE'] = 'cuda:1'
-    parameters['ARCHITECTURE'] = maxp_do25_do25_arch
-    parameters['NOTES'] = 'T1_MaxP-DO.25-DO.25, more augm.angle'
-    run_experiment(exp6_name, parameters, save_results=True)
-    
-    parameters = copy(default_parameters)
-    parameters['DEVICE'] = 'cuda:3'
-    parameters['ARCHITECTURE'] = maxp_do25_arch_deeper
-    parameters['NUM_WORKERS'] = 1
-    parameters['NOTES'] = 'T1_MaxP-DO.25-deeper'
+    parameters['ARCHITECTURE'] = maxp_do10_arch
+    parameters['NOTES'] = 'T2_MaxP-DO.10'
     # run_experiment(exp6_name, parameters, save_results=True)
     
     parameters = copy(default_parameters)
     parameters['DEVICE'] = 'cuda:2'
-    parameters['ARCHITECTURE'] = maxp_do25_arch
-    parameters['L_OBJECT'] = 50
-    parameters['L_NOBJECT'] = 0.5
-    parameters['NUM_WORKERS'] = 1
-    parameters['NOTES'] = 'T1_MaxP_DO.25_Obj-LossWeightUp'
+    parameters['ACTIVATION_FUNCTION'] = nn.LeakyReLU()
+    parameters['ARCHITECTURE'] = maxp_arch_reluonly
+    parameters['NOTES'] = 'T2_MaxP_LeakyReLU-only'
+    # run_experiment(exp6_name, parameters, save_results=True)
+    
+    parameters = copy(default_parameters)
+    parameters['DEVICE'] = 'cuda:3'
+    parameters['ARCHITECTURE'] = maxp_do10_arch
+    parameters['NOTES'] = 'T2_MaxP_rotAngle90-45'
     # run_experiment(exp6_name, parameters, save_results=True)

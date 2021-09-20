@@ -38,6 +38,8 @@ class AxonDetections():
         self.max_px_assoc_dist = 500
         self.alpha = 0.015
         self.beta = 3
+        self.axon_box_size = 70
+        self.max_num_misses = 2
 
         if detect_at_init:
             out = self.detect_dataset()
@@ -64,6 +66,7 @@ class AxonDetections():
         pandas_tiled_dets = []
         pandas_image_dets = []
         detections = []
+        imgs = []
         for t in range(len(self)):
             print(f'detecting {t}', end='...')
             # get a stack of tiles that makes up a frame
@@ -80,7 +83,7 @@ class AxonDetections():
             pandas_tiled_det = self._yolo_Y2pandas_det(yolo_det_nms)
             
             # stitch the list of pandas tiles to one pd.DataFrame
-            pandas_image_det, _ = self.dataset.stitch_tiles(pandas_tiled_det)
+            pandas_image_det, img = self.dataset.stitch_tiles(pandas_tiled_det, X)
 
             # set conf of strongly overlapping detections to 0
             pandas_image_det_nms = self._non_max_supression_pandas(pandas_image_det)
@@ -91,6 +94,10 @@ class AxonDetections():
             pandas_tiled_dets.append(pandas_tiled_det)
             pandas_image_dets.append(pandas_image_det)
             detections.append(pandas_image_det_nms)
+            
+            imgs.append(img.numpy())
+        pickle.dump(imgs, open('libmot/axon_test_imgs.pkl', 'wb'))
+
         return yolo_targets, yolo_dets, pandas_tiled_dets, pandas_image_dets, detections
 
     def update_conf_thr_to_best_F1(self):
@@ -314,30 +321,46 @@ class AxonDetections():
 
 
     def _get_astar_path_distances(self, astar_paths):
-        astar_dists = []
-        for path_list in astar_paths:
+        def rec_get_distance(path_list):
+            if isinstance(path_list, list):
+                # unpack the next depth level
+                dists_list = [rec_get_distance(el) for el in path_list]
+            else:
+                # path_list fully unpacked, elements are either None or scipy.coo
+                dist = self.max_px_assoc_dist if path_list is None else path_list.getnnz()
+                # built up nested list of distances
+                return dist
+            # final exit
+            return dists_list
+        dists_list = rec_get_distance(astar_paths)
+        return dists_list
 
-            as_dists = []
-            for path in path_list:
-                if isinstance(path, list):
-                    dists = [p.getnnz() if p is not None else self.max_px_assoc_dist 
-                             for p in path]
-                else:
-                    dists = path.getnnz()
-                as_dists.append(dists)
-            astar_dists.append(np.array(as_dists))
-        return astar_dists
+        # for path_list in astar_paths:
+
+        #     as_dists = []
+        #     for path in path_list:
+        #         if isinstance(path, list):
+        #             dists = [p.getnnz() if p is not None else self.max_px_assoc_dist 
+        #                      for p in path]
+        #         else:
+        #             dists = path.getnnz()
+        #         as_dists.append(dists)
+        #     astar_dists.append(np.array(as_dists))
+        # return astar_dists
         
-        for t in range(len(self)-1):
-            t1t0_paths = self.dets_astar_paths[t]
+        # for t in range(len(self)-1):
+        #     t1t0_paths = self.dets_astar_paths[t]
 
-            t1t0_dists = []
-            for t1_idx in range(len(t1t0_paths)):
-                t0_dists = [t0_path.getnnz() if t0_path is not None else self.max_px_assoc_dist 
-                            for t0_path in t1t0_paths[t1_idx]]
-                t1t0_dists.append(t0_dists)
-            astar_dists.append(np.array(t1t0_dists))
-        return astar_dists
+        #     t1t0_dists = []
+        #     for t1_idx in range(len(t1t0_paths)):
+        #         t0_dists = [t0_path.getnnz() if t0_path is not None else self.max_px_assoc_dist 
+        #                     for t0_path in t1t0_paths[t1_idx]]
+        #         t1t0_dists.append(t0_dists)
+        #     astar_dists.append(np.array(t1t0_dists))
+        # return astar_dists
+
+
+
 
     def _compute_astar_path(self, source, target, weights, return_dist=True):
         path_coo = pyastar.astar_path(weights, source, target)
@@ -348,7 +371,7 @@ class AxonDetections():
         return path
 
     def _get_path_between_dets(self, t1_det, t0_det, weights):
-        t1id, t1y, t1x = t1_det 
+        t1id, t1y, t1x = t1_det
         t0id, t0y, t0x = t0_det
         
         # compute euclidean distance 
@@ -368,15 +391,15 @@ class AxonDetections():
             with open(cache_fname, 'rb') as file:
                 dets_astar_paths = pickle.load(file)
 
-            astar_dists = self._get_astar_path_distances(dets_astar_paths)
             
-            # ensure consistency
-            correct_n_tpoints = len(astar_dists) == len(self)-1
-            n_dets = [dists.shape[0] for dists in astar_dists]
-            correct_n_dets = n_dets == [det.shape[0] for det in self.detections][1:]
-            if not correct_n_tpoints or not correct_n_dets:
-                print('Cached A* paths file doesn\'t match self.detections.')
-                exit(1)
+            # astar_dists = self._get_astar_path_distances(dets_astar_paths)
+            # # ensure consistency
+            # correct_n_tpoints = len(astar_dists) == len(self)-1
+            # n_dets = [dists.shape[0] for dists in astar_dists]
+            # correct_n_dets = n_dets == [det.shape[0] for det in self.detections][1:]
+            # if not correct_n_tpoints or not correct_n_dets:
+            #     print('Cached A* paths file doesn\'t match self.detections.')
+            #     exit(1)
 
         else:
             print('Computing A* detection paths between detections...', end='')
@@ -384,29 +407,42 @@ class AxonDetections():
             weights = np.where(self.dataset.mask==1, 1, 2**16).astype(np.float32)
 
             dets_astar_paths = []
-            for t in range(len(self)-1):
-                lbl = f'{self.dataset.name}_t1:{t+1:0>3}-t0:{t:0>3}'
+            for t in range(len(self)):
+                lbl = f'{self.dataset.name}_t:{t:0>3}'
+                print()
+                print()
                 print(lbl, end='')
-                print(self.detections)
-                t1_dets = self.detections[t+1]#.copy()
-                t0_dets = self.detections[t]#.copy()
-
-                # get the current ids (placeholders)
-                t1_ids = [int(idx[-3:]) for idx in t1_dets.index]
-                t0_ids = [int(idx[-3:]) for idx in t0_dets.index]
+                print()
                 
-                # iterate t1_detections, compute its distance to all detections in t0_dets
-                astar_paths = []
-                t0_dets = np.stack([t0_ids, t0_dets.anchor_y, t0_dets.anchor_x], -1)
-                for i, t1_det in enumerate(np.stack([t1_ids, t1_dets.anchor_y, t1_dets.anchor_x], -1)):
-                    print(f'{i}/{len(t1_dets)}', end='...')
+                t_dets = self.detections[t]
+                # get the current ids (placeholders)
+                t_ids = [int(idx[-3:]) for idx in t_dets.index]
+                t_dets = np.stack([t_ids, t_dets.anchor_y, t_dets.anchor_x], -1)
+                
+                t_astar_paths = []
+                # predecessor timestamps
+                for t_bef in range(t-1, t-(self.max_num_misses+1), -1):
 
-                    with ThreadPoolExecutor(self.num_workers) as executer:
-                        args = repeat(t1_det), t0_dets, repeat(weights)
-                        as_paths = executer.map(self._get_path_between_dets, *args)
-                    astar_paths.append([p for p in as_paths])
-                dets_astar_paths.append(astar_paths)
+                    print('t_bef: ', t_bef)
+                    if t_bef < 0:
+                        continue
+                    
+                    t_bef_dets = self.detections[t_bef]
+                    t_bef_ids = [int(idx[-3:]) for idx in t_bef_dets.index]
+                    t_bef_dets = np.stack([t_bef_ids, t_bef_dets.anchor_y, t_bef_dets.anchor_x], -1)
 
+                    # iterate t1_detections, compute its distance to all detections in t0_dets
+                    astar_paths = []
+                    for i, t_bef_det in enumerate(t_bef_dets):
+                        print(f'{i}/{len(t_bef_dets)}', end='...')
+
+                        with ThreadPoolExecutor(self.num_workers) as executer:
+                            args = repeat(t_bef_det), t_dets, repeat(weights)
+                            as_paths = executer.map(self._get_path_between_dets, *args)
+                        astar_paths.append([p for p in as_paths])
+                    t_astar_paths.append(astar_paths)
+                dets_astar_paths.append(t_astar_paths)
+                
             if cache == 'to':
                 print('caching...', end='')
                 with open(cache_fname, 'wb') as file:
@@ -421,14 +457,14 @@ class AxonDetections():
             with open(cache_fname, 'rb') as file:
                 target_astar_paths = pickle.load(file)
             
-            astar_dists = self._get_astar_path_distances(target_astar_paths )
-            # ensure consistency
-            correct_n_tpoints = len(astar_dists) == len(self)
-            n_dets = [dists.shape[0] for dists in astar_dists]
-            correct_n_dets = n_dets == [det.shape[0] for det in self.detections]
-            if not correct_n_tpoints or not correct_n_dets:
-                print('Cached A* target paths file doesn\'t match self.detections.')
-                exit(1)
+            # astar_dists = self._get_astar_path_distances(target_astar_paths )
+            # # ensure consistency
+            # correct_n_tpoints = len(astar_dists) == len(self)
+            # n_dets = [dists.shape[0] for dists in astar_dists]
+            # correct_n_dets = n_dets == [det.shape[0] for det in self.detections]
+            # if not correct_n_tpoints or not correct_n_dets:
+            #     print('Cached A* target paths file doesn\'t match self.detections.')
+            #     exit(1)
         else:
             print('Computing A* paths to target...', end='')
             weights = np.where(self.dataset.mask, 1, 2**16).astype(np.float32)
@@ -466,11 +502,25 @@ class AxonDetections():
         all_dists = all_dists.rolling(window_size, axis=1, center=True).mean()
         return all_dists
         
+    def get_dets_in_libmot_format(self):
+        libmot_dets = []
+        for t in range(len(self)):
+            conf, x, y = self.detections[t].values.T
+            x_topleft = x-self.axon_box_size//2
+            y_topleft = y-self.axon_box_size//2
+            frame_id = np.full(conf.shape, t)
+            empty_id = np.full(conf.shape, -1)
+            boxs = np.full(conf.shape, self.axon_box_size)
 
+            libmot_dets.append(np.stack([frame_id, empty_id, x_topleft, y_topleft, 
+                                         boxs, boxs, conf]).T)
 
+        libmot_dets = np.concatenate(libmot_dets)
 
-
-
+        np.save('libmot/axon_test_dets.npy', libmot_dets)
+        libmot_dets = np.load('libmot/axon_test_dets.npy', allow_pickle=True)
+        return libmot_dets
+            
 
 
 
@@ -569,6 +619,19 @@ class AxonDetections():
 
     def _assign_IDs_to_detections(self):#, data, model, params, run_dir):
         print('Assigning axon IDs ...', end='')
+
+        astar_dists = self._get_astar_path_distances(self.dets_astar_paths)
+
+        astar_dists_libmot = {}
+        for t in range(len(astar_dists)):
+            for t_bef in range(len(astar_dists[t])):
+                dists = np.array(astar_dists[t][t_bef]).T
+                astar_dists_libmot.update({f't{t:0>3}-t_before{t-(t_bef+1):0>3}': dists})
+
+        [print(key, astar.shape) for key,astar in astar_dists_libmot.items()]
+        pickle.dump(astar_dists_libmot, open('libmot/axon_test_dists.pkl', 'wb'))
+        exit()
+
         cntd_costs = self._compute_cntn_costs_from_dists()
 
         # glue cost and detection to one dataframe (lin. assignm method below expects this)
@@ -582,6 +645,7 @@ class AxonDetections():
             cntd_cost_pd = pd.DataFrame(cntd_costs[t-1], index=det_t1.index, columns=det_t0.index)
             cntd_costs_pd_detections.append(pd.concat([det_t1, cntd_cost_pd], axis=1))
             det_t0 = det_t1
+            print(cntd_costs_pd_detections)
 
         assigned_ids = self._hungarian_ID_assignment(cntd_costs_pd_detections)
 

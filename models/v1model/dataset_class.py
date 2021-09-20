@@ -511,7 +511,7 @@ class Timelapse(Dataset):
                     yslice = slice(ts*tile_ycoo, ts*(tile_ycoo+1))
                     xslice = slice(ts*tile_xcoo, ts*(tile_xcoo+1))
                     if img is not None:
-                        img[:, yslice, xslice] = img_tiled[flat_tile_idx]
+                        img[:, yslice, xslice] = img_tiled[flat_tile_idx, self.get_tcenter_idx()]
 
                     # and transform the anchor coordinates into img coordinates
                     pd_det[flat_tile_idx].anchor_y += tile_ycoo*ts

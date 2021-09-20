@@ -8,9 +8,9 @@ from ezdxf.addons.drawing import RenderContext, Frontend
 from ezdxf.addons.drawing.matplotlib import MatplotlibBackend
 import numpy as np
 
-default_img_format = '.png'
-default_img_res = 500
-def convert_dxf2img(dxf_fname, img_format=default_img_format, img_res=default_img_res):
+
+default_img_res = 2000
+def convert_dxf2img(dxf_fname, out_fname, img_res=default_img_res):
     doc = ezdxf.readfile(dxf_fname)
     msp = doc.modelspace()
     # Recommended: audit & repair DXF document before rendering
@@ -25,7 +25,7 @@ def convert_dxf2img(dxf_fname, img_format=default_img_format, img_res=default_im
         
         ctx = RenderContext(doc)
         ctx.set_current_layout(msp)
-        # ctx.current_layout.set_colors(bg='#FFFFFF')
+        ctx.current_layout.set_colors(bg='#FFFFFF')
         out = MatplotlibBackend(ax)
         Frontend(ctx, out).draw_layout(msp, finalize=True)
 
@@ -35,8 +35,15 @@ def convert_dxf2img(dxf_fname, img_format=default_img_format, img_res=default_im
 
         print(data.shape)
 
-        plt.show()
+        plt.savefig(out_fname)
         return data
 
 if __name__ == '__main__':
-    convert_dxf2img('./../PDMS frame files/dxf exports/design17_Dorg.dxf')
+    filename = '/home/loaloa/gdrive/projects/biohybrid MEA/PDMS frame files/wafer_version2/wafer_v5_cutlinesonlyplusring.dxf'
+    convert_dxf2img(filename, filename.replace('.dxf', '.svg'))
+    
+#    import glob
+ #   inp_files = glob.glob('../PDMS frame files/wafer_version2/design_masks/timelapse_designs_mask_D*.dxf')
+  #  for i in range(len(inp_files)):
+   #     print(inp_files[i])
+    #    convert_dxf2img(inp_files[i], inp_files[i].replace('.dxf', '.svg'))

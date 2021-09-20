@@ -151,7 +151,7 @@ def plot_training_process(training_data_files, draw_detailed_loss=False,
         fig.savefig(fname, dpi=450)
 
 def draw_frame(image, det1=None, det2=None, fname='image', dest_dir=None,  lbl='',
-               animation=None, draw_grid=None, show=False, color_det1_ids=False, 
+               animation=None, boxs=70, draw_grid=None, show=False, color_det1_ids=False, 
                color_det2_ids=True, draw_astar_paths=None):
     # make sure image data has the right format: HxWxC
     im = np.array(image.detach().cpu())
@@ -200,7 +200,6 @@ def draw_frame(image, det1=None, det2=None, fname='image', dest_dir=None,  lbl='
     # draw bounding boxes
     rectangles = []
     text_artists = []
-    boxs = 70
     for i, det in enumerate((det1, det2)):
         kwargs = {'facecolor':'none', 'linewidth': 1}
         
@@ -306,7 +305,7 @@ def plot_prc_rcl(metrics_files, dest_dir=None, show=None):
 def draw_all(axon_dets, filename, dest_dir=None, notes='', show=False, filter2FP_FN=False,
              save_single_tiles=False, animated=False, **kwargs):
     if not dest_dir:
-        dest_dir = axon_detections.dir
+        dest_dir = axon_dets.dir
     if animated:
         anim_frames = []
         animated = plt.subplots(1, figsize=(axon_dets.dataset.sizex/350, 
@@ -340,7 +339,7 @@ def draw_all(axon_dets, filename, dest_dir=None, notes='', show=False, filter2FP
             for tile_i in range(n_tiles):
                 img, target = img_tiled[tile_i], tiled_true_det[tile_i],
                 draw_frame(img, axon_dets.pandas_tiled_dets[t][tile_i], target, 
-                           draw_grid=axon_dets.tilesize/axon_dets.Sx,
+                           draw_grid=axon_dets.tilesize/axon_dets.Sx, boxs=axon_dets.axon_box_size,
                            dest_dir=dest_dir, show=show, 
                            fname=f'{fname}_tile{tile_i:0>2}|{n_tiles:0>2}')
 
@@ -355,6 +354,29 @@ def draw_all(axon_dets, filename, dest_dir=None, notes='', show=False, filter2FP
                  writer=writers['imagemagick'](fps=1))
         print(f'{axon_dets.dataset.name} animation saved.')
     print(' - Done.')
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 def plot_axon_IDs(axon_dets, dest_dir, show=False):
     id_lifetime = axon_dets.all_detections.loc[:, (slice(None),'conf')].droplevel(1,1)
@@ -400,7 +422,7 @@ def plot_dist_to_target(axon_dets, dest_dir, show=False):
     ax.text(-1, 0, 'increases                  decreases', ha='center', va='center', color='white', fontsize=10, rotation=90)
     
     
-    ax.plot(dets.T)
+    ax.plot(dets.T, colo)
     # for t in range(len(axon_dets)):
     #     dets[t]
 
