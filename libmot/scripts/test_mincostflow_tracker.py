@@ -32,11 +32,17 @@ def observation_model(**kwargs):
     """
     scores = np.array(kwargs['scores']).astype(np.float)
     
+
+    scores = np.log(-0.446 * scores + 0.456)
+    return scores
     # why not like in paper where beta (uncertainty) is used instead of 
-    # confidence? Maybe because conf == 1 gives neg infinity
-    # scores = (scores-1) *-1   # conf to beta
-    # print(np.log(scores/(1-scores)))
-    return np.log(-0.446 * scores + 0.456)
+    # confidence? Maybe relaxation because conf == 1 gives neg infinity
+    scores = (scores-1) *-1   # conf to beta
+    scores = (np.log(scores/(1-scores)))
+    scores[scores>max_conf_cost] = max_conf_cost
+    scores[scores<-max_conf_cost] = -max_conf_cost
+    print(scores)
+    return scores
 
 def feature_model(**kwargs):
     """Compute each object's K features in a frame
@@ -107,57 +113,57 @@ def transition_model(**kwargs):
     predecessor_features = kwargs['predecessor_features']
     frame_idx = kwargs['frame_idx']
 
-    # A* distances component of cost
-    lbl = f't{frame_idx:0>3}-t_before{frame_idx-(time_gap):0>3}'
-    distances = ((astar_dists[lbl] /max_px_assoc_dist) -1) *-1
-    inf_dist = distances == 0
+    # # A* distances component of cost
+    # lbl = f't{frame_idx:0>3}-t_before{frame_idx-(time_gap):0>3}'
+    # distances = ((astar_dists[lbl] /max_px_assoc_dist) -1) *-1
+    # inf_dist = distances == 0
 
-    # visual similarity component of cost
-    vis_sim = []
-    for f1 in predecessor_features:
-        vis_sim_f1 = []
-        for f2 in features:
-            vis_sim_f1.append(1 - cv2.compareHist(f1, f2, cv2.HISTCMP_BHATTACHARYYA))
-        vis_sim.append(vis_sim_f1)
-    vis_sim = np.array(vis_sim).T
+    # # visual similarity component of cost
+    # vis_sim = []
+    # for f1 in predecessor_features:
+    #     vis_sim_f1 = []
+    #     for f2 in features:
+    #         vis_sim_f1.append(1 - cv2.compareHist(f1, f2, cv2.HISTCMP_BHATTACHARYYA))
+    #     vis_sim.append(vis_sim_f1)
+    # vis_sim = np.array(vis_sim).T
     
-    costs = -np.log((1-vis_sim_weight) * distances*(miss_rate ** (time_gap-1)) \
-                    + vis_sim_weight * vis_sim \
-                    + 1e-5)
-    costs[inf_dist] = np.inf
-    return costs.T
+    # costs = -np.log((1-vis_sim_weight) * distances*(miss_rate ** (time_gap-1)) \
+    #                 + vis_sim_weight * vis_sim \
+    #                 + 1e-5)
+    # costs[inf_dist] = np.inf
+    # return costs.T
 
 
-    # assert len(boxes) == len(features) and len(predecessor_boxes) == len(predecessor_features), \
-    #     "each boxes and features's length must be same"
+    assert len(boxes) == len(features) and len(predecessor_boxes) == len(predecessor_features), \
+        "each boxes and features's length must be same"
 
-    # # warp_matrix, _ = ECC(images[frame_idx - time_gap - 2], images[frame_idx - 1],
-    # #                    warp_mode=cv2.MOTION_EUCLIDEAN,
-    # #                    eps=0.01, max_iter=100, scale=0.1, align=False)
+    # warp_matrix, _ = ECC(images[frame_idx - time_gap - 2], images[frame_idx - 1],
+    #                    warp_mode=cv2.MOTION_EUCLIDEAN,
+    #                    eps=0.01, max_iter=100, scale=0.1, align=False)
 
-    # if len(boxes) == 0 or len(predecessor_boxes) == 0:
-    #     return np.zeros((0,))
-    # costs = np.zeros((len(predecessor_boxes), len(boxes)))
-    # for i, (box1, feature1) in enumerate(zip(predecessor_boxes, predecessor_features)):
-    #     """
-    #     points = np.array([box1[:2],
-    #                        box1[:2] + box1[2:] - 1])
-    #     points_aligned = AffinePoints(points.reshape(2, 2), warp_matrix)
-    #     points_aligned = points_aligned.reshape(1, 4)
-    #     boxes_aligned = np.c_[points_aligned[:, :2],
-    #                           points_aligned[:, 2:] - points_aligned[:, :2] + 1]
-    #     boxes_aligned[:, 2:] = np.clip(boxes_aligned[:, 2:], 1, np.inf)
-    #     box1 = boxes_aligned.squeeze()
-    #     """
-    #     for j, (box2, feature2) in enumerate(zip(boxes, features)):
-    #         if max(abs(box1[0] - box2[0]), abs(box1[1] - box2[1])) > max(box1[2], box1[3], box2[2], box2[3]):
-    #             costs[i, j] = np.inf
-    #         else:
-    #             costs[i, j] = -np.log(1.0 * float(iou(box1, box2)) * (miss_rate ** time_gap) \
-    #                                   + 0 * (1 - cv2.compareHist(feature1, feature2,
-    #                                                                cv2.HISTCMP_BHATTACHARYYA)) + 1e-5)
-    # print('Cost: ', costs.shape)
-    # return costs
+    if len(boxes) == 0 or len(predecessor_boxes) == 0:
+        return np.zeros((0,))
+    costs = np.zeros((len(predecessor_boxes), len(boxes)))
+    for i, (box1, feature1) in enumerate(zip(predecessor_boxes, predecessor_features)):
+        """
+        points = np.array([box1[:2],
+                           box1[:2] + box1[2:] - 1])
+        points_aligned = AffinePoints(points.reshape(2, 2), warp_matrix)
+        points_aligned = points_aligned.reshape(1, 4)
+        boxes_aligned = np.c_[points_aligned[:, :2],
+                              points_aligned[:, 2:] - points_aligned[:, :2] + 1]
+        boxes_aligned[:, 2:] = np.clip(boxes_aligned[:, 2:], 1, np.inf)
+        box1 = boxes_aligned.squeeze()
+        """
+        for j, (box2, feature2) in enumerate(zip(boxes, features)):
+            if max(abs(box1[0] - box2[0]), abs(box1[1] - box2[1])) > max(box1[2], box1[3], box2[2], box2[3]):
+                costs[i, j] = np.inf
+            else:
+                costs[i, j] = -np.log(1.0 * float(iou(box1, box2)) * (miss_rate ** time_gap) \
+                                      + 0 * (1 - cv2.compareHist(feature1, feature2,
+                                                                   cv2.HISTCMP_BHATTACHARYYA)) + 1e-5)
+    print('Cost: ', '\n', costs, costs.shape)
+    return costs
 
 
 def get_tracks():
@@ -220,20 +226,20 @@ def make_video(tracks):
     an = ArtistAnimation(fig, framewise_artists, blit=True)
     plt.show()
 
-# def evaluation(tracks):
-#     gts = pd.DataFrame(gt[:, :6], columns=['FrameId', 'Id', 'X', 'Y', 'Width', 'Height'])
-#     gts = gts.set_index(['FrameId', 'Id'])
-#     gts[['X', 'Y']] -= (1, 1)
+def evaluation(tracks):
+    gts = pd.DataFrame(gt[:, :6], columns=['FrameId', 'Id', 'X', 'Y', 'Width', 'Height'])
+    gts = gts.set_index(['FrameId', 'Id'])
+    gts[['X', 'Y']] -= (1, 1)
 
-#     box = pd.DataFrame(np.array(tracks), columns=['FrameId', 'Id', 'X', 'Y', 'Width', 'Height'])
-#     box = box.set_index(['FrameId', 'Id'])
-#     box[['X', 'Y']] -= (1, 1)
+    box = pd.DataFrame(np.array(tracks), columns=['FrameId', 'Id', 'X', 'Y', 'Width', 'Height'])
+    box = box.set_index(['FrameId', 'Id'])
+    box[['X', 'Y']] -= (1, 1)
 
-#     acc = mm.utils.compare_to_groundtruth(gts, box, 'iou', distth=0.5)
-#     mh = mm.metrics.create()
-#     summary = mh.compute(acc, metrics=mm.metrics.motchallenge_metrics, \
-#                          return_dataframe=False)
-#     return abs(summary['mota']), abs(summary['motp']), abs(summary['idf1']), abs(summary['num_switches'])
+    acc = mm.utils.compare_to_groundtruth(gts, box, 'iou', distth=0.5)
+    mh = mm.metrics.create()
+    summary = mh.compute(acc, metrics=mm.metrics.motchallenge_metrics, \
+                         return_dataframe=False)
+    return abs(summary['mota']), abs(summary['motp']), abs(summary['idf1']), abs(summary['num_switches'])
 
 
 
@@ -245,11 +251,12 @@ def make_video(tracks):
 default = {'entry_exit_cost': 5, 'thresh': 1.8,
            'miss_rate': 0.8, 'max_num_misses': 12}
 # test
-default = {'entry_exit_cost': 1, 'thresh': 1,
+default = {'entry_exit_cost': 2, 'thresh': .8,
            'miss_rate': 0.8, 'max_num_misses': 1}
 min_flow = 1
 max_flow = 120
 vis_sim_weight = 0.1
+max_conf_cost = 4.6
 track_len = 4   # excluding last number , starting from 1
 max_px_assoc_dist = 500
 
@@ -265,6 +272,9 @@ dets = dets[(dets[:, 0] <= track_len) & (dets[:, 6] > 0.7), :]
 dets[:, 0] -= 1
 # dets format: frame - ID - x_topleft, y_topleft, width, height, ratio occluded 
 dets = dets.astype(np.int32)
+dets[:,-1] = 1
+print(dets[dets[:,-1]==1])
+print(dets[dets[:,-1]==1].shape)
 
 
 
@@ -276,13 +286,13 @@ gt = gt[mask].astype(np.int32)
 
 
 
-# testing on axon detection data
-images = pickle.load(open('./axon_test_imgs.pkl', 'rb'))
-astar_dists = pickle.load(open('./axon_test_dists.pkl', 'rb'))
-dets = np.load('./axon_test_dets.npy', allow_pickle=True)
-# dets[:, 0] -= 1
-dets[:, -1][dets[:, -1]>1] = 1
-print(dets)
+# # testing on axon detection data
+# images = pickle.load(open('./axon_test_imgs.pkl', 'rb'))
+# astar_dists = pickle.load(open('./axon_test_dists.pkl', 'rb'))
+# dets = np.load('./axon_test_dets.npy', allow_pickle=True)
+# # dets[:, 0] -= 1
+# dets[:, -1][dets[:, -1]>1] = 1
+# print(dets)
 
 
 

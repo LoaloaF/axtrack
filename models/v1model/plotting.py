@@ -152,7 +152,8 @@ def plot_training_process(training_data_files, draw_detailed_loss=False,
 
 def draw_frame(image, det1=None, det2=None, fname='image', dest_dir=None,  lbl='',
                animation=None, boxs=70, draw_grid=None, show=False, color_det1_ids=False, 
-               color_det2_ids=True, draw_astar_paths=None):
+               color_det2_ids=True, det1_default_col='w', det2_default_col='w', 
+               draw_astar_paths=None):
     # make sure image data has the right format: HxWxC
     im = np.array(image.detach().cpu())
     if im.shape[0] <= 3:
@@ -201,15 +202,15 @@ def draw_frame(image, det1=None, det2=None, fname='image', dest_dir=None,  lbl='
     rectangles = []
     text_artists = []
     for i, det in enumerate((det1, det2)):
-        kwargs = {'facecolor':'none', 'linewidth': 1}
+        kwargs = {'facecolor':'none'}
         
         if det is not None:
             for axon_id, (conf, x, y) in det.iterrows():
                 conf = min(1, conf)
                 if i == 0:
-                    kwargs.update({'alpha':conf, 'linestyle':'dashed', 'edgecolor':'w'})
+                    kwargs.update({'alpha':conf, 'linestyle':'dashed', 'linewidth':'1', 'edgecolor':det1_default_col})
                 elif i == 1:
-                    kwargs.update({'alpha':conf, 'linestyle':'solid', 'edgecolor':'g'})
+                    kwargs.update({'alpha':.75, 'linestyle':'solid', 'linewidth':'1.2', 'edgecolor':det2_default_col})
                 
                 if (i==0 and color_det1_ids) or (i==1 and color_det2_ids):
                     ax_id_col = plt.cm.get_cmap('hsv', 20)(int(axon_id[-3:])%20)
@@ -303,7 +304,8 @@ def plot_prc_rcl(metrics_files, dest_dir=None, show=None):
 
 
 def draw_all(axon_dets, filename, dest_dir=None, notes='', show=False, filter2FP_FN=False,
-             save_single_tiles=False, animated=False, **kwargs):
+             save_single_tiles=False, animated=False, hide_det1=False, 
+             hide_det2=False, **kwargs):
     if not dest_dir:
         dest_dir = axon_dets.dir
     if animated:
@@ -320,13 +322,21 @@ def draw_all(axon_dets, filename, dest_dir=None, notes='', show=False, filter2FP
 
         img_tiled, img, tiled_true_det, image_true_det = axon_dets.get_det_image_and_target(t)
         det1, det2 = axon_dets.detections[t], image_true_det
+
         if filter2FP_FN:
             FP_dets, FN_dets = axon_dets.get_FP_FN_detections(t)
             det1, det2 = FP_dets, FN_dets
-
+            kwargs['det1_default_col'] = '#e34d20'  # red-ish orange for false pos
+            kwargs['det2_default_col'] = '#0cb31d'  # green for false neg
+            # ensure that id colording is set to False
+            kwargs['color_det2_ids'] = False 
+            kwargs['color_det1_ids'] = False 
+        if hide_det1:
+            det1 = None
+        if hide_det2:
+            det2 = None
         # draw stitched frame
         frame_artists = draw_frame(img, det1, det2, animation=animated, 
-        # frame_artists = draw_frame(img, det1, None, animation=animated, 
                                    dest_dir=dest_dir, draw_grid=axon_dets.tilesize, 
                                    fname=fname, lbl=lbl, show=show, **kwargs)
         if animated:
@@ -346,7 +356,7 @@ def draw_all(axon_dets, filename, dest_dir=None, notes='', show=False, filter2FP
     if animated:
         anim_frames = [anim_frames[0]*2] + anim_frames + [anim_frames[-1]*2]
         ani = ArtistAnimation(animated[0], anim_frames, interval=1000, blit=True, 
-                              repeat_delay=1000)
+                              repeat_delay=200)
         if show:
             plt.show()
         print('encoding animation...')

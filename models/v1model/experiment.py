@@ -156,10 +156,12 @@ if __name__ == '__main__':
     # evaluate_model(exp5_name, 'run34', 3500, animated=True)
     # evaluate_model(exp5_name, 'run34', 3000, animated=True)
     # evaluate_model(exp5_name, 'run34', 3000, assign_ids=True)
-    evaluate_model(exp6_name, 'run12', 3000,  show=True, assign_ids=True)
+    evaluate_model(exp6_name, 'run12', 3000,  animated=True, show=False, filter2FP_FN=True)
 
+    evaluate_ID_assignment(exp6_name, 'run12', 3000,  animated=True, show=True, assign_ids=True, color_det2_ids=False)
+    
     # parameters['CACHE'] = OUTPUT_DIR
-    # parameters['FROM_CACHE'] = None
+    # parameters['FROM_CACHE'] = Nonemn
     # parameters['DEVICE'] = 'cuda:0'
     # parameters['USE_TRANSFORMS'] = []
     parameters = load_parameters(exp5_name, 'run32')

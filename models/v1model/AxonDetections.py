@@ -1,17 +1,24 @@
 import os
 import pickle
+from copy import deepcopy
+
+from concurrent.futures import ThreadPoolExecutor
+from itertools import repeat
 
 import numpy as np
 import pandas as pd
 import torch
 
+import cv2
 from scipy import sparse
-from scipy.optimize import linear_sum_assignment
+# from scipy.optimize import linear_sum_assignment
 
-from concurrent.futures import ThreadPoolExecutor
-from itertools import repeat
+import pyastar2d
 
-import pyastar
+from libmot.data_association  import MinCostFlowTracker
+import motmetrics as mm
+
+
 
 class AxonDetections():
     def __init__(self, model, dataset, parameters, directory=None, 
@@ -66,7 +73,6 @@ class AxonDetections():
         pandas_tiled_dets = []
         pandas_image_dets = []
         detections = []
-        imgs = []
         for t in range(len(self)):
             print(f'detecting {t}', end='...')
             # get a stack of tiles that makes up a frame
@@ -83,7 +89,7 @@ class AxonDetections():
             pandas_tiled_det = self._yolo_Y2pandas_det(yolo_det_nms)
             
             # stitch the list of pandas tiles to one pd.DataFrame
-            pandas_image_det, img = self.dataset.stitch_tiles(pandas_tiled_det, X)
+            pandas_image_det, _ = self.dataset.stitch_tiles(pandas_tiled_det, reset_index=True)
 
             # set conf of strongly overlapping detections to 0
             pandas_image_det_nms = self._non_max_supression_pandas(pandas_image_det)
@@ -94,10 +100,6 @@ class AxonDetections():
             pandas_tiled_dets.append(pandas_tiled_det)
             pandas_image_dets.append(pandas_image_det)
             detections.append(pandas_image_det_nms)
-            
-            imgs.append(img.numpy())
-        pickle.dump(imgs, open('libmot/axon_test_imgs.pkl', 'wb'))
-
         return yolo_targets, yolo_dets, pandas_tiled_dets, pandas_image_dets, detections
 
     def update_conf_thr_to_best_F1(self):
@@ -109,7 +111,7 @@ class AxonDetections():
 
     def get_det_image_and_target(self, t, return_tiled=True):
         img_tiled, _ = self.dataset.get_stack('image', t, self.device, 
-                                              X2drawable_img=True)
+                                              X2drawable_img=False)
         pd_tiled_true_det = self._yolo_Y2pandas_det(self.yolo_targets[t])
         pd_image_true_det, img = self.dataset.stitch_tiles(pd_tiled_true_det, img_tiled)
         if return_tiled:
@@ -133,6 +135,8 @@ class AxonDetections():
 
         FP_dets, FN_dets = self.yolo_dets[t].clone(), self.yolo_dets[t].clone()
         conf_mask = torch.tensor((True,False,False))
+
+        # index mask (FP/TP) and column mask (just select confidence column)
         FP_dets[FP_mask, conf_mask] = 1
         FP_dets[~FP_mask, conf_mask] = 0
         FN_dets[FN_mask, conf_mask] = 1
@@ -245,7 +249,7 @@ class AxonDetections():
 
         # iterate the tiles/ batch
         for tile_i in range(batchs):
-            # index to the tile and flatten the SxSy dim (12x120) -> 144 anchors
+            # index to the tile and flatten the SxSy dim (12x12) -> 144 anchors
             tile_det = pred_tilecoo[tile_i]
             tile_det_flat = tile_det.flatten(0,1)
 
@@ -320,7 +324,7 @@ class AxonDetections():
 
 
 
-    def _get_astar_path_distances(self, astar_paths):
+    def _get_astar_path_distances(self, astar_paths, to_array=True):
         def rec_get_distance(path_list):
             if isinstance(path_list, list):
                 # unpack the next depth level
@@ -332,38 +336,22 @@ class AxonDetections():
                 return dist
             # final exit
             return dists_list
-        dists_list = rec_get_distance(astar_paths)
-        return dists_list
-
-        # for path_list in astar_paths:
-
-        #     as_dists = []
-        #     for path in path_list:
-        #         if isinstance(path, list):
-        #             dists = [p.getnnz() if p is not None else self.max_px_assoc_dist 
-        #                      for p in path]
-        #         else:
-        #             dists = path.getnnz()
-        #         as_dists.append(dists)
-        #     astar_dists.append(np.array(as_dists))
-        # return astar_dists
         
-        # for t in range(len(self)-1):
-        #     t1t0_paths = self.dets_astar_paths[t]
-
-        #     t1t0_dists = []
-        #     for t1_idx in range(len(t1t0_paths)):
-        #         t0_dists = [t0_path.getnnz() if t0_path is not None else self.max_px_assoc_dist 
-        #                     for t0_path in t1t0_paths[t1_idx]]
-        #         t1t0_dists.append(t0_dists)
-        #     astar_dists.append(np.array(t1t0_dists))
-        # return astar_dists
-
-
-
+        dictinput = isinstance(astar_paths, dict)
+        if dictinput:
+            keys, astar_paths = astar_paths.keys(), list(astar_paths.values())
+        
+        dists = rec_get_distance(astar_paths)
+        if to_array:
+            dists = [np.array(ds) for ds in dists]
+        
+        # reconstruct dict input format
+        if dictinput:
+            dists = dict(zip(keys, dists))
+        return dists
 
     def _compute_astar_path(self, source, target, weights, return_dist=True):
-        path_coo = pyastar.astar_path(weights, source, target)
+        path_coo = pyastar2d.astar_path(weights, source, target)
         ones, row, cols = np.ones(path_coo.shape[0]), path_coo[:,0], path_coo[:,1]
         path = sparse.coo_matrix((ones, (row, cols)), shape=weights.shape, dtype=bool)
         if return_dist:
@@ -387,61 +375,48 @@ class AxonDetections():
     def _compute_detections_astar_paths(self, cache='to'):
         cache_fname = f'{self.dir}/{self.dataset.name}_astar_dets_paths.pkl'
         if cache == 'from':
-            print('Getting A* cross-detection paths from cache file...', end='')
+            print('Getting A* between-detection paths from cached file...', end='')
             with open(cache_fname, 'rb') as file:
                 dets_astar_paths = pickle.load(file)
 
-            
-            # astar_dists = self._get_astar_path_distances(dets_astar_paths)
-            # # ensure consistency
-            # correct_n_tpoints = len(astar_dists) == len(self)-1
-            # n_dets = [dists.shape[0] for dists in astar_dists]
-            # correct_n_dets = n_dets == [det.shape[0] for det in self.detections][1:]
-            # if not correct_n_tpoints or not correct_n_dets:
-            #     print('Cached A* paths file doesn\'t match self.detections.')
-            #     exit(1)
-
         else:
             print('Computing A* detection paths between detections...', end='')
-            # get the cost matrix for finding the astar path
+            # make the cost matrix for finding the astar path
             weights = np.where(self.dataset.mask==1, 1, 2**16).astype(np.float32)
 
-            dets_astar_paths = []
+            dets_astar_paths = {}
             for t in range(len(self)):
                 lbl = f'{self.dataset.name}_t:{t:0>3}'
-                print()
-                print()
-                print(lbl, end='')
-                print()
+                print('\n')
                 
+                # get current detections
                 t_dets = self.detections[t]
-                # get the current ids (placeholders)
+                # ids (placeholders)
                 t_ids = [int(idx[-3:]) for idx in t_dets.index]
                 t_dets = np.stack([t_ids, t_dets.anchor_y, t_dets.anchor_x], -1)
                 
-                t_astar_paths = []
                 # predecessor timestamps
                 for t_bef in range(t-1, t-(self.max_num_misses+1), -1):
-
-                    print('t_bef: ', t_bef)
                     if t_bef < 0:
                         continue
+                    lbl_t_before = f'{lbl}-t:{t_bef:0>3}'
+                    print(lbl_t_before, end=': ')
                     
+                    # get detections of a timestep before
                     t_bef_dets = self.detections[t_bef]
                     t_bef_ids = [int(idx[-3:]) for idx in t_bef_dets.index]
                     t_bef_dets = np.stack([t_bef_ids, t_bef_dets.anchor_y, t_bef_dets.anchor_x], -1)
 
-                    # iterate t1_detections, compute its distance to all detections in t0_dets
+                    # iterate predecessor detections, compute its distance to all detections at t
                     astar_paths = []
                     for i, t_bef_det in enumerate(t_bef_dets):
-                        print(f'{i}/{len(t_bef_dets)}', end='...')
+                        print(f'{i+1}/{len(t_bef_dets)}', end='...')
 
                         with ThreadPoolExecutor(self.num_workers) as executer:
                             args = repeat(t_bef_det), t_dets, repeat(weights)
                             as_paths = executer.map(self._get_path_between_dets, *args)
                         astar_paths.append([p for p in as_paths])
-                    t_astar_paths.append(astar_paths)
-                dets_astar_paths.append(t_astar_paths)
+                    dets_astar_paths[lbl_t_before] = astar_paths
                 
             if cache == 'to':
                 print('caching...', end='')
@@ -457,14 +432,6 @@ class AxonDetections():
             with open(cache_fname, 'rb') as file:
                 target_astar_paths = pickle.load(file)
             
-            # astar_dists = self._get_astar_path_distances(target_astar_paths )
-            # # ensure consistency
-            # correct_n_tpoints = len(astar_dists) == len(self)
-            # n_dets = [dists.shape[0] for dists in astar_dists]
-            # correct_n_dets = n_dets == [det.shape[0] for det in self.detections]
-            # if not correct_n_tpoints or not correct_n_dets:
-            #     print('Cached A* target paths file doesn\'t match self.detections.')
-            #     exit(1)
         else:
             print('Computing A* paths to target...', end='')
             weights = np.where(self.dataset.mask, 1, 2**16).astype(np.float32)
@@ -514,147 +481,456 @@ class AxonDetections():
 
             libmot_dets.append(np.stack([frame_id, empty_id, x_topleft, y_topleft, 
                                          boxs, boxs, conf]).T)
-
-        libmot_dets = np.concatenate(libmot_dets)
-
-        np.save('libmot/axon_test_dets.npy', libmot_dets)
-        libmot_dets = np.load('libmot/axon_test_dets.npy', allow_pickle=True)
-        return libmot_dets
-            
+        return np.concatenate(libmot_dets)
 
 
 
 
-
-
-
-
-
-    # ID ASSIGNMENT - to be redone....
-    
-    def _cntn_id_cost(self, t1_conf, t0_conf, dist):
-        return ((self.alpha*dist) * (1/(1 + np.e**(self.beta*(t1_conf+t0_conf-1))))).astype(float)
-
-    def _create_id_cost(self, conf):
-        return 1/(1 + np.e**(self.beta*(conf-.5))).astype(float)
-
-    def _generate_axon_id(self, ):
-        axon_id = 0
-        while True:
-            yield axon_id
-            axon_id += 1
-
-    def _hungarian_ID_assignment(self, cntd_cost_detections):
-        t0_conf = pd.DataFrame([])
-        axon_id_generator = self._generate_axon_id()
-
-        # iterate detections: [(conf+anchor coo) + distances to prv frame dets]
-        assigned_ids = []
-        for t, cntn_c_dets in enumerate(cntd_cost_detections):
-            # unpack confidences of current t 
-            t1_conf = cntn_c_dets.iloc[:,0]
-            # each detections will have a new ID assigned to it, create empty here
-            ass_ids = pd.Series(-1, index=cntn_c_dets.index, name=t)
-            
-            if t == 0:
-                # at t=0 every detections is a new one, special case
-                ass_ids[:] = [next(axon_id_generator) for _ in range(len(ass_ids))]
-            else:
-                # t1 and t0 have different lengths, save shorter n of the two
-                nt1 = cntn_c_dets.shape[0]
-                ndet_min = min((nt1, cntn_c_dets.shape[1]-3))
-
-                # get the costs for creating t1 ID and killing t0 ID (dist indep.)
-                create_t1_c = self._create_id_cost(t1_conf).values
-                kill_t0_c = self._create_id_cost(t0_conf).values
-                
-                # get the costs for continuing IDs
-                cntn_c_matrix = cntn_c_dets.iloc[:,3:].values
-                # hungarian algorithm
-                t1_idx_cntn, t0_idx_cntn = linear_sum_assignment(cntn_c_matrix)
-                # index costs to assignments, associating t1 with t0, dim == ndet_min
-                cntn_t1_c = cntn_c_matrix[t1_idx_cntn, t0_idx_cntn]
-
-                # an ID is only NOT continued if the two associated detections both 
-                # have lower costs on their own (kill/create)
-                cntn_t1_mask = (cntn_t1_c<create_t1_c[:ndet_min]) | (cntn_t1_c<kill_t0_c[:ndet_min])
-                # pad t1 mask to length of t1 (in case t1 was shorter than t0)
-                cntn_t1_mask = np.pad(cntn_t1_mask, (0, nt1-ndet_min), constant_values=False)
-                created_t1_mask = ~cntn_t1_mask
-
-                # created IDs simply get a new ID from the generator
-                ass_ids[created_t1_mask] = [next(axon_id_generator) for _ in range(created_t1_mask.sum())]
-                # for cntn ID, mask the t0_idx (from hung. alg.) and use it as 
-                # indexer of previous assignments timpoint
-                assoc_id = t0_idx_cntn[cntn_t1_mask[:ndet_min]]
-                ass_ids[cntn_t1_mask] = assigned_ids[-1].iloc[assoc_id].values
-
-            t0_conf = t1_conf
-            assigned_ids.append(ass_ids)
-        assigned_ids = pd.concat(assigned_ids, axis=1).stack().swaplevel().sort_index()
-        assigned_ids = assigned_ids.apply(lambda ass_id: f'Axon_{int(ass_id):0>3}')
-        return assigned_ids
-
-    def _compute_cntn_costs_from_dists(self):
-        t1t0_cntd_costs = []
-        astar_dists = self._get_astar_path_distances(self.dets_astar_paths)
-        for t in range(len(self)):
-            if t == 0:
-                t0_conf = self.detections[t].conf
-                continue
-            t1_conf = self.detections[t].conf
-            # get the distance between t0 and t1 detections 
-            t1_t0_dists_matrix = astar_dists[t-1]
-
-            # t1 detection confidence vector to column-matrix
-            t1_conf_matrix = np.tile(t1_conf, (len(t0_conf),1)).T
-            # t0 detection confidence vector to row-matrix
-            t0_conf_matrix = np.tile(t0_conf, (len(t1_conf),1))
-            
-            # pass distances and anchor conf to calculate assoc. cost between detections
-            t1t0_cntd_costs.append(self._cntn_id_cost(t1_conf_matrix, t0_conf_matrix, 
-                                                      t1_t0_dists_matrix))
-            t0_conf = t1_conf
-        return t1t0_cntd_costs
 
     def _assign_IDs_to_detections(self):#, data, model, params, run_dir):
+        def observation_model(**kwargs):
+            """Compute Observation Cost for one frame
+
+            Parameters
+            ------------
+            scores: array like
+                (N,) matrix of detection's confidence
+
+            Returns
+            -----------
+            costs: ndarray
+                (N,) matrix of detection's observation costs
+            """
+            scores = np.array(kwargs['scores']).astype(np.float)
+            
+            # why not like in paper where beta (uncertainty) is used instead of 
+            # confidence? Maybe relaxation because conf == 1 gives neg infinity
+            scores = (scores-1) *-1   # conf to beta
+            print(scores)
+            scores = (np.log(scores/(1-scores)))
+            scores[scores>max_conf_cost] = max_conf_cost
+            scores[scores<-max_conf_cost] = -max_conf_cost
+            print(scores)
+            print(np.log(-0.446 * np.array(kwargs['scores']).astype(np.float) + 0.456))
+            return scores
+            return np.log(-0.446 * np.array(kwargs['scores']).astype(np.float) + 0.456)
+
+        def feature_model(**kwargs):
+            """Compute each object's K features in a frame
+
+            Parameters
+            ------------
+            image: ndarray
+                bgr image of ndarray
+            boxes: array like
+                (N,4) matrix of boxes in (x,y,w,h)
+
+            Returns
+            ------------
+            features: array like
+                (N,K,1) matrix of features
+            """
+            assert 'image' in kwargs and 'boxes' in kwargs, 'Parameters must contail image and boxes'
+
+            boxes = kwargs['boxes']
+            image = kwargs['image']
+            print(image.shape)
+            if len(boxes) == 0:
+                return np.zeros((0,))
+
+            boxes = np.atleast_2d(deepcopy(boxes))
+            features = np.zeros((boxes.shape[0], 180, 1), dtype=np.float32)
+
+            for i, roi in enumerate(boxes):
+                x1 = max(roi[1], 0)
+                x2 = max(roi[0], 0)
+                x3 = max(x1 + 1, x1 + roi[3])
+                x4 = max(x2 + 1, x2 + roi[2])
+                cropped = image[x1:x3, x2:x4]
+                # cropped = np.moveaxis(image[:, x1:x3, x2:x4], 0, -1)[:,:,0]
+                hist = cv2.calcHist([cropped], [0], None, [180], [0, 1])
+                cv2.normalize(hist, hist, alpha=0, beta=1, norm_type=cv2.NORM_MINMAX)
+                features[i] = deepcopy(hist)
+            return features
+
+        def transition_model(**kwargs):
+            """Compute costs between track and detection
+
+            Parameters
+            ------------
+            miss_rate: float
+                the similarity for track and detection will be multiplied by miss_rate^(time_gap - 1)
+            time_gap: int
+                number of frames between track and detection
+            predecessor_boxes: ndarray
+                (N,4) matrix of boxes in track's frame
+            boxes: ndarray
+                (M,4) matrix of boxes in detection's frame
+            predecessor_features: ndarray
+                (N,180, 256) matrix of features in track's frame
+            features: ndarray
+                (M,180, 256) matrix of features in detection's frame
+            frame_idx: int
+                frame id, begin from 1
+
+            Returns
+            ------------
+            costs: ndarray
+                (N,M) matrix of costs between track and detection
+            """
+            miss_rate = kwargs['miss_rate']
+            time_gap = kwargs['time_gap']
+            boxes = kwargs['boxes']
+            predecessor_boxes = kwargs['predecessor_boxes']
+            features = kwargs['features']
+            predecessor_features = kwargs['predecessor_features']
+            frame_idx = kwargs['frame_idx']
+
+            # A* distances component of cost
+            lbl = f'{self.dataset.name}_t:{frame_idx:0>3}-t:{frame_idx-(time_gap):0>3}'
+            distances = ((astar_dists[lbl] /self.max_px_assoc_dist) -1) *-1
+            inf_dist = distances == 0
+
+            # visual similarity component of cost
+            vis_sim = []
+            for f1 in predecessor_features:
+                vis_sim_f1 = []
+                for f2 in features:
+                    vis_sim_f1.append(1 - cv2.compareHist(f1, f2, cv2.HISTCMP_BHATTACHARYYA))
+                vis_sim.append(vis_sim_f1)
+            vis_sim = np.array(vis_sim)
+            
+            costs = -np.log((1-vis_sim_weight) * distances*(miss_rate ** (time_gap-1)) \
+                            + vis_sim_weight * vis_sim \
+                            + 1e-5)
+            costs[inf_dist] = np.inf
+            return costs
+
+
+        def make_video(tracks):
+            from matplotlib.animation import ArtistAnimation
+            from matplotlib.patches import Rectangle
+            import matplotlib.pyplot as plt
+
+            fig, ax = plt.subplots()
+            boxs = 70
+            framewise_artists = []
+            for frame in range(len(self)):
+
+                img, gt = self.get_det_image_and_target(frame, return_tiled=False)
+                im = ax.imshow(img[0].numpy(), animated=True)
+
+                boxes = tracks[tracks[:,0] == frame]
+                recs = []
+                # for box in boxes:
+                for axon_id, (conf, x, y) in self.detections[frame].iterrows():
+
+                    conf = min(1, conf)
+                    ax_id_col = plt.cm.get_cmap('hsv', 20)(int(axon_id[-3:])%20)
+                    # text_artists.append(ax.text(x-boxs/2, y-boxs/1.5, axon_id.replace('on_',''), 
+                    #                     fontsize=5.5, color=ax_id_col))
+                    axon_box = Rectangle((x-boxs/2, y-boxs/2), boxs, boxs, facecolor='none', edgecolor=ax_id_col)
+                    recs.append(axon_box)
+
+
+                    
+                    # ID, x, y, width, height = box[1:]
+                    # col = plt.cm.get_cmap('hsv', 10)(ID%10)
+                    # recs.append(Rectangle((x,y), width, height, edgecolor=col, facecolor='none'))
+                [ax.add_patch(rec) for rec in recs]
+                t = ax.text(0,0, frame, zorder=1)
+                
+                framewise_artists.append([im, *recs, t])
+            an = ArtistAnimation(fig, framewise_artists, blit=True, interval=1000)
+            plt.show()
+
         print('Assigning axon IDs ...', end='')
-
+        # setup parameters 
+        
+        # default = {'entry_exit_cost': 1, 'thresh': 2.8,
+        default = {'entry_exit_cost': 2.5, 'thresh': .4,
+                'miss_rate': 0.8, 'max_num_misses': 1}
+        min_flow = 1
+        max_flow = 120
+        max_conf_cost = 4.6
+        vis_sim_weight = 0.1
+        # conf_capping_method = 'scale_to_max'   # 'scale_to_max'
+        conf_capping_method = 'ceil'   # 'scale_to_max'
+        
+        entry_exit_cost = default['entry_exit_cost']
+        miss_rate = default['miss_rate']
+        max_num_misses = default['max_num_misses']
+        thresh = default['thresh']
+        
+        
+        # get data (distances and detections in libmot format)
         astar_dists = self._get_astar_path_distances(self.dets_astar_paths)
+        dets = self.get_dets_in_libmot_format()
+        print(dets)
+        print(dets.shape)
 
-        astar_dists_libmot = {}
-        for t in range(len(astar_dists)):
-            for t_bef in range(len(astar_dists[t])):
-                dists = np.array(astar_dists[t][t_bef]).T
-                astar_dists_libmot.update({f't{t:0>3}-t_before{t-(t_bef+1):0>3}': dists})
+        # cap confidence to 1
+        if conf_capping_method == 'ceil':
+            dets[:, -1][dets[:, -1]>1] = 1
+        if conf_capping_method == 'scale_to_max':
+            dets[:, -1] /= dets[:, -1].max()
 
-        [print(key, astar.shape) for key,astar in astar_dists_libmot.items()]
-        pickle.dump(astar_dists_libmot, open('libmot/axon_test_dists.pkl', 'wb'))
-        exit()
 
-        cntd_costs = self._compute_cntn_costs_from_dists()
+        # do the association using min cost flow
+        record = []
+        track_model = MinCostFlowTracker(observation_model=observation_model,
+                                        transition_model=transition_model, feature_model=feature_model,
+                                        entry_exit_cost=entry_exit_cost, min_flow=min_flow,
+                                        max_flow=max_flow, miss_rate=miss_rate, max_num_misses=max_num_misses,
+                                        cost_threshold=thresh)
 
-        # glue cost and detection to one dataframe (lin. assignm method below expects this)
-        cntd_costs_pd_detections = []
+        for i in range(len(self)):
+            print('Processing frame: ', i, end='...')
+            det = dets[(dets[:, 0] == i), :]
+
+            img, gt = self.get_det_image_and_target(i, return_tiled=False)
+            track_model.process(boxes=det[:, 2: 6].astype(np.int32),
+                                scores=det[:, 6], image=img[0].numpy(),
+                                frame_idx=i)
+            print('Done.\n\n\n')
+
+        trajectory = track_model.compute_trajectories()
+        # trajectory is a list [IDs] of list of boxes (in frames) with format
+        # frame_idx, box_idx, box_coo (4 values)
+        for i, t in enumerate(trajectory):
+            for j, box in enumerate(t):
+                record.append([box[0], i, box[2][0], box[2][1], box[2][2], box[2][3]])
+        track = np.array(record)
+        track = track[np.argsort(track[:, 0])]
+
+        IDed_detections = pd.DataFrame(track, columns=['FrameId', 'Id', 'X', 'Y', 'Width', 'Height'])
+        IDed_detections = IDed_detections.set_index(['FrameId', 'Id'])
+
+        # finally update self.detections with correct IDs
+        boxs = self.axon_box_size
         for t in range(len(self)):
-            if t == 0:
-                det_t0 = self.detections[t]
-                cntd_costs_pd_detections.append(det_t0)
-                continue
-            det_t1 = self.detections[t]
-            cntd_cost_pd = pd.DataFrame(cntd_costs[t-1], index=det_t1.index, columns=det_t0.index)
-            cntd_costs_pd_detections.append(pd.concat([det_t1, cntd_cost_pd], axis=1))
-            det_t0 = det_t1
-            print(cntd_costs_pd_detections)
+            # get detections at frame t, old ones and ones with ID
+            det = self.detections[t]
+            IDed_det = IDed_detections.loc[t, ['X','Y']]
+            valid_det = []
+            # iter old detections (longer the ones ones usually)
+            for _, (conf, anchor_x, anchor_y) in det.iterrows():
+                # get the assigned ID by masking for matching box coordinates
+                ID = IDed_det.index[(IDed_det.values==(anchor_x-boxs/2, anchor_y-boxs/2)).all(1)]
+                # if the box coordinates where still in the IDed detections, add
+                if not ID.empty:
+                    valid_det.append(pd.Series([conf, anchor_x, anchor_y], 
+                                               name=f'Axon_{ID[0]:0>3}', 
+                                               index=('conf', 'anchor_x', 'anchor_y')))
+            self.detections[t] = pd.concat(valid_det, axis=1).T
+        return IDed_detections
 
-        assigned_ids = self._hungarian_ID_assignment(cntd_costs_pd_detections)
+        # all_detections = []
+        # for frame_idx in range(len(self)):
+        #     frame_track_dets = track[track[:,0]==frame_idx]
+        #     print()
+        #     print()
+        #     print()
+        #     print(self.detections[frame_idx])
+        #     frame_dets = dets[dets[:,0]==frame_idx]
+        #     print(frame_dets)
+        #     print(frame_dets.shape)
+        #     print()
+        #     print(frame_track_dets)
+        #     print(frame_track_dets.shape)
 
-        all_detections = []
-        for t in range(len(self)):
-            self.detections[t].index = assigned_ids[t].values
+        #     order = [np.where((frame_track_dets[:, [2,3]] == xy).all(1))[0] for xy in frame_dets[:, [2,3]]]
+        #     order = np.array([i[0] for i in order if len(i)])
+        #     print(order)
 
-            all_detections.append(self.detections[t].copy())
-            all_detections[-1].columns = pd.MultiIndex.from_product([[t],['conf', 'anchor_x', 'anchor_y']])
-        all_detections = pd.concat(all_detections, axis=1)
-        print('Done.')
-        return all_detections
+
+
+
+
+        #     ids = [f'Axon_{int(ID):0>3}' for ID in track[track[:,0]==frame_idx][:, 1]]
+        #     all_dets = self.detections[frame_idx].iloc[order].copy()
+        #     all_dets.index = ids
+        #     all_dets.columns = pd.MultiIndex.from_product([[frame_idx],['conf', 'anchor_x', 'anchor_y']])
+        #     print(all_dets)
+
+        #     self.detections[frame_idx] = all_dets[frame_idx]
+        #     all_detections.append(all_dets)
+        #     # exit()
+        # print(pd.concat(all_detections, axis=1))
+        # print(self.detections)
+        # make_video(track)
+        # return pd.concat(all_detections, axis=1)
+        # # return track
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        # print(astar_dists['test_t:001-t:000'])
+        # print(len(astar_dists['test_t:001-t:000']))
+        # print(len(astar_dists['test_t:001-t:000'][0]))
+
+        # astar_dists_libmot = {}
+        # for t in range(len(astar_dists)):
+        #     for t_bef in range(len(astar_dists[t])):
+        #         dists = np.array(astar_dists[t][t_bef]).T
+        #         astar_dists_libmot.update({f't{t:0>3}-t_before{t-(t_bef+1):0>3}': dists})
+
+        # [print(key, astar.shape) for key,astar in astar_dists_libmot.items()]
+        # pickle.dump(astar_dists_libmot, open('libmot/axon_test_dists.pkl', 'wb'))
+        # exit()
+
+
+
+
+        # cntd_costs = self._compute_cntn_costs_from_dists()
+
+        # # glue cost and detection to one dataframe (lin. assignm method below expects this)
+        # cntd_costs_pd_detections = []
+        # for t in range(len(self)):
+        #     if t == 0:
+        #         det_t0 = self.detections[t]
+        #         cntd_costs_pd_detections.append(det_t0)
+        #         continue
+        #     det_t1 = self.detections[t]
+        #     cntd_cost_pd = pd.DataFrame(cntd_costs[t-1], index=det_t1.index, columns=det_t0.index)
+        #     cntd_costs_pd_detections.append(pd.concat([det_t1, cntd_cost_pd], axis=1))
+        #     det_t0 = det_t1
+        #     print(cntd_costs_pd_detections)
+
+        # assigned_ids = self._hungarian_ID_assignment(cntd_costs_pd_detections)
+
+        # all_detections = []
+        # for t in range(len(self)):
+        #     self.detections[t].index = assigned_ids[t].values
+
+        #     all_detections.append(self.detections[t].copy())
+        #     all_detections[-1].columns = pd.MultiIndex.from_product([[t],['conf', 'anchor_x', 'anchor_y']])
+        # all_detections = pd.concat(all_detections, axis=1)
+        # print('Done.')
+        # return all_detections
+
+
+
+
+
+    # # ID ASSIGNMENT - to be redone....
+    
+    # def _cntn_id_cost(self, t1_conf, t0_conf, dist):
+    #     return ((self.alpha*dist) * (1/(1 + np.e**(self.beta*(t1_conf+t0_conf-1))))).astype(float)
+
+    # def _create_id_cost(self, conf):
+    #     return 1/(1 + np.e**(self.beta*(conf-.5))).astype(float)
+
+    # def _generate_axon_id(self, ):
+    #     axon_id = 0
+    #     while True:
+    #         yield axon_id
+    #         axon_id += 1
+
+    # def _hungarian_ID_assignment(self, cntd_cost_detections):
+    #     t0_conf = pd.DataFrame([])
+    #     axon_id_generator = self._generate_axon_id()
+
+    #     # iterate detections: [(conf+anchor coo) + distances to prv frame dets]
+    #     assigned_ids = []
+    #     for t, cntn_c_dets in enumerate(cntd_cost_detections):
+    #         # unpack confidences of current t 
+    #         t1_conf = cntn_c_dets.iloc[:,0]
+    #         # each detections will have a new ID assigned to it, create empty here
+    #         ass_ids = pd.Series(-1, index=cntn_c_dets.index, name=t)
+            
+    #         if t == 0:
+    #             # at t=0 every detections is a new one, special case
+    #             ass_ids[:] = [next(axon_id_generator) for _ in range(len(ass_ids))]
+    #         else:
+    #             # t1 and t0 have different lengths, save shorter n of the two
+    #             nt1 = cntn_c_dets.shape[0]
+    #             ndet_min = min((nt1, cntn_c_dets.shape[1]-3))
+
+    #             # get the costs for creating t1 ID and killing t0 ID (dist indep.)
+    #             create_t1_c = self._create_id_cost(t1_conf).values
+    #             kill_t0_c = self._create_id_cost(t0_conf).values
+                
+    #             # get the costs for continuing IDs
+    #             cntn_c_matrix = cntn_c_dets.iloc[:,3:].values
+    #             # hungarian algorithm
+    #             t1_idx_cntn, t0_idx_cntn = linear_sum_assignment(cntn_c_matrix)
+    #             # index costs to assignments, associating t1 with t0, dim == ndet_min
+    #             cntn_t1_c = cntn_c_matrix[t1_idx_cntn, t0_idx_cntn]
+
+    #             # an ID is only NOT continued if the two associated detections both 
+    #             # have lower costs on their own (kill/create)
+    #             cntn_t1_mask = (cntn_t1_c<create_t1_c[:ndet_min]) | (cntn_t1_c<kill_t0_c[:ndet_min])
+    #             # pad t1 mask to length of t1 (in case t1 was shorter than t0)
+    #             cntn_t1_mask = np.pad(cntn_t1_mask, (0, nt1-ndet_min), constant_values=False)
+    #             created_t1_mask = ~cntn_t1_mask
+
+    #             # created IDs simply get a new ID from the generator
+    #             ass_ids[created_t1_mask] = [next(axon_id_generator) for _ in range(created_t1_mask.sum())]
+    #             # for cntn ID, mask the t0_idx (from hung. alg.) and use it as 
+    #             # indexer of previous assignments timpoint
+    #             assoc_id = t0_idx_cntn[cntn_t1_mask[:ndet_min]]
+    #             ass_ids[cntn_t1_mask] = assigned_ids[-1].iloc[assoc_id].values
+
+    #         t0_conf = t1_conf
+    #         assigned_ids.append(ass_ids)
+    #     assigned_ids = pd.concat(assigned_ids, axis=1).stack().swaplevel().sort_index()
+    #     assigned_ids = assigned_ids.apply(lambda ass_id: f'Axon_{int(ass_id):0>3}')
+    #     return assigned_ids
+
+    # def _compute_cntn_costs_from_dists(self):
+    #     t1t0_cntd_costs = []
+    #     astar_dists = self._get_astar_path_distances(self.dets_astar_paths)
+    #     for t in range(len(self)):
+    #         if t == 0:
+    #             t0_conf = self.detections[t].conf
+    #             continue
+    #         t1_conf = self.detections[t].conf
+    #         # get the distance between t0 and t1 detections 
+    #         t1_t0_dists_matrix = astar_dists[t-1]
+
+    #         # t1 detection confidence vector to column-matrix
+    #         t1_conf_matrix = np.tile(t1_conf, (len(t0_conf),1)).T
+    #         # t0 detection confidence vector to row-matrix
+    #         t0_conf_matrix = np.tile(t0_conf, (len(t1_conf),1))
+            
+    #         # pass distances and anchor conf to calculate assoc. cost between detections
+    #         t1t0_cntd_costs.append(self._cntn_id_cost(t1_conf_matrix, t0_conf_matrix, 
+    #                                                   t1_t0_dists_matrix))
+    #         t0_conf = t1_conf
+    #     return t1t0_cntd_costs

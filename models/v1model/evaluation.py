@@ -86,7 +86,24 @@ def evaluate_training(exp_run_ids, recreate=False, use_prepend_ifavail=True, sho
     plot_training_process(training, dest_dir=dest_dir, show=show)
     print('Done. ')
     
-def evaluate_model(exp_name, run, epoch='latest', assign_ids=False, **kwargs):
+def evaluate_model(exp_name, run, epoch='latest', **kwargs):
+    RUN_DIR, params = setup_evaluation(exp_name, run)
+    params = to_device_specifc_params(params, get_default_parameters())
+    params['LOAD_MODEL'] = [exp_name, run, epoch]
+    params['DEVICE'] = 'cpu'
+
+    model, _, _, _ = setup_model(params)
+    train_data, test_data = setup_data(params)
+    for data in test_data, train_data:
+        
+        axon_detections = AxonDetections(model, data, params, f'{RUN_DIR}/axon_detections')
+        
+        os.makedirs(f'{RUN_DIR}/model_out', exist_ok=True)
+        fname = f'{data.name}_E:{epoch}_timepoint:---|{data.sizet}'
+        draw_all(axon_detections, fname, dest_dir=f'{RUN_DIR}/model_out', 
+                 notes=params["NOTES"], color_det1_ids=False, **kwargs)
+
+def evaluate_ID_assignment(exp_name, run, epoch='latest', **kwargs):
     RUN_DIR, params = setup_evaluation(exp_name, run)
     params = to_device_specifc_params(params, get_default_parameters())
     params['LOAD_MODEL'] = [exp_name, run, epoch]
@@ -97,18 +114,16 @@ def evaluate_model(exp_name, run, epoch='latest', assign_ids=False, **kwargs):
     for data in test_data, train_data:
         
         axon_detections = AxonDetections(model, data, params, f'{RUN_DIR}/axon_detections', 
-                                         assign_id_at_init=assign_ids, calc_target_dist_at_init=False)
-        axon_detections.get_dets_in_libmot_format()
-        exit()
+                                         assign_id_at_init=True, calc_target_dist_at_init=True)
         
         os.makedirs(f'{RUN_DIR}/model_out', exist_ok=True)
         fname = f'{data.name}_E:{epoch}_timepoint:---|{data.sizet}'
         draw_all(axon_detections, fname, dest_dir=f'{RUN_DIR}/model_out', notes=params["NOTES"], **kwargs)
 
-        # plot_axon_IDs(axon_detections, dest_dir=f'{RUN_DIR}/model_out', show=False)
+        plot_axon_IDs(axon_detections, dest_dir=f'{RUN_DIR}/model_out', show=True)
 
-        # plot_dist_to_target(axon_detections, dest_dir=f'{RUN_DIR}/model_out', show=False)
-        # break
+        plot_dist_to_target(axon_detections, dest_dir=f'{RUN_DIR}/model_out', show=False)
+        break
 
 def evaluate_precision_recall(exp_run_epoch_ids, show=True):
     metrics = {}

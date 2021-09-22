@@ -4,6 +4,7 @@ yolov3.weights
 *.png
 *.jpg
 *.sh
+*.pkl
 
 
 # Byte-compiled / optimized / DLL files

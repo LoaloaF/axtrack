@@ -492,7 +492,7 @@ class Timelapse(Dataset):
             torch.save(self.target_tiled, f'/home/loaloa/.cache/axtrack/{self.name}_target_tiled.pth')
         print('Done', flush=True) 
 
-    def stitch_tiles(self, pd_tiled_det, img_tiled=None):
+    def stitch_tiles(self, pd_tiled_det, img_tiled=None, reset_index=False):
         ts = self.tilesize
         # get the yx coordinates of the tiles  
         tile_coos = torch.tensor([self.flat_tile_idx2yx_tile_idx(tile) 
@@ -518,5 +518,6 @@ class Timelapse(Dataset):
                     pd_det[flat_tile_idx].anchor_x += tile_xcoo*ts
                     
         pd_det = pd.concat(pd_det)
-        pd_det.index = [f'Axon_{i:0>3}' for i in range(len(pd_det))]
+        if reset_index:
+            pd_det.index = [f'Axon_{i:0>3}' for i in range(len(pd_det))]
         return pd_det, img
