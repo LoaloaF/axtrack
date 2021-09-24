@@ -158,7 +158,6 @@ def apply_transformations(transform_configs, X, target, sizey, sizex, device):
     if transform_configs.get('rot',0) > .5:
         # angle = ((transform_configs['rot'] * 40) -20)
         angle = ((transform_configs['rot'] * 90) -45)
-        print('angle: ', angle)
     
     # apply the transformation using paramters above, do on GPU, return on CPU
     tchunksize = 2

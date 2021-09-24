@@ -269,7 +269,8 @@ def plot_prc_rcl(metrics_files, dest_dir=None, show=None):
         # not only the metrics file for the epoch is passed, but also the 15  
         # epochs before and after. the average over these 30 is computed below
         metrics = [pd.read_pickle(file) for file in files]
-        metric = np.stack([df.values for df in metrics]).mean(0)
+        print(metrics)
+        metric = np.stack([df.values for df in metrics if not df.empty]).mean(0)
         metric = pd.DataFrame(metric, index=metrics[0].index, 
                               columns=metrics[0].columns.droplevel(0))
         thrs = metric.columns.unique(1).values.astype(float)
@@ -305,36 +306,41 @@ def plot_prc_rcl(metrics_files, dest_dir=None, show=None):
 
 def draw_all(axon_dets, filename, dest_dir=None, notes='', show=False, filter2FP_FN=False,
              save_single_tiles=False, animated=False, hide_det1=False, 
-             hide_det2=False, **kwargs):
+             hide_det2=False, use_IDed_dets=False, **kwargs):
     if not dest_dir:
         dest_dir = axon_dets.dir
     if animated:
         anim_frames = []
         animated = plt.subplots(1, figsize=(axon_dets.dataset.sizex/350, 
                                 axon_dets.dataset.sizey/350), facecolor='#242424')
-
+    which_det = 'confident' if not use_IDed_dets else 'ID_assigned'
+    
     # iterate the timepoints
     for t in range(len(axon_dets)):
         fname = filename.replace('---', f'{t:0>3}') 
-        prc, rcl, F1 = axon_dets.get_detection_metrics(t)
+        prc, rcl, F1 = axon_dets.get_detection_metrics(t, which_det=which_det)
         lbl = f'{notes} - {fname} - Recall: {rcl}, Precision: {prc}, F1: {F1}'
         print(lbl, end='...', flush=True)
 
         img_tiled, img, tiled_true_det, image_true_det = axon_dets.get_det_image_and_target(t)
-        det1, det2 = axon_dets.detections[t], image_true_det
+        det1, det2 = axon_dets.get_confident_det(t), image_true_det
 
-        if filter2FP_FN:
+        # which detections exactly to draw
+        if use_IDed_dets:
+            det1 = axon_dets.get_IDed_det(t)
+        elif filter2FP_FN:
             FP_dets, FN_dets = axon_dets.get_FP_FN_detections(t)
             det1, det2 = FP_dets, FN_dets
             kwargs['det1_default_col'] = '#e34d20'  # red-ish orange for false pos
             kwargs['det2_default_col'] = '#0cb31d'  # green for false neg
-            # ensure that id colording is set to False
+            # ensure that id coloring is set to False
             kwargs['color_det2_ids'] = False 
             kwargs['color_det1_ids'] = False 
         if hide_det1:
             det1 = None
         if hide_det2:
             det2 = None
+
         # draw stitched frame
         frame_artists = draw_frame(img, det1, det2, animation=animated, 
                                    dest_dir=dest_dir, draw_grid=axon_dets.tilesize, 
@@ -342,13 +348,15 @@ def draw_all(axon_dets, filename, dest_dir=None, notes='', show=False, filter2FP
         if animated:
             anim_frames.append(frame_artists)
 
-        # also save the single tile images
+        # also save the single tile images, note that these are not NMS processed
         if save_single_tiles:
             # for the current timepoints, iter non-empty tiles
             n_tiles = len(img_tiled)
+            tiled_det = axon_dets.get_confident_det(t, get_tiled_not_image=True)
             for tile_i in range(n_tiles):
-                img, target = img_tiled[tile_i], tiled_true_det[tile_i],
-                draw_frame(img, axon_dets.pandas_tiled_dets[t][tile_i], target, 
+                tile = img_tiled[tile_i][axon_dets.dataset.get_tcenter_idx()]
+                target_det = tiled_true_det[tile_i]
+                draw_frame(tile, tiled_det[tile_i], target_det, 
                            draw_grid=axon_dets.tilesize/axon_dets.Sx, boxs=axon_dets.axon_box_size,
                            dest_dir=dest_dir, show=show, 
                            fname=f'{fname}_tile{tile_i:0>2}|{n_tiles:0>2}')
@@ -388,9 +396,9 @@ def draw_all(axon_dets, filename, dest_dir=None, notes='', show=False, filter2FP
 
 
 
-def plot_axon_IDs(axon_dets, dest_dir, show=False):
-    id_lifetime = axon_dets.all_detections.loc[:, (slice(None),'conf')].droplevel(1,1)
-    id_lifetime = id_lifetime.fillna(0).astype(bool).T
+def plot_axon_IDs_lifetime(axon_dets, dest_dir=None, show=False):
+    id_lifetime = axon_dets.IDed_detections.Width.astype(bool).unstack()
+    id_lifetime.fillna(False, inplace=True)
 
     plt.figure(figsize=(13,7))
     plt.imshow(id_lifetime, cmap=plt.get_cmap('cividis'))
@@ -404,13 +412,13 @@ def plot_axon_IDs(axon_dets, dest_dir, show=False):
     ax.set_xticklabels(['' if t%10 else t for t in range(id_lifetime.shape[1])])
     ax.set_xlabel('Axon ID', fontsize=12)
 
-    lbl = f'{axon_dets.dataset.name} - alpha:{axon_dets.alpha}, beta:{axon_dets.beta}'
+    lbl = f'{axon_dets.dataset.name}'
     ax.set_title(lbl,  fontsize=12)
 
     if show:
         plt.show()
     if dest_dir:
-        plt.savefig(f'{dest_dir}/{axon_dets.dataset.name}_id_lifetime_a{axon_dets.alpha}_b{axon_dets.beta}.png')
+        plt.savefig(f'{dest_dir}/{axon_dets.dataset.name}_id_lifetime.png')
         
 
 def plot_dist_to_target(axon_dets, dest_dir, show=False):

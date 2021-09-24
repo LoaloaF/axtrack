@@ -103,14 +103,10 @@ def setup_data_loaders(P, dataset):
         drop_last = P['DROP_LAST'],)
     return data_loader
 
-def run_epoch(dataset, model, loss_fn, params, epoch, which_dataset, optimizer):
-    device = params['DEVICE']
-    nms_min_dist = 18
-    data_loader = setup_data_loaders(params, dataset)
+def run_epoch(data_loader, model, loss_fn, device, epoch, which_dataset, optimizer):
     print(f'LOSS: ', end='')
     
     epoch_loss = []
-    confus_mtrx = np.zeros((3, 51))
     for batch, (X, target) in enumerate(data_loader):
         X, target = X.to(device), target.to(device)
             
@@ -125,15 +121,10 @@ def run_epoch(dataset, model, loss_fn, params, epoch, which_dataset, optimizer):
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
-        
-        ads = AxonDetections(model, dataset, params, None, False, False, False)
-        pred_nms = ads.non_max_supress_yolo_det(pred.detach())
-        confus_mtrx += ads.compute_TP_FP_FN(pred_nms, target)
 
     epoch_loss = pd.concat(epoch_loss, axis=1)
     epoch_loss.columns.names = ('epoch', 'dataset', 'batch')
-    epoch_metrics = ads.compute_prc_rcl_F1(confus_mtrx, epoch, which_dataset)
-    return epoch_loss, epoch_metrics
+    return epoch_loss
 
 def prepare_data(device, dataset):
     dataset.construct_tiles(device)
@@ -150,8 +141,19 @@ def one_epoch(dataset, model, loss_fn, params, epoch, optimizer=None, lr_schedul
     while prepare_data(params['DEVICE'], dataset) < 1:
         print('Bad data augmentation -- Doing it again --')
     
-    epoch_loss, epoch_metrics = run_epoch(dataset, model, loss_fn, params,
-                                          epoch, which_dataset, optimizer)
+    # get the dataloader and run model on entire dataset
+    data_loader = setup_data_loaders(params, dataset)
+    epoch_loss = run_epoch(data_loader, model, loss_fn, params['DEVICE'], epoch, 
+                           which_dataset, optimizer)
+    
+    # every 5th epoch calculate precision, recall, and F1 for entire dataset
+    if not (epoch % 5):
+        ax_dets = AxonDetections(model, dataset, params)
+        cnfs_mtrx = sum([ax_dets.compute_TP_FP_FN(t) for t in range(len(ax_dets))])
+        epoch_metrics = ax_dets.compute_prc_rcl_F1(cnfs_mtrx, epoch, which_dataset)
+    else:
+        epoch_metrics = pd.DataFrame([], index=['precision', 'recall', 'F1'])
+
     print((f'\n++++ Mean: {epoch_loss.loc["total_summed_loss"].mean():.3f}, F1'
            f' {epoch_metrics.loc["F1"].max():.3f} ++++'))
 

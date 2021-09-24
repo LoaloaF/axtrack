@@ -521,3 +521,20 @@ class Timelapse(Dataset):
         if reset_index:
             pd_det.index = [f'Axon_{i:0>3}' for i in range(len(pd_det))]
         return pd_det, img
+
+    def get_target_in_libmot_format(self, axon_boxs):
+        libmot_targets = []
+        for t in range(self.sizet):
+            target = self.target.iloc[self.timepoints_indices[t]].unstack().dropna()
+            x, y = target.values.T
+            x_topleft = target.anchor_x-axon_boxs//2
+            y_topleft = target.anchor_y-axon_boxs//2
+            frame_id = np.full(target.shape[0], t)
+            axon_id = np.array([int(idx[-3:]) for idx in target.index])
+            boxs = np.full(target.shape[0], axon_boxs)
+
+            libmot_target = np.stack([frame_id, axon_id, x_topleft, y_topleft, 
+                                    boxs, boxs]).T.astype(int)
+            libmot_target = pd.DataFrame(libmot_target, columns=['FrameId', 'Id', 'X', 'Y', 'Width', 'Height'])
+            libmot_targets.append(libmot_target.set_index(['FrameId', 'Id']))
+        return pd.concat(libmot_targets)

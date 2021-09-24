@@ -112,15 +112,14 @@ dependencies:
     - hungarian-algorithm==0.1.11
     - idna==2.10
     - importlib-metadata==4.8.1
-    - javabridge==1.0.19
     - jmespath==0.10.0
-    - libmot==0.0.2
+    # - libmot==0.0.2
     - llvmlite==0.36.0
     - markdown==3.3.4
     - motmetrics==1.1.3
     - munkres==1.1.4
     - numba==0.53.1
-    - numpy==1.20.2
+    - numpy==1.17.4
     - oauthlib==3.1.0
     - opencv-python==4.5.1.48
     - ortools==9.0.9048
@@ -130,9 +129,9 @@ dependencies:
     - psutil==5.8.0
     - pyasn1==0.4.8
     - pyasn1-modules==0.2.8
-    - pyastar==0.0.1
-    - python-bioformats==4.0.4
-    - python-javabridge==4.0.3
+    # - pyastar==0.0.1
+    - pyastar2d==1.0.2
+    # - python-javabridge==4.0.3
     - python-utils==2.5.6
     - pyyaml==5.1.2
     - requests==2.25.1
@@ -150,6 +149,13 @@ dependencies:
     - urllib3==1.26.4
     - werkzeug==1.0.1
     - wheel==0.37.0
-    - xmltodict==0.12.0
+    # - xmltodict==0.12.0
     - zipp==3.5.0
 prefix: /home/loaloa/programs/anaconda3/envs/bioMEA_pt
+
+
+# in libmot folder
+# python setup.py install develop --user
+
+# dunno why needed, but run after
+# pip install pyastar2d 
