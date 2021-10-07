@@ -1,6 +1,14 @@
 import os
+import sys
+where = os.path.abspath(os.curdir)
+sys.path.append('../../')
+sys.path.append(where)
 from copy import copy
-from os import environ as cuda_environment
+# from os import environ as cuda_environment
+print(where)
+
+from  config import OUTPUT_DIR, SPACER
+from plotting import draw_all
 
 from AxonDetections import AxonDetections
 
@@ -38,8 +46,7 @@ from evaluation import (
     evaluate_model,
     evaluate_ID_assignment,
 )
-from config import OUTPUT_DIR, SPACER
-from plotting import draw_all
+
 
 def run_experiment(exp_name, parameters, save_results=True):
     set_seed(parameters['SEED'])
@@ -98,7 +105,7 @@ def run_experiment(exp_name, parameters, save_results=True):
             
             # check the model predictions every 20 Epochs
             # if epoch%500 == 0:
-            if epoch and epoch%500 == 0:
+            if epoch and epoch%1000 == 0:
                 epoch_dir = f'{METRICS_DIR}/{epoch:0>4}_results/'
                 os.makedirs(epoch_dir)
 
@@ -114,7 +121,7 @@ def run_experiment(exp_name, parameters, save_results=True):
 
             # save preprocessing of input data for plotting 
             if epoch == 0 and parameters['PLOT_PREPROC']:
-                save_preproc_metrics(RUN_DIR, train_data, test_data)
+                save_preproc_metrics(f'{RUN_DIR}/preproc_data/', train_data, test_data)
 
         # print out current progress
         current_progress = pd.concat(print_log, axis=1).unstack(level=0)
@@ -138,40 +145,62 @@ if __name__ == '__main__':
     # print_models()
     # exit()
 
-    # clean_rundirs(exp6_name, delete_runs=13, keep_only_latest_model=False)
+    # os.chdir('code')
+
+    # clean_rundirs(exp6_name, delete_runs=1, keep_only_latest_model=False)
+    # clean_rundirs(exp6_name, keep_runs=[12,17,18,20,22], keep_only_latest_model=False)
     # clean_rundirs(exp6_name, delete_runs=100, keep_only_latest_model=False)
     
     # evaluate_precision_recall([(exp5_name, 'run18', 3000),(exp5_name, 'run28', 0)])
-    # evaluate_preprocssing(exp5_name, 'run17')
-    # evaluate_precision_recall([(exp6_name, 'run12', 2900), (exp6_name, 'run19', 15)], avg_over_t=30)
-    # evaluate_training([(exp5_name, 'run35'), (exp5_name, 'run34')])
-    # evaluate_training([(exp6_name, 'run00'), (exp5_name, 'run34')])
-    # evaluate_training([(exp6_name, 'run02'), (exp6_name, 'run00')])
-    # evaluate_training([(exp6_name, 'run06'), (exp5_name, 'run34')])
-    # evaluate_training([(exp6_name, 'run12'), (exp6_name, 'run16')])
-    # evaluate_precision_recall([(exp6_name, 'run12', 3000),
-    #                            (exp6_name, 'run13', 2500),
-    #                            (exp6_name, 'run14', 2500),
-    #                            (exp6_name, 'run16', 2500),
-    #                            (exp5_name, 'run34', 3000),
+    # evaluate_precision_recall([(exp6_name, 'run17', 3000), (exp6_name, 'run19', 15)], avg_over_t=30)
+    # evaluate_training([(exp6_name, 'run20')])
+    # evaluate_training([(exp6_name, 'run17'), (exp6_name, 'run18')])
+    # evaluate_training([(exp6_name, 'run20'), (exp5_name, 'run17')], recreate=False)
+    # evaluate_training([(exp6_name, 'run23'), 
+    #                 #    (exp6_name, 'run24'), 
+    #                    (exp6_name, 'run28'), 
+    #                    (exp6_name, 'run29'), 
+    #                    (exp6_name, 'run35'), 
+    #                    (exp6_name, 'run36'), 
+    #                    (exp6_name, 'run37'), 
+                       
+    #                    ], recreate=True)
+    # evaluate_preprocssing(exp6_name, 'run35', show=True)
+    # evaluate_precision_recall([(exp6_name, 'run17', 2000),
+    #                            (exp6_name, 'run17', 2500),
+    #                            (exp6_name, 'run17', 3000),
+    #                            (exp6_name, 'run17', 1500),
+    #                            (exp6_name, 'run17', 1000),
+    #                            (exp6_name, 'run20', 500),
+    #                            (exp6_name, 'run18', 2500),
+    #                            (exp6_name, 'run18', 3000),
+                            #    (exp6_name, 'run22', 2000),
+                            #    (exp6_name, 'run22', 2500),
+                            #    (exp6_name, 'run22', 3000),
     # ])
     # evaluate_model(exp5_name, 'run34', 4000, animated=True)
     # evaluate_model(exp5_name, 'run34', 3500, animated=True)   
     # evaluate_model(exp5_name, 'run34', 3000, animated=True)
     # evaluate_model(exp5_name, 'run34', 3000, assign_ids=True)
+    # evaluate_model(exp6_name, 'run12', 3000,  animated=True, show=False)
     
-    # evaluate_model(exp6_name, 'run12', 3000,  animated=False, show=True, save_single_tiles=True, filter2FP_FN=True)
-    evaluate_ID_assignment(exp6_name, 'run12', 3000,  animated=False, show=True, do_draw_all_vis=True,cached_astar_paths='to')
+    evaluate_model(exp6_name, 'run12', 3000,  animated=False, show=True, filter2FP_FN=False)
+    # evaluate_model(exp6_name, 'run20', 500,  animated=False, show=True, filter2FP_FN=False)
+    # evaluate_ID_assignment(exp6_name, 'run20', 500,  animated=False, show=False, 
+    #                        cached_astar_paths='from')
+    # evaluate_ID_assignment(exp6_name, 'run12', 3000,  animated=False, show=True, 
+    #                        do_ID_lifetime_vis=False, cached_astar_paths='from')
     
     # parameters['CACHE'] = OUTPUT_DIR
     # parameters['FROM_CACHE'] = Nonemn
     # parameters['DEVICE'] = 'cuda:0'
     # parameters['USE_TRANSFORMS'] = []
-    # parameters = to_device_specifc_params(parameters, get_default_parameters())
     parameters = load_parameters(exp6_name, 'run12')
-    parameters['EPOCHS'] = 31
-    parameters['NON_MAX_SUPRESSION_DIST'] = 23
-    parameters['LOAD_MODEL'] = [exp6_name, 'run12', 3000]
+    parameters = to_device_specifc_params(parameters, get_default_parameters())
+    parameters['EPOCHS'] = 1
+    # parameters['NON_MAX_SUPRESSION_DIST'] = 23
+    parameters['CACHE'] = OUTPUT_DIR
+    parameters['FROM_CACHE'] = None
     parameters['NOTES'] = 'trying'
     # run_experiment(exp6_name, parameters, save_results=True)
 
@@ -266,38 +295,68 @@ if __name__ == '__main__':
          ('activation', nn.Sigmoid()), 
         ]     
     ]
-    
-    # ========== GPU experiments ===========
+
+
     parameters = copy(default_parameters)
     parameters['DEVICE'] = 'cuda:0'
     parameters['NON_MAX_SUPRESSION_DIST'] = 23
     parameters['ARCHITECTURE'] = maxp_arch
-    parameters['NOTES'] = 'T3_MaxP'
+    parameters['FROM_CACHE'] = OUTPUT_DIR
+    parameters['NOTES'] = 'old - from_cache=True'
     # run_experiment(exp6_name, parameters, save_results=True)
     
     parameters = copy(default_parameters)
     parameters['DEVICE'] = 'cuda:1'
     parameters['NON_MAX_SUPRESSION_DIST'] = 23
-    parameters['ARCHITECTURE'] = maxp_do10_arch
-    parameters['NOTES'] = 'T3_MaxP-DO.10-DO.10'
+    parameters['ARCHITECTURE'] = maxp_arch
+    parameters['FROM_CACHE'] = OUTPUT_DIR
+    parameters['USE_TRANSFORMS'] = ['vflip', 'hflip', 'rot', 'translateY', 'translateX', 'intensity_scaling']
+    parameters['NOTES'] = 'old - from_cache=True, augmenting *0.5-1.5 intensity'
     # run_experiment(exp6_name, parameters, save_results=True)
     
+
+
+    # ========== GPU experiments ===========
     parameters = copy(default_parameters)
     parameters['DEVICE'] = 'cuda:2'
     parameters['NON_MAX_SUPRESSION_DIST'] = 23
-    parameters['ACTIVATION_FUNCTION'] = nn.LeakyReLU()
-    parameters['ARCHITECTURE'] = maxp_do10_deeper_arch
-    parameters['NOTES'] = 'T3_MaxP_DO.10-DO.10_deeper'
+    parameters['ARCHITECTURE'] = maxp_arch
+    parameters['FROM_CACHE'] = None
+    parameters['CLIP_LOWERLIM'] = 55 /2**16
+    parameters['STANDARDIZE'] = ('', None)
+    parameters['NOTES'] = 'clip55, Non standardized data'
     # run_experiment(exp6_name, parameters, save_results=True)
     
     parameters = copy(default_parameters)
     parameters['DEVICE'] = 'cuda:3'
-    parameters['CACHE'] = Fa
-    lse
-    parameters['FROM_CACHE'] = False
     parameters['NON_MAX_SUPRESSION_DIST'] = 23
-    parameters['ARCHITECTURE'] = maxp_3in_arch
-    parameters['TEMPORAL_CONTEXT'] = 1
-    parameters['TEST_TIMEPOINTS'] = list(range(1,3)) + list(range(34,36))
-    parameters['NOTES'] = 'T3_MaxP_temp_context_2to1, test tpoints moved'
-    run_experiment(exp6_name, parameters, save_results=True)
+    parameters['ARCHITECTURE'] = maxp_arch
+    parameters['FROM_CACHE'] = None
+    parameters['CLIP_LOWERLIM'] = 55 /2**16
+    parameters['STANDARDIZE_FRAMEWISE'] = True
+    parameters['NOTES'] = 'clip55, framewise std=1'
+    # run_experiment(exp6_name, parameters, save_results=True)
+
+    
+    
+    parameters = copy(default_parameters)
+    parameters['DEVICE'] = 'cuda:4'
+    parameters['NON_MAX_SUPRESSION_DIST'] = 23
+    parameters['ARCHITECTURE'] = maxp_arch
+    parameters['FROM_CACHE'] = None
+    parameters['CLIP_LOWERLIM'] = 55 /2**16
+    parameters['STANDARDIZE_FRAMEWISE'] = False
+    parameters['NOTES'] = 'clip55, non-framewise,global std=1'
+    # run_experiment(exp6_name, parameters, save_results=True)
+    
+    parameters = copy(default_parameters)
+    parameters['DEVICE'] = 'cuda:5'
+    parameters['NON_MAX_SUPRESSION_DIST'] = 23
+    parameters['ARCHITECTURE'] = maxp_arch
+    parameters['FROM_CACHE'] = None
+    parameters['CLIP_LOWERLIM'] = 55 /2**16
+    parameters['STANDARDIZE_FRAMEWISE'] = False
+    parameters['STANDARDIZE'] = ('0to1', None)
+    parameters['NOTES'] = 'clip55, non-framewise,global 0to1 (max) scaling'
+    # run_experiment(exp6_name, parameters, save_results=True)
+    

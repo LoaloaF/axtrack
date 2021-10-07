@@ -6,23 +6,26 @@ from matplotlib.animation import ArtistAnimation, writers
 import pandas as pd
 import numpy as np
 
-from config import TRAIN_Ps, TEST_Ps
+from config import TRAIN_Ps, TEST_Ps, VIDEO_ENCODER
 
 from AxonDetections import AxonDetections
 
 
-def plot_preprocessed_input_data(preporc_dat_csv, dest_dir=None, show=False):
+def plot_preprocessed_input_data(preporc_dat_csv, notes='', dest_dir=None, show=False, motion_plots=False):
     data = pd.read_csv(preporc_dat_csv, header=[0,1,2], index_col=0)
 
     fig = plt.figure(figsize=(18,9))
     fig.subplots_adjust(hspace=.4, wspace=.05, top=.95, bottom=.05, left= .03, right=.97)
     widths = [1, 1, 0.3, 1, 1]
-    heights = [1, 1, 1]
-    spec = fig.add_gridspec(ncols=5, nrows=3, width_ratios=widths,
+    heights = [1, 1, 1] if motion_plots else [1, 1]
+    spec = fig.add_gridspec(ncols=5, nrows=len(heights), width_ratios=widths,
                             height_ratios=heights)
-    axes = [fig.add_subplot(spec[row,col]) for row in (0,1,2) for col in (0,1,3,4)]
-
-    for i, name in enumerate(data.columns.unique(1)):
+    axes = [fig.add_subplot(spec[row,col]) for row in range(len(heights)) for col in (0,1,3,4)]
+    fig.suptitle(notes)
+    
+    for i, which_preproc in enumerate(data.columns.unique(1)):
+        if 'Motion' in which_preproc and not motion_plots:
+            continue
         for j, which_timpoint in enumerate(('t_0', 't_-1')):
             ax = axes[i*2+j]
 
@@ -30,31 +33,29 @@ def plot_preprocessed_input_data(preporc_dat_csv, dest_dir=None, show=False):
             ax.spines['right'].set_visible(False)
             ax.grid(color='#d1d1cf', zorder=0)
             ax.tick_params(axis='both', labelsize=8)
-            ax.set_title(f'{which_timpoint}-data: {name}', fontsize=9)
+            ax.set_title(f'{which_timpoint}-data: {which_preproc}', fontsize=9)
             if j:
                 ax.tick_params(labelleft=False, labelright=True)
             
-            train = data[('train', name, which_timpoint)]
-            test = data[('test', name, which_timpoint)]
-            if name.startswith('Standardized'):
-                args = {'bins': 140, }
-                ax.set_ylim((0, 0.12))
-                ax.set_xlim((-.5, 14))
-            elif 'Motion' in name:
-                args = {'bins': 100, }
-                ax.set_ylim((0, 0.02))
-                ax.set_xlim((-.5, 14))
-            else:
-                args = {'bins': 140,}
-                ax.set_ylim((0, 12))
-                ax.set_xlim((-.01, .09))
-            
-            train_sprsty = f', sparsity: {(train==0).sum()/len(train):.3f}'
-            ax.hist(train, color='blue', alpha=.5, density=True, zorder=3,
-                            label='train'+train_sprsty, **args)
-            test_sprsty = f', sparsity: {(test==0).sum()/len(test):.3f}'
-            ax.hist(test, color='red', alpha=.5, density=True, zorder=3,
-                            label='test'+test_sprsty, **args)
+            for dat_name in data.columns.unique(0):
+                dat = data[(dat_name, which_preproc, which_timpoint)]
+                
+                if which_preproc.startswith('Standardized'):
+                    args = {'bins': 2**10, 'range':(0, 60)}
+                    ax.set_ylim((0, 0.1))
+                    ax.set_xlim((-.5, 20))
+                elif 'Motion' in which_preproc:
+                    args = {'bins': 2**10, }
+                    ax.set_ylim((0, 0.1))
+                    ax.set_xlim((-.5, 14))
+                else:
+                    args = {'bins': 2**10, 'range':(0, 1/2**4)} # image data is saved in 12bit format (0-4095)
+                    ax.set_ylim((0, 60))
+                    ax.set_xlim((-.01, .09))
+                
+                dat_sprsty = f', sparsity: {(dat==0).sum()/len(dat):.3f}'
+                ax.hist(dat, alpha=.5, density=True, zorder=3,
+                                label=dat_name+dat_sprsty, **args)
             ax.legend(fontsize=8)
     if show:
         plt.show()
@@ -77,9 +78,10 @@ def plot_training_process(training_data_files, draw_detailed_loss=False,
     for exp_run_id, (loss_file, mtrc_file, params) in training_data_files.items():
         # read the respective loss and metrics file
         loss = pd.read_pickle(loss_file)
+        loss_x_epochs = loss.columns.unique(0)
         metric = pd.read_pickle(mtrc_file)
-        x_epochs = metric.columns.unique(0)
-
+        metric_x_epochs = metric.columns.unique(0)
+        
         # iterate the different plots/ value groups to plot
         for i, ax in enumerate(axes):
             if i not in [0,4]:
@@ -87,6 +89,7 @@ def plot_training_process(training_data_files, draw_detailed_loss=False,
 
             # loss plots: xy anchor, box loss, no-box loss, summed loss
             if i<4:
+                x_epochs = loss_x_epochs
                 ax.set_ylim(0,15)
 
                 # get one specific loss
@@ -99,8 +102,9 @@ def plot_training_process(training_data_files, draw_detailed_loss=False,
 
             # metrics plots (precision, recall, F1)
             elif i <7:
-                ax.set_ylim(0.45,.95)
-                ax.set_yticks(np.arange(0.4,.96, .1))
+                x_epochs = metric_x_epochs
+                ax.set_ylim(0.45,1.05)
+                ax.set_yticks(np.arange(0.4,1.01, .1))
                 ax.set_xlabel('Epoch')
                 
                 # get one specific metrics
@@ -108,8 +112,8 @@ def plot_training_process(training_data_files, draw_detailed_loss=False,
                 trn_mtrc = metric.loc[name, (slice(None), 'train')].droplevel((1,2))
                 tst_mtrc = metric.loc[name, (slice(None), 'test')].droplevel((1,2))
                 # smooth 
-                trn_data = trn_mtrc.ewm(span=25).mean()
-                tst_data = tst_mtrc.ewm(span=25).mean()
+                trn_data = trn_mtrc.ewm(span=10).mean()
+                tst_data = tst_mtrc.ewm(span=10).mean()
 
             # last plot (8/8) has no data, legend is place here
             elif i == 7:
@@ -314,6 +318,7 @@ def draw_all(axon_dets, filename, dest_dir=None, notes='', show=False, filter2FP
         animated = plt.subplots(1, figsize=(axon_dets.dataset.sizex/350, 
                                 axon_dets.dataset.sizey/350), facecolor='#242424')
     which_det = 'confident' if not use_IDed_dets else 'ID_assigned'
+    # which_det = 'unfiltered'
     
     # iterate the timepoints
     for t in range(len(axon_dets)):
@@ -369,7 +374,7 @@ def draw_all(axon_dets, filename, dest_dir=None, notes='', show=False, filter2FP
             plt.show()
         print('encoding animation...')
         ani.save(f'{dest_dir}/{axon_dets.dataset.name}_assoc_dets.mp4', 
-                 writer=writers['imagemagick'](fps=1))
+                 writer=writers[VIDEO_ENCODER](fps=1))
         print(f'{axon_dets.dataset.name} animation saved.')
     print(' - Done.')
 
@@ -421,29 +426,23 @@ def plot_axon_IDs_lifetime(axon_dets, dest_dir=None, show=False):
         plt.savefig(f'{dest_dir}/{axon_dets.dataset.name}_id_lifetime.png')
         
 
-def plot_dist_to_target(axon_dets, dest_dir, show=False):
-    dets = axon_dets.get_dists_to_target(window_size=1)
-    print(dets)
+def plot_dist_to_target(screen, dest_dir, show=False):
+    dets = screen.get_dists_to_target()
 
     fig, ax = plt.subplots(figsize=(7, 4), facecolor='k',)
     ax.set_facecolor('k')
 
     ymin, ymax = dets.min().min()-200, dets.max().max()+200
-    xmin, xmax = -1, len(axon_dets)+1
+    xmin, xmax = -1, len(screen)+1
     ax.set_ylim(ymin, ymax)
     ax.set_xlim(xmin, xmax)
 
     ax.axline((0, ymin), (0, ymax), color='grey', linewidth=1)
     ax.axline((xmin, 0), (xmax, 0), color='grey', linewidth=1)
-    ax.vlines(range(1,len(axon_dets)), ymax+10, ymax+20, color='grey', linewidth=1)
+    ax.vlines(range(1,len(screen)), ymax+10, ymax+20, color='grey', linewidth=1)
     ax.set_ylabel('distance to outputchannel', color='white', fontsize=12)
     ax.text(-1, 0, 'increases                  decreases', ha='center', va='center', color='white', fontsize=10, rotation=90)
     
-    
-    ax.plot(dets.T, colo)
-    # for t in range(len(axon_dets)):
-    #     dets[t]
-
-    plt.show()
-
-
+    ax.plot(dets.T)
+    if show:
+        plt.show()

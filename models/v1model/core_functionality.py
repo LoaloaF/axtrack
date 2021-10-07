@@ -8,7 +8,7 @@ from torchsummary import summary
 
 from model import YOLO_AXTrack
 from loss import YOLO_AXTrack_loss
-from dataset_class import Timelapse
+from Timelapse import Timelapse
 from utils import load_checkpoint
 
 from AxonDetections import AxonDetections
@@ -71,8 +71,8 @@ def setup_model(P):
                          Sy = P['SY'],
                          Sx =  P['SX'],)
     model.to_device(P['DEVICE'])
-    summary(model, input_size=(initial_in_channels, P['TILESIZE'], P['TILESIZE']), 
-                               device=P['DEVICE'])
+    # summary(model, input_size=(initial_in_channels, P['TILESIZE'], P['TILESIZE']), 
+    #                            device=P['DEVICE'])
 
     optimizer = optim.Adam(model.parameters(), lr=P['LR'], weight_decay=P['WEIGHT_DECAY'])
 

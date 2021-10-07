@@ -63,6 +63,8 @@ def create_metricsovertime_pkl(metrics_dir):
     metrics_files = [f for f in glob.glob(metrics_dir+'/E*.pkl') if f.endswith('_metrics.pkl')]
     metrics = [pd.read_pickle(E) for E in metrics_files]
     metrics = pd.concat(metrics, axis=1)
+    if metrics.columns.nlevels != 3:
+        metrics.columns = pd.MultiIndex.from_tuples(metrics.columns)
     
     # select best threshold based on best F1
     maxF1_idx = metrics.loc['F1'].groupby(level=(0,1)).apply(lambda s: s.index[s.argmax()])
@@ -77,31 +79,34 @@ def create_lossovertime_pkl(metrics_dir):
     print('Recreating loss-over-time pickle from pkl\'s...', end='')
     loss_files = [f for f in glob.glob(metrics_dir+'/E*.pkl') if not f.endswith('_metrics.pkl')]
     loss = [pd.read_pickle(E) for E in loss_files]
-    loss = pd.concat(loss, axis=1)
+    loss = pd.concat(loss, axis=1).sort_index(1)
 
     fname = f'{metrics_dir}/loss_all_epochs.pkl'
     loss.to_pickle(fname)
     print('Done.')
     return fname
 
-def save_preproc_metrics(run_dir, train_data, test_data):
+def save_preproc_metrics(dest_dir, dataset1, dataset2=None):
     samples = []
     rng = np.random.default_rng()
-    smple_indices = rng.choice(train_data.plot_data['Original'][0].size, int(1e6))
+    smple_indices = rng.choice(dataset1.plot_data['Original'][0].size, int(1e6))
 
-    for name, arr in train_data.plot_data.items():
+    for which_step, arr in dataset1.plot_data.items():
         t0_sample = arr[0].flatten()[smple_indices]
         tn1_sample =arr[1].flatten()[smple_indices]
-        samples.append(pd.Series(t0_sample, name=('train', name, 't_0')))
-        samples.append(pd.Series(tn1_sample, name=('train', name, 't_-1')))
+        samples.append(pd.Series(t0_sample, name=(dataset1.name, which_step, 't_0')))
+        samples.append(pd.Series(tn1_sample, name=(dataset1.name, which_step, 't_-1')))
 
-    for name, arr in test_data.plot_data.items():
-        t0_sample = arr[0].flatten()[smple_indices]
-        tn1_sample = arr[1].flatten()[smple_indices]
-        samples.append(pd.Series(t0_sample, name=('test', name, 't_0')))
-        samples.append(pd.Series(tn1_sample, name=('test', name, 't_-1')))
+    if dataset2 is not None:
+        for which_step, arr in dataset2.plot_data.items():
+            t0_sample = arr[0].flatten()[smple_indices]
+            tn1_sample = arr[1].flatten()[smple_indices]
+            samples.append(pd.Series(t0_sample, name=(dataset2.name, which_step, 't_0')))
+            samples.append(pd.Series(tn1_sample, name=(dataset2.name, which_step, 't_-1')))
 
-    pd.concat(samples, axis=1).to_csv(f'{run_dir}/preproc_data/preprocessed_data.csv')
+    fname = f'{dest_dir}/preprocessed_data.csv'
+    pd.concat(samples, axis=1).to_csv(fname)
+    return fname
 
 def save_checkpoint(model, optimizer, lr_schedular, filename):
     print("=> Saving checkpoint")

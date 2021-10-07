@@ -8,13 +8,18 @@ from itertools import repeat
 import numpy as np
 import pandas as pd
 import torch
+import matplotlib.pyplot as plt
 
+import config
 import cv2
 from scipy import sparse
 # from scipy.optimize import linear_sum_assignment
 from sklearn import metrics
 
 import pyastar2d
+
+from PDMSDesignScreen import PDMSDesignScreen
+from UnlabelledTimelapse import UnlabelledTimelapse
 
 from libmot.data_association  import MinCostFlowTracker
 import motmetrics as mm
@@ -24,38 +29,39 @@ class AxonDetections(object):
         self.model = model
         self.dataset = dataset 
         self.dir = directory
-        os.makedirs(self.dir, exist_ok=True) if self.dir is not None else None
         
+        # basic parameters
         self.device = parameters['DEVICE']
         self.Sx = parameters['SX']
         self.Sy = parameters['SY']
         self.tilesize = parameters['TILESIZE']
-        self.device = parameters['DEVICE']
-        self.num_workers = parameters['NUM_WORKERS']
+        
+        # parameters for selecting detections
         self.conf_thr = parameters['BBOX_THRESHOLD']
         self.nms_min_dist = parameters.get('NON_MAX_SUPRESSION_DIST')
-        
-        self.max_px_assoc_dist = 500
         self.axon_box_size = 70
-        self.max_num_misses = 2
-        self.all_conf_thrs = np.arange(0.4, 1.13, .03)
+        self.max_px_assoc_dist = 500
+        self.all_conf_thrs = np.arange(0.6, 1.13, .03).round(2)
+        # self.all_conf_thrs = np.arange(0.4, 1.13, .03)
+        self.labelled = False if isinstance(dataset, UnlabelledTimelapse) else True
 
-
-        self.MCF_edge_cost_thr =  .4
-        self.MCF_entry_exit_cost = 2.5
-        self.MCF_miss_rate =  0.8
+        # min cost flow hyperparamters 
+        # ec:0.3 eec:1.5 mr:0.6 vsw:0.05 ccm:scale_to_max
+        # ec:0.4 eec:3.0 mr:0.6 vsw:0.15 ccm:scale_to_max
+        self.MCF_edge_cost_thr =  .3
+        self.MCF_entry_exit_cost = 1.5
+        self.MCF_miss_rate =  0.6
         self.MCF_max_num_misses = 1
         self.MCF_min_flow = 1
         self.MCF_max_flow = 120
         self.MCF_max_conf_cost = 4.6
-        self.MCF_vis_sim_weight = 0.1
-        self.MCF_conf_capping_method = 'ceil'   # 'scale_to_max'
+        self.MCF_vis_sim_weight = 0.05
+        self.MCF_conf_capping_method = 'scale_to_max'
+        self.MCF_min_ID_lifetime = 4
 
         self.yolo_targets, self.pandas_tiled_dets, self.detections = self._detect_dataset()
-
-        # if calc_target_dist_at_init:
-        #     self.target_astar_paths = self._compute_dets_path_to_target(cache='to')
-        #     dists = self._get_astar_path_distances(self.target_astar_paths)
+        if self.dir:
+            os.makedirs(self.dir, exist_ok=True)
 
     def __len__(self):
         return self.dataset.sizet
@@ -68,7 +74,7 @@ class AxonDetections(object):
         detections = []
         print(f'Detecting axons in {self.dataset.name} data: ', end='\n')
         for t in range(len(self)):
-            print(f'frame {t}/{(len(self)-1)}', end='...')
+            print(f'frame {t}/{(len(self)-1)}', end='...', flush=True)
             # get a stack of tiles that makes up a frame
             # batch dim of X corresbonds to all tiles in frame at time t
             X, yolo_target = self.dataset.get_stack('image', t, self.device)
@@ -85,7 +91,7 @@ class AxonDetections(object):
             # set conf of strongly overlapping detections to 0, unique index needed!
             pandas_image_det_nms = self._non_max_supression(pandas_image_det)
         
-            # save all intermediate detection formats
+            # save intermediate detection formats
             yolo_targets.append(yolo_target)
             pandas_tiled_dets.append(pandas_tiled_det)
             detections.append(pandas_image_det_nms)
@@ -94,7 +100,6 @@ class AxonDetections(object):
 
     def _yolo_Y2pandas_det(self, yolo_Y, conf_thr):
         def _yolo_coo2tile_coo(yolo_Y):
-            # nobatch dim
             # mask that is false for all pos label entries, needed for true yolo_Y
             noanchor_mask = (yolo_Y == 0).all(-1)
 
@@ -175,6 +180,29 @@ class AxonDetections(object):
     def assign_ids(self, cache):
         self.dets_astar_paths = self._compute_detections_astar_paths(cache=cache)
         self.IDed_detections = self._assign_IDs_to_detections()
+
+    def get_all_IDassiged_dets(self):
+        all_detections = []
+        for t in range(len(self)):
+            det = self.get_IDed_det(t)
+            det.columns = pd.MultiIndex.from_product([[t], det.columns])
+            all_detections.append(det)
+        return pd.concat(all_detections, axis=1)
+
+    def compute_target_distances(self, cache):
+        self.to_target_paths = self._compute_dets_path_to_target(cache=cache)
+        to_target_dists = self._get_astar_path_distances(self.to_target_paths)
+        to_target_dists = [pd.Series(to_target_dists[t], index=self.get_IDed_det(t).index, name=t) 
+                           for t in range(len(self))]
+        self.to_target_dists = pd.concat(to_target_dists, axis=1)
+        
+        # # for target hack (uncomment line in compute dets path to target as well)
+        # self.to_target_paths = self._compute_dets_path_to_target(cache='nooo')
+        # true_to_target_dists = self._get_astar_path_distances(self.to_target_paths)
+        # true_to_target_dists = [pd.Series(true_to_target_dists[t], index=self.get_det_image_and_target(t, return_tiled=False)[1].index, name=t) 
+        #                         for t in range(len(true_to_target_dists))]
+        # self.to_target_dists = pd.concat(true_to_target_dists, axis=1)
+        # self.to_target_dists.to_csv(f'{self.dir}/train_data_dists_gt.csv')
 
     def update_conf_thr_to_best_F1(self):
         cnfs_mtrx = sum([self.compute_TP_FP_FN(t) for t in range(len(self))])
@@ -258,11 +286,12 @@ class AxonDetections(object):
         return FP_dets, FN_dets
             
     def get_detection_metrics(self, t, which_det='confident', return_all_conf_thrs=False):
+        if not self.labelled:
+            return None, None, None
         # for labelled dataset compute prediction metrics 
         cnfs_mtrx = self.compute_TP_FP_FN(t, which_det=which_det)
         prc_rcl_f1 = self.compute_prc_rcl_F1(cnfs_mtrx)
         if not return_all_conf_thrs:
-            # conf_thresholds = np.arange(0.5, 1.01, 0.01)
             idx = np.argmin(np.abs(self.all_conf_thrs-self.conf_thr))
             return prc_rcl_f1[:, idx]
         return prc_rcl_f1
@@ -284,12 +313,14 @@ class AxonDetections(object):
             det = self.get_IDed_det(t)
         elif which_det == 'unfiltered':
             det = self.detections[t]
+
+        if det.shape[0] == 0:
+            det = pd.DataFrame([0,0,0], ['conf', 'anchor_x', 'anchor_y']).T
         
         true_det = self.get_det_image_and_target(t, return_tiled=False)[1]
         d = metrics.pairwise.euclidean_distances(true_det.iloc[:,1:], det.iloc[:,1:])
 
         TP_masks, FP_masks, FN_masks = [], [], []
-        # conf_thresholds = np.arange(0.4, 1.01, 0.03)
         for thr in self.all_conf_thrs:
             TPs, FNs = [], []
             for i in range(len(true_det)):
@@ -379,6 +410,7 @@ class AxonDetections(object):
         
         # compute euclidean distance 
         dist = np.sqrt((t1y-t0y)**2 + (t1x-t0x)**2)
+        # path = None
         # only if it's lower than thr, put in the work to compute A* paths
         if dist < self.max_px_assoc_dist:
             path, dist = self._compute_astar_path((t1y,t1x), (t0y,t0x), weights)
@@ -411,7 +443,7 @@ class AxonDetections(object):
                 t_dets = np.stack([t_ids, t_dets.anchor_y, t_dets.anchor_x], -1)
                 
                 # predecessor timestamps
-                for t_bef in range(t-1, t-(self.max_num_misses+1), -1):
+                for t_bef in range(t-1, t-(self.MCF_max_num_misses+1), -1):
                     if t_bef < 0:
                         continue
                     lbl_t_before = f'{lbl}-t:{t_bef:0>3}'
@@ -425,11 +457,17 @@ class AxonDetections(object):
                     # iterate predecessor detections, compute its distance to all detections at t
                     astar_paths = []
                     for i, t_bef_det in enumerate(t_bef_dets):
-                        print(f'{i+1}/{len(t_bef_dets)}', end='...')
+                        print(f'{i+1}/{len(t_bef_dets)}', end='...', flush=True)
 
-                        with ThreadPoolExecutor(self.num_workers) as executer:
+                        with ThreadPoolExecutor() as executer:
                             args = repeat(t_bef_det), t_dets, repeat(weights)
                             as_paths = executer.map(self._get_path_between_dets, *args)
+                        
+                        # print('hello?')
+                        # print(as_paths)
+                        # print([p if p is None else p.getnnz() for p in as_paths])
+                        # exit()
+
                         astar_paths.append([p for p in as_paths])
                     dets_astar_paths[lbl_t_before] = astar_paths
                 
@@ -455,9 +493,10 @@ class AxonDetections(object):
             target_astar_paths = []
             for t in range(len(self)):
                 print(f't:{t:0>3}', end='...')
-                yx = self.detections[t].loc[:, ['anchor_y', 'anchor_x']].values
+                yx = self.get_IDed_det(t).loc[:, ['anchor_y', 'anchor_x']].values.astype(int)
+                # yx = self.get_det_image_and_target(t, return_tiled=False)[1].loc[:, ['anchor_y', 'anchor_x']].values
 
-                with ThreadPoolExecutor(self.num_workers) as executer:
+                with ThreadPoolExecutor() as executer:
                     args = repeat(target_yx), yx, repeat(weights), repeat(False)
                     as_paths = executer.map(self._compute_astar_path, *args)
                 target_astar_paths.append([p for p in as_paths])
@@ -519,7 +558,6 @@ class AxonDetections(object):
 
             boxes = kwargs['boxes']
             image = kwargs['image']
-            print(image.shape)
             if len(boxes) == 0:
                 return np.zeros((0,))
 
@@ -616,14 +654,12 @@ class AxonDetections(object):
                                         cost_threshold = self.MCF_edge_cost_thr)
 
         for i in range(len(self)):
-            print('Processing frame: ', i, end='...')
-
+            print(f'frame {i}/{(len(self)-1)}', end='...', flush=True)
             det = dets[(dets[:, 0] == i), :]
             img, gt = self.get_det_image_and_target(i, return_tiled=False)
             track_model.process(boxes=det[:, 2: 6].astype(np.int32),
                                 scores=det[:, 6], image=img[0].numpy(),
                                 frame_idx=i)
-            print('Done.\n\n\n')
 
         # trajectory is a list [IDs] of list of boxes (in frames) with format
         # frame_idx, box_idx, box_coo (4 values)
@@ -632,49 +668,136 @@ class AxonDetections(object):
         # agg results
         record = []
         for i, t in enumerate(trajectory):
+            if len(t) < self.MCF_min_ID_lifetime:
+                continue
             for j, box in enumerate(t):
                 record.append([box[0], i, box[2][0], box[2][1], box[2][2], box[2][3]])
+
         track = np.array(record)
         track = track[np.argsort(track[:, 0])]
 
         IDed_detections = pd.DataFrame(track, columns=['FrameId', 'Id', 'X', 'Y', 'Width', 'Height'])
         return IDed_detections.set_index(['FrameId', 'Id'])
 
-    def search_MCF_params(self):
+
+
+
+
+
+
+
+
+
+
+
+    # dirty zone
+    def search_MCF_params(self, show_results=False):
+        # if below ran once, viz results
+        if show_results:
+            metrics = pd.read_csv(f'{self.dir}/MCF_param_search.csv', index_col=0)
+            print(metrics.iloc[:,[1169, 1029, 813, 914, 780, 483, 316, 252, 32, 1, 0, 18]].T.to_string())
+            ec = self.MCF_edge_cost_thr
+            eec = self.MCF_entry_exit_cost
+            mr = self.MCF_miss_rate
+            vsw = self.MCF_vis_sim_weight
+            ccm = self.MCF_conf_capping_method
+            print(f'Current params: ec:{ec} eec:{eec} mr:{mr} vsw:{vsw} ccm:{ccm}')
+
+            metrics.sort_values('mota', axis=1, inplace=True, ascending=False)
+            x = metrics.loc['mota']
+            y = metrics.loc['motp']
+            z = metrics.loc['idf1']
+            a = metrics.loc['mostly_tracked']
+            plt.scatter(x, y, color=plt.cm.get_cmap('winter')(a/100), s=5)
+            plt.xlabel('mot accuracy')
+            plt.ylabel('mot precision')
+
+            # # annotate all drawn points with their iloc column
+            # for i in range(len(x)):
+            #     col = metrics.columns[i]
+            #     print(i, col)
+            #     lr = 'left' if i%2 else 'right'
+            #     bt = 'bottom' if i%2 else 'top'
+            #     plt.annotate(i, (metrics.loc['mota', col], metrics.loc['motp', col]), alpha=.7, ha=lr, va=bt)
+            
+            # draw only the best (preselcted by hand)
+            for i in range(len(x)):
+                if i in [1169, 1029, 813, 914, 780, 483, 316, 252, 32, 1, 0, 18]:
+                    plt.annotate(metrics.columns[i], (x[i],y[i]))
+            plt.show()
+
+            # dataframe column names to list of params to pass to search below 
+            prom_combs_str = metrics.columns.values[([1169, 1029, 813, 914, 780, 483, 316, 252, 32, 1, 0, 18])]
+            prom_combs = []
+            for comb in prom_combs_str:
+                prom_comb = [param[param.rfind(':')+1:] for param in comb.split(' ')]
+                prom_combs.append([float(e) if i+1 != len(prom_comb) else e for i, e in enumerate(prom_comb)])
+            print(prom_combs)
+
+        # get the targets to compute MOT metrics later
         target_dets_IDed = []
         for t in range(len(self)):
             frame_target = self.get_det_image_and_target(t, return_tiled=False)[1]
             target_dets_IDed.append(self.det2libmot_det(frame_target, t, 
                                                 to_pandas=True, drop_conf=True))
         target_dets_IDed = pd.concat(target_dets_IDed)
+
+        # hyperparams to search over
+        edge_cost_thr_values =  [.1, .2, .3, .4, .6, .8, 1, 1.2, 1.5, 1.8, 2.1, 2.4, 3]
+        entry_exit_cost_values = [1, 1.5, 2, 2.5, 3, 4, 5, 6]
+        miss_rate_values =  [0.8, 0.6]
+        vis_sim_weight_values = [0.05, 0.1, 0.15]
+        conf_capping_method_values = ['ceil' , 'scale_to_max']
+
+        results = []
+        # # uncomment below to search over small preslected param combinations
+        # for (ec, eec, mr, vsw, ccm) in prom_combs:
+        #     self.MCF_edge_cost_thr = ec
+        #     self.MCF_entry_exit_cost = eec
+        #     self.MCF_miss_rate = mr
+        #     self.MCF_vis_sim_weight = vsw
+        #     self.MCF_conf_capping_method = ccm
         
-        acc = mm.utils.compare_to_groundtruth(target_dets_IDed, self.IDed_detections, 'euclidean', distth=(self.nms_min_dist)**2)
-        mh = mm.metrics.create()
-        summary = mh.compute(acc, metrics=mm.metrics.motchallenge_metrics, \
-                            return_dataframe=True)
-        
-        prc_rcl = np.array([(self.get_detection_metrics(t, 'ID_assigned')) for t in range(len(self))])
-        print('Prc,Rcl,F1')
-        print(prc_rcl.mean(0))
-        print(summary.T)
-        return abs(summary['mota']), abs(summary['motp']), abs(summary['idf1']), abs(summary['num_switches'])
+        # brute search all param combinations 
+        for ec in reversed(edge_cost_thr_values):
+            self.MCF_edge_cost_thr = ec
+            for eec in reversed(entry_exit_cost_values):
+                self.MCF_entry_exit_cost = eec
+                for mr in miss_rate_values:
+                    self.MCF_miss_rate = mr
+                    for vsw in vis_sim_weight_values:
+                        self.MCF_vis_sim_weight = vsw
+                        for ccm in conf_capping_method_values:
+                            self.MCF_conf_capping_method = ccm
 
+                            key = f'ec:{ec} eec:{eec} mr:{mr} vsw:{vsw} ccm:{ccm}'
+                            print('\n\n\n', key, flush=True)
 
+                            # using MCF params defined above, assign IDs
+                            self.assign_ids(cache='from')
+                            
+                            # compute MOT benchmark
+                            acc = mm.utils.compare_to_groundtruth(target_dets_IDed, self.IDed_detections, 'euclidean', distth=(self.nms_min_dist)**2)
+                            mh = mm.metrics.create()
+                            summary = mh.compute(acc, metrics=mm.metrics.motchallenge_metrics, \
+                                                return_dataframe=True).iloc[0]
+                            
+                            # # compute precision and recall my way (tiny difference with MOT Prc, Rcl?)
+                            # prc_rcl = np.array([(self.get_detection_metrics(t, 'ID_assigned')) for t in range(len(self))])
+                            # prc_rcl = pd.Series(prc_rcl.mean(0)[:-1], index=['MyPrc', 'MyRcl'])
+                            # summary = summary.T.append(prc_rcl)
 
+                            # # compute the distance to target metrics
+                            # design_screen = PDMSDesignScreen(self.dataset, self.dir, 
+                            #                                 axon_detections=self, 
+                            #                                 cache_target_distances='no')
+                            # # compare if metrics like n axons crossgrown match ground truth
+                            # metrics = pd.Series(design_screen.compare_to_gt_hacky(self.dataset.name))
+                            # summary = summary.append(metrics)
+                            
+                            print(summary)
+                            summary.name = key
+                            results.append(summary)
 
-
-
-
-    def get_dists_to_target(self, window_size=3):
-        all_dists = self._get_astar_path_distances(self.target_astar_paths)
-        all_dists = [pd.Series(all_dists[t], index=self.detections[t].index, name=t) for t in range(len(self))]
-        all_dists = pd.concat(all_dists, axis=1)
-
-        # get the initial timepoints distance
-        init_dist = all_dists.groupby(level=0).apply(lambda row: row.dropna(axis=1).iloc[:,0])
-        # subtract that distance
-        all_dists = all_dists.apply(lambda col: col-init_dist.values)
-
-        # smooth over window_size timpoints
-        all_dists = all_dists.rolling(window_size, axis=1, center=True).mean()
-        return all_dists
+        results_csv = pd.concat(results, axis=1)
+        results_csv.to_csv(f'{self.dir}/MCF_param_search.csv')

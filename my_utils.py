@@ -72,9 +72,8 @@ def get_metadata(oir_file, notes, dt):
     channel_dict = OrderedDict()
     channels = meta_dict['OME']["Image"]["Pixels"]['Channel']
     for i, chnl in enumerate(channels):
-        
+
         if '@EmissionWavelength' in chnl:
-            print(chnl['@EmissionWavelength'])
             color = cmap[chnl['@EmissionWavelength']][0]
             laser = cmap[chnl['@EmissionWavelength']][1]
             pinhole = f'{chnl["@PinholeSize"]} um'
@@ -100,6 +99,7 @@ def get_metadata(oir_file, notes, dt):
                                    'summary': summary}
 
         else:
+            volt_gain = -1
             channel_dict['Transmission'] = {'id': i,
                                             'volt_gain': volt_gain,
                                             'summary': ''}

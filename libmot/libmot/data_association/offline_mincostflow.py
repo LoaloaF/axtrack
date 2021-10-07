@@ -157,8 +157,6 @@ class MinCostFlowTracker(object):
         for k, predecessor_node_ids in enumerate(predecessor_time_slices):
             if len(predecessor_node_ids) == 0 or len(node_ids) == 0:
                 continue
-            print()
-            print('k: ', k, end='  ')
             predecessors = [self.node[x] for x in predecessor_node_ids]
             predecessor_boxes = np.asarray(
                 [node["box"] for node in predecessors])

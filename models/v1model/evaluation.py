@@ -29,6 +29,8 @@ from AxonDetections import AxonDetections
 from exp_parameters import load_parameters, params2text
 from config import OUTPUT_DIR, SPACER
 
+from PDMSDesignScreen import PDMSDesignScreen
+
 def setup_evaluation(exp_name, run, print_params=True):
     EXP_DIR = f'{OUTPUT_DIR}/runs/{exp_name}/'
     RUN_DIR = get_run_dir(EXP_DIR, run)
@@ -45,12 +47,13 @@ def evaluate_preprocssing(exp_name, run, show=True):
     PREPROC_DATA_DIR = f'{RUN_DIR}/preproc_data/'
 
     # check if the preprocessed data file exists already, if not recreate
+    # preproc_file = f'{RUN_DIR}/preprocessed_data.csv'
     preproc_file = f'{PREPROC_DATA_DIR}/preprocessed_data.csv'
     if not os.path.exists(preproc_file):
         train_data, test_data = setup_data(parameters)
         save_preproc_metrics(RUN_DIR, train_data, test_data)
     # plot the input data distribution over taken preprocessing steps
-    plot_preprocessed_input_data(preproc_file, dest_dir=RUN_DIR, show=show)
+    plot_preprocessed_input_data(preproc_file, params['NOTES'], dest_dir=RUN_DIR, show=show)
     print('Done.')
 
 def evaluate_training(exp_run_ids, recreate=False, use_prepend_ifavail=True, show=True):
@@ -116,21 +119,25 @@ def evaluate_ID_assignment(exp_name, run, epoch='latest', cached_astar_paths='fr
 
     model, _, _, _ = setup_model(params)
     train_data, test_data = setup_data(params)
-    for data in train_data, test_data:
+    for data in train_data,test_data:
         IDed_dets_dir = f'{RUN_DIR}/axon_detections'
         axon_detections = AxonDetections(model, data, params, IDed_dets_dir)
-        axon_detections.assign_ids(cache=cached_astar_paths)
 
-        # axon_detections.search_MCF_params()
+        axon_detections.search_MCF_params(False)
         
+        axon_detections.assign_ids(cache=cached_astar_paths)
         if do_draw_all_vis:
             fname = f'{data.name}_E:{epoch}_timepoint:---|{data.sizet}'
             draw_all(axon_detections, fname, dest_dir=IDed_dets_dir, 
                      notes=params["NOTES"], use_IDed_dets=True, **kwargs)
 
-        plot_axon_IDs_lifetime(axon_detections, dest_dir=f'{RUN_DIR}/model_out', show=True)
+        if do_ID_lifetime_vis:
+            plot_axon_IDs_lifetime(axon_detections, dest_dir=f'{RUN_DIR}/model_out', show=True)
 
-        plot_dist_to_target(axon_detections, dest_dir=f'{RUN_DIR}/model_out', show=False)
+        
+        axon_detections.compute_target_distances(cache=cached_astar_paths)
+        plot_dist_to_target(axon_detections, dest_dir=f'{RUN_DIR}/model_out', 
+                            show=False)
         break
 
 def evaluate_precision_recall(exp_run_epoch_ids, show=True, avg_over_t=30):
