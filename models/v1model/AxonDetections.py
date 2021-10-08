@@ -17,6 +17,7 @@ from scipy import sparse
 from sklearn import metrics
 
 import pyastar2d
+pyastar2d
 
 from PDMSDesignScreen import PDMSDesignScreen
 from UnlabelledTimelapse import UnlabelledTimelapse
@@ -48,6 +49,8 @@ class AxonDetections(object):
         # min cost flow hyperparamters 
         # ec:0.3 eec:1.5 mr:0.6 vsw:0.05 ccm:scale_to_max
         # ec:0.4 eec:3.0 mr:0.6 vsw:0.15 ccm:scale_to_max
+        # self.MCF_edge_cost_thr =  2.2
+        # self.MCF_entry_exit_cost = 2.0
         self.MCF_edge_cost_thr =  .3
         self.MCF_entry_exit_cost = 1.5
         self.MCF_miss_rate =  0.6
@@ -56,8 +59,9 @@ class AxonDetections(object):
         self.MCF_max_flow = 120
         self.MCF_max_conf_cost = 4.6
         self.MCF_vis_sim_weight = 0.05
+        # self.MCF_conf_capping_method = 'ceil'
         self.MCF_conf_capping_method = 'scale_to_max'
-        self.MCF_min_ID_lifetime = 4
+        self.MCF_min_ID_lifetime = 2
 
         self.yolo_targets, self.pandas_tiled_dets, self.detections = self._detect_dataset()
         if self.dir:
@@ -95,7 +99,7 @@ class AxonDetections(object):
             yolo_targets.append(yolo_target)
             pandas_tiled_dets.append(pandas_tiled_det)
             detections.append(pandas_image_det_nms)
-        print('Done.\n')
+        print('Done.\n', flush=True)
         return yolo_targets, pandas_tiled_dets, detections
 
     def _yolo_Y2pandas_det(self, yolo_Y, conf_thr):
@@ -222,22 +226,28 @@ class AxonDetections(object):
             return self.detections[t][self.detections[t].conf>self.conf_thr]
         return [d[d.conf>self.conf_thr] for d in self.pandas_tiled_dets[t]]
 
-    def get_IDed_det(self, t):
+    def get_IDed_det(self, t, return_ilocs=False):
         det = self.detections[t]
         IDed_det = self.IDed_detections.loc[t, ['X','Y']]
         half_boxs = self.axon_box_size/2
+        
         valid_det = []
+        ilocs = []
         # iter old detections (longer or same size as IDed detections)
-        for _, (conf, anchor_x, anchor_y) in det.iterrows():
+        for i, (_, (conf, anchor_x, anchor_y)) in enumerate(det.iterrows()):
             # get the assigned ID by masking for matching box coordinates (hacky)
             coo_mask = (IDed_det.values==(anchor_x-half_boxs, anchor_y-half_boxs)).all(1)
             ID = IDed_det.index[coo_mask]
             # if the box coordinates where still in the IDed detections add them
             if not ID.empty:
+                ilocs.append(i)
                 valid_det.append(pd.Series([conf, anchor_x, anchor_y], 
                                             name=f'Axon_{ID[0]:0>3}', 
                                             index=('conf', 'anchor_x', 'anchor_y')))
-        return pd.concat(valid_det, axis=1).T
+        IDed_det = pd.concat(valid_det, axis=1).T
+        if not return_ilocs:
+            return IDed_det
+        return IDed_det, ilocs
 
     def get_dets_in_libmot_format(self):
         libmot_dets = []
@@ -307,6 +317,7 @@ class AxonDetections(object):
         return img, pd_image_true_det
 
     def compute_TP_FP_FN(self, t, which_det='confident', return_FP_FN_mask=False):
+        print('Calculating FP, TP, and FN...', end='', flush=True)
         if which_det == 'confident':
             det = self.get_confident_det(t)
         elif which_det == 'ID_assigned':
@@ -351,6 +362,7 @@ class AxonDetections(object):
             # select the mask corresbonding to the threshold closest to self.conf_thr
             idx = np.argmin(np.abs(self.all_conf_thrs-self.conf_thr))
             return FP_masks[idx], FN_masks[idx]
+        print('Done.', flush=True)
         return cnfs_mtrx
         
     def compute_prc_rcl_F1(self, confus_mtrx, epoch=None, which_data=None):
@@ -443,7 +455,7 @@ class AxonDetections(object):
                 t_dets = np.stack([t_ids, t_dets.anchor_y, t_dets.anchor_x], -1)
                 
                 # predecessor timestamps
-                for t_bef in range(t-1, t-(self.MCF_max_num_misses+1), -1):
+                for t_bef in range(t-1, t-(self.MCF_max_num_misses+2), -1):
                     if t_bef < 0:
                         continue
                     lbl_t_before = f'{lbl}-t:{t_bef:0>3}'
@@ -463,11 +475,6 @@ class AxonDetections(object):
                             args = repeat(t_bef_det), t_dets, repeat(weights)
                             as_paths = executer.map(self._get_path_between_dets, *args)
                         
-                        # print('hello?')
-                        # print(as_paths)
-                        # print([p if p is None else p.getnnz() for p in as_paths])
-                        # exit()
-
                         astar_paths.append([p for p in as_paths])
                     dets_astar_paths[lbl_t_before] = astar_paths
                 
@@ -477,6 +484,37 @@ class AxonDetections(object):
                     pickle.dump(dets_astar_paths, file)
         print('Done.')
         return dets_astar_paths
+
+    def get_axon_reconstructions(self, t):
+        if not t:
+            return pd.DataFrame([])
+        # get the paths from t0 to t before (t0-1)
+        lbl = f'{self.dataset.name}_t:{t:0>3}-t:{t-1:0>3}'
+        paths = self.dets_astar_paths[lbl]
+
+        # get the IDed (filtered) detections
+        dets_t, ilocs_t = self.get_IDed_det(t, return_ilocs=True)
+        dets_t_bef, ilocs_t_bef = self.get_IDed_det(t-1, return_ilocs=True)
+        
+        reconstructions = []
+        # iterate the IDed (filtered) detections at t=0
+        for i, axon_t0 in enumerate(dets_t.index):
+            # check which iloc this det had in the unfiltered t0 dets
+            t0_unfilt_dets_idx = ilocs_t[i]
+            
+            # from the IDed (filtered) t0-1 dets, get the iloc of its t0 match
+            t_bef_IDed_dets_matched_idx = np.where(dets_t_bef.index.values == axon_t0)[0]
+            # if the matching name was in the filtered t0-1 dets
+            if t_bef_IDed_dets_matched_idx:
+                # check which iloc this t0-1 det had in the unfiltered t0-1 dets
+                t_bef_unfilt_dets_idx = ilocs_t_bef[t_bef_IDed_dets_matched_idx[0]]
+
+                # finally use the indices corresbonding to unfiltered dets to 
+                # index the paths (which were computed on the unfiltered dets...)
+                p = paths[t_bef_unfilt_dets_idx][t0_unfilt_dets_idx]
+                cols = pd.MultiIndex.from_product([[axon_t0],['X','Y'],[t]])
+                reconstructions.append(pd.DataFrame([p.col, p.row], index=cols).T)
+        return pd.concat(reconstructions, axis=1)
 
     def _compute_dets_path_to_target(self, cache='to'):
         cache_fname = f'{self.dir}/{self.dataset.name}_astar_target_paths.pkl'
@@ -677,11 +715,12 @@ class AxonDetections(object):
         track = track[np.argsort(track[:, 0])]
 
         IDed_detections = pd.DataFrame(track, columns=['FrameId', 'Id', 'X', 'Y', 'Width', 'Height'])
+        print('Done.\n')
         return IDed_detections.set_index(['FrameId', 'Id'])
 
 
 
-
+    
 
 
 

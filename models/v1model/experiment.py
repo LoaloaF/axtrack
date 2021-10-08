@@ -157,13 +157,12 @@ if __name__ == '__main__':
     # evaluate_training([(exp6_name, 'run17'), (exp6_name, 'run18')])
     # evaluate_training([(exp6_name, 'run20'), (exp5_name, 'run17')], recreate=False)
     # evaluate_training([(exp6_name, 'run23'), 
-    #                 #    (exp6_name, 'run24'), 
+    #                    (exp6_name, 'run17'), 
     #                    (exp6_name, 'run28'), 
     #                    (exp6_name, 'run29'), 
     #                    (exp6_name, 'run35'), 
     #                    (exp6_name, 'run36'), 
     #                    (exp6_name, 'run37'), 
-                       
     #                    ], recreate=True)
     # evaluate_preprocssing(exp6_name, 'run35', show=True)
     # evaluate_precision_recall([(exp6_name, 'run17', 2000),
@@ -184,7 +183,11 @@ if __name__ == '__main__':
     # evaluate_model(exp5_name, 'run34', 3000, assign_ids=True)
     # evaluate_model(exp6_name, 'run12', 3000,  animated=True, show=False)
     
-    evaluate_model(exp6_name, 'run12', 3000,  animated=False, show=True, filter2FP_FN=False)
+    evaluate_ID_assignment(exp6_name, 'run17', 2000, cached_astar_paths='from', 
+                           do_draw_all_vis=True, animated=True, show=False, which_axons=['Axon_016'],
+                           hide_det2=True, draw_axons=True, color_det1_ids=True)
+
+
     # evaluate_model(exp6_name, 'run20', 500,  animated=False, show=True, filter2FP_FN=False)
     # evaluate_ID_assignment(exp6_name, 'run20', 500,  animated=False, show=False, 
     #                        cached_astar_paths='from')
@@ -192,7 +195,7 @@ if __name__ == '__main__':
     #                        do_ID_lifetime_vis=False, cached_astar_paths='from')
     
     # parameters['CACHE'] = OUTPUT_DIR
-    # parameters['FROM_CACHE'] = Nonemn
+    # parameters['FROM_CACHE'] = None
     # parameters['DEVICE'] = 'cuda:0'
     # parameters['USE_TRANSFORMS'] = []
     parameters = load_parameters(exp6_name, 'run12')

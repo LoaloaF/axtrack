@@ -3,6 +3,10 @@ from matplotlib.patches import Rectangle
 from matplotlib.lines import Line2D
 from matplotlib.animation import ArtistAnimation, writers
 
+from skimage.filters import gaussian
+from skimage.morphology import dilation
+from skimage.morphology import square
+
 import pandas as pd
 import numpy as np
 
@@ -22,7 +26,7 @@ def plot_preprocessed_input_data(preporc_dat_csv, notes='', dest_dir=None, show=
                             height_ratios=heights)
     axes = [fig.add_subplot(spec[row,col]) for row in range(len(heights)) for col in (0,1,3,4)]
     fig.suptitle(notes)
-    
+
     for i, which_preproc in enumerate(data.columns.unique(1)):
         if 'Motion' in which_preproc and not motion_plots:
             continue
@@ -146,7 +150,7 @@ def plot_training_process(training_data_files, draw_detailed_loss=False,
 
     # draw legend at last exes
     ax.legend(handles=legend_elements, bbox_to_anchor=(.05, .95), ncol=1,
-                    loc='upper left', fontsize=14)
+                    loc='upper left', fontsize=11)
     
     if show:
         plt.show()
@@ -157,21 +161,21 @@ def plot_training_process(training_data_files, draw_detailed_loss=False,
 def draw_frame(image, det1=None, det2=None, fname='image', dest_dir=None,  lbl='',
                animation=None, boxs=70, draw_grid=None, show=False, color_det1_ids=False, 
                color_det2_ids=True, det1_default_col='w', det2_default_col='w', 
-               draw_astar_paths=None):
+               draw_axons=None):
     # make sure image data has the right format: HxWxC
     im = np.array(image.detach().cpu())
     if im.shape[0] <= 3:
         im = np.moveaxis(im, 0, 2)
     height, width, cchannels = im.shape
     
-    # make everything RGB, fill if necessary 
+    # make everything RGB, fill if necessary
     emptychannel = np.zeros([height,width])
     if cchannels == 2:
         g, b = im[:,:,0], im[:,:,1]
         im = np.stack([emptychannel, g, b], axis=2)
     elif cchannels == 1:
-        r = im[:,:,0]
-        im = np.stack([r, emptychannel, emptychannel], axis=2)
+        g = im[:,:,0]
+        im = np.stack([emptychannel, g, emptychannel], axis=-1)
         
     # matplotlib likes float RGB images in range [0,1]
     min_val = im[im>0].min() if im.any().any() else 0
@@ -199,9 +203,6 @@ def draw_frame(image, det1=None, det2=None, fname='image', dest_dir=None,  lbl='
         ax.set_xlim(0, width)
         ax.set_ylim(height, 0)
 
-    if draw_astar_paths == 'whattttt?:)':
-        pass
-    
     # draw bounding boxes
     rectangles = []
     text_artists = []
@@ -221,7 +222,17 @@ def draw_frame(image, det1=None, det2=None, fname='image', dest_dir=None,  lbl='
                     text_artists.append(ax.text(x-boxs/2, y-boxs/1.5, axon_id.replace('on_',''), 
                                         fontsize=5.5, color=ax_id_col))
                     kwargs.update({'edgecolor': ax_id_col})
+                
+                
+                    # draw the A* star paths between associated detections
+                    if draw_axons is not None and axon_id in draw_axons.columns.unique(0) and i==0:
+                        if i == 0:
+                            axons_img_rgba = np.zeros((height, width, 4))
+                        draw_y = draw_axons[axon_id].Y.unstack().dropna().astype(int)
+                        draw_x = draw_axons[axon_id].X.unstack().dropna().astype(int)
+                        axons_img_rgba[draw_y, draw_x] = ax_id_col
 
+                # draw detection box
                 axon_box = Rectangle((x-boxs/2, y-boxs/2), boxs, boxs, **kwargs)
                 rectangles.append(axon_box)
     [ax.add_patch(rec) for rec in rectangles]
@@ -229,8 +240,20 @@ def draw_frame(image, det1=None, det2=None, fname='image', dest_dir=None,  lbl='
     im_artist = ax.imshow(im)
     text_artists.append(ax.text(.05, .95, lbl, transform=fig.transFigure, 
                         fontsize=height/200, color='w'))
+    artists = [im_artist, *text_artists, *rectangles]
+
+    if draw_axons is not None and not draw_axons.empty:
+        # process image without alpha, make line thicker, blur
+        selem = np.stack([np.zeros((14,14)),np.ones((14,14)),np.zeros((14,14))],-1)
+        axons_img_rgb = dilation(axons_img_rgba[:,:,:-1], selem=selem)
+        axons_img_rgb = gaussian(axons_img_rgb, 2, preserve_range=True)
+        # get the alpha channel back
+        alpha = np.maximum(0, (axons_img_rgb.max(-1)-.2))
+        axons_img_rgba = np.append(axons_img_rgb, alpha[:,:,np.newaxis], -1)
+        im2_artist = ax.imshow(axons_img_rgba)
+        artists = [im2_artist, *artists]
     if animation:
-        return [im_artist, *text_artists, *rectangles]
+        return artists
     if show:
         plt.show()
     if dest_dir:
@@ -273,7 +296,6 @@ def plot_prc_rcl(metrics_files, dest_dir=None, show=None):
         # not only the metrics file for the epoch is passed, but also the 15  
         # epochs before and after. the average over these 30 is computed below
         metrics = [pd.read_pickle(file) for file in files]
-        print(metrics)
         metric = np.stack([df.values for df in metrics if not df.empty]).mean(0)
         metric = pd.DataFrame(metric, index=metrics[0].index, 
                               columns=metrics[0].columns.droplevel(0))
@@ -307,10 +329,23 @@ def plot_prc_rcl(metrics_files, dest_dir=None, show=None):
     if dest_dir:
         fig.savefig(f'{dest_dir}/prc_rcl_{runs}.png', dpi=450)
 
+def draw_axon_reconstruction(reconstructions, img_shape, color='green'):
+    draw_y = reconstructions.loc[:, (slice(None),'Y')].unstack().dropna().astype(int)
+    draw_x = reconstructions.loc[:, (slice(None),'X')].unstack().dropna().astype(int)
 
-def draw_all(axon_dets, filename, dest_dir=None, notes='', show=False, filter2FP_FN=False,
-             save_single_tiles=False, animated=False, hide_det1=False, 
-             hide_det2=False, use_IDed_dets=False, **kwargs):
+    drawn_axons = np.zeros((img_shape), float)
+    drawn_axons[draw_y, draw_x] = 1
+    drawn_axons = dilation(drawn_axons, square(5))
+    drawn_axons = gaussian(drawn_axons, 3, preserve_range=True)
+
+    drawn_axons_rgba = np.stack([drawn_axons, *[np.zeros_like(drawn_axons)]*2, 
+                                 drawn_axons], -1)
+    return drawn_axons_rgba
+
+def draw_all(axon_dets, filename, dest_dir=None, notes='', show=False, 
+             filter2FP_FN=False, save_single_tiles=False, animated=False, 
+             hide_det1=False, hide_det2=False, use_IDed_dets=False, 
+             draw_axons=None, which_axons=None, **kwargs):
     if not dest_dir:
         dest_dir = axon_dets.dir
     if animated:
@@ -318,7 +353,6 @@ def draw_all(axon_dets, filename, dest_dir=None, notes='', show=False, filter2FP
         animated = plt.subplots(1, figsize=(axon_dets.dataset.sizex/350, 
                                 axon_dets.dataset.sizey/350), facecolor='#242424')
     which_det = 'confident' if not use_IDed_dets else 'ID_assigned'
-    # which_det = 'unfiltered'
     
     # iterate the timepoints
     for t in range(len(axon_dets)):
@@ -333,6 +367,11 @@ def draw_all(axon_dets, filename, dest_dir=None, notes='', show=False, filter2FP
         # which detections exactly to draw
         if use_IDed_dets:
             det1 = axon_dets.get_IDed_det(t)
+            if draw_axons is not None:
+                if t == 0:
+                    ax_recstrs = pd.DataFrame([])
+                else:
+                    ax_recstrs = pd.concat([ax_recstrs, axon_dets.get_axon_reconstructions(t)], axis=1)
         elif filter2FP_FN:
             FP_dets, FN_dets = axon_dets.get_FP_FN_detections(t)
             det1, det2 = FP_dets, FN_dets
@@ -345,11 +384,15 @@ def draw_all(axon_dets, filename, dest_dir=None, notes='', show=False, filter2FP
             det1 = None
         if hide_det2:
             det2 = None
+        if which_axons is not None:
+            det1 = det1.drop([ax for ax in det1.index if ax not in which_axons])
+        
 
         # draw stitched frame
         frame_artists = draw_frame(img, det1, det2, animation=animated, 
                                    dest_dir=dest_dir, draw_grid=axon_dets.tilesize, 
-                                   fname=fname, lbl=lbl, show=show, **kwargs)
+                                   fname=fname, lbl=lbl, show=show, 
+                                   draw_axons=ax_recstrs, **kwargs)
         if animated:
             anim_frames.append(frame_artists)
 

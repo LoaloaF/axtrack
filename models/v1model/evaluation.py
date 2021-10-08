@@ -119,11 +119,11 @@ def evaluate_ID_assignment(exp_name, run, epoch='latest', cached_astar_paths='fr
 
     model, _, _, _ = setup_model(params)
     train_data, test_data = setup_data(params)
-    for data in train_data,test_data:
+    for data in test_data,train_data:
         IDed_dets_dir = f'{RUN_DIR}/axon_detections'
         axon_detections = AxonDetections(model, data, params, IDed_dets_dir)
 
-        axon_detections.search_MCF_params(False)
+        # axon_detections.search_MCF_params(False)
         
         axon_detections.assign_ids(cache=cached_astar_paths)
         if do_draw_all_vis:
