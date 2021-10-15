@@ -55,7 +55,7 @@ def get_metadata(oir_file, notes, dt):
     acqui_date = [symbol if symbol.isnumeric() else '.' for symbol in acqui_date]
     acqui_date = [int(item) for item in ''.join(acqui_date).split('.')]
     acqui_date[-1] *= 1000 # to nanoseconds
-    acqui_date[3] += 2 # to GMT+1
+    acqui_date[3] += 1 # to GMT+1
     acqui_date = str(datetime.datetime(*acqui_date))[:-10]
     duration = f'{int(dt*sizet//60)}h:{int(dt*sizet%60)}min'
 

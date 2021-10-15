@@ -105,7 +105,7 @@ def run_experiment(exp_name, parameters, save_results=True):
             
             # check the model predictions every 20 Epochs
             # if epoch%500 == 0:
-            if epoch and epoch%1000 == 0:
+            if epoch%1000 == 0:
                 epoch_dir = f'{METRICS_DIR}/{epoch:0>4}_results/'
                 os.makedirs(epoch_dir)
 
@@ -147,8 +147,8 @@ if __name__ == '__main__':
 
     # os.chdir('code')
 
-    # clean_rundirs(exp6_name, delete_runs=1, keep_only_latest_model=False)
-    # clean_rundirs(exp6_name, keep_runs=[12,17,18,20,22], keep_only_latest_model=False)
+    clean_rundirs(exp6_name, delete_runs=1, keep_only_latest_model=False)
+    # clean_rundirs(exp6_name, keep_runs=[12,17,18,20,22,23,28,28,35], keep_only_latest_model=False)
     # clean_rundirs(exp6_name, delete_runs=100, keep_only_latest_model=False)
     
     # evaluate_precision_recall([(exp5_name, 'run18', 3000),(exp5_name, 'run28', 0)])
@@ -163,7 +163,8 @@ if __name__ == '__main__':
     #                    (exp6_name, 'run35'), 
     #                    (exp6_name, 'run36'), 
     #                    (exp6_name, 'run37'), 
-    #                    ], recreate=True)
+    #                    (exp6_name, 'run39'), 
+    #                    ], recreate=False)
     # evaluate_preprocssing(exp6_name, 'run35', show=True)
     # evaluate_precision_recall([(exp6_name, 'run17', 2000),
     #                            (exp6_name, 'run17', 2500),
@@ -183,12 +184,14 @@ if __name__ == '__main__':
     # evaluate_model(exp5_name, 'run34', 3000, assign_ids=True)
     # evaluate_model(exp6_name, 'run12', 3000,  animated=True, show=False)
     
-    evaluate_ID_assignment(exp6_name, 'run17', 2000, cached_astar_paths='from', 
-                           do_draw_all_vis=True, animated=True, show=False, which_axons=['Axon_016'],
-                           hide_det2=True, draw_axons=True, color_det1_ids=True)
+    # evaluate_model(exp6_name, 'run35', 3000,  animated=True, show=True, filter2FP_FN=False)
+    # evaluate_model(exp6_name, 'run39', 3000,  animated=True, show=True, filter2FP_FN=False)
 
-
-    # evaluate_model(exp6_name, 'run20', 500,  animated=False, show=True, filter2FP_FN=False)
+    evaluate_ID_assignment(exp6_name, 'run39', 3000, cached_astar_paths='from', 
+                           do_draw_all_vis=True, animated=True, show=False, # which_axons=['Axon_016'],
+                           hide_det2=False, draw_axons=True, color_det2_ids=False, 
+                           color_det1_ids=True, t_y_x_slice=[None, [1000,2000], [2000,4000]])
+    
     # evaluate_ID_assignment(exp6_name, 'run20', 500,  animated=False, show=False, 
     #                        cached_astar_paths='from')
     # evaluate_ID_assignment(exp6_name, 'run12', 3000,  animated=False, show=True, 
@@ -207,55 +210,6 @@ if __name__ == '__main__':
     parameters['NOTES'] = 'trying'
     # run_experiment(exp6_name, parameters, save_results=True)
 
-    maxp_do10_arch = [
-        #kernelsize, out_channels, stride, groups
-        [(3, 20,  2,  1),      # y-x out: 256
-         (3, 40,  2,  1),      # y-x out: 128
-         (3, 80,  1,  1),      # y-x out: 64
-         'M',
-         (3, 80,  1,  1),      # y-x out: 64
-         (3, 80,  1,  1),      # y-x out: 32
-         'M',
-         (3, 80,  1,  1),      # y-x out: 32
-         (3, 80,  1,  1),      # y-x out: 32
-         'M',
-         ],      
-        [(3, 160, 1,  1),      # y-x out: 16
-         ],
-        [('FC', 1024),
-         ('activation', nn.Sigmoid()), 
-         ('dropout', 0.20),
-         ('FC', 1024),
-         ('activation', nn.Sigmoid()), 
-         ('dropout', 0.20),
-        ]     
-    ]
-    
-    maxp_do10_deeper_arch = [
-        #kernelsize, out_channels, stride, groups
-        [(3, 20,  2,  1),      # y-x out: 256
-         (3, 40,  2,  1),      # y-x out: 128
-         (3, 40,  2,  1),      # y-x out: 128
-         (3, 80,  1,  1),      # y-x out: 64
-         'M',
-         (3, 80,  1,  1),      # y-x out: 64
-         (3, 80,  1,  1),      # y-x out: 32
-         'M',
-         (3, 80,  1,  1),      # y-x out: 32
-         (3, 80,  1,  1),      # y-x out: 32
-         (3, 80,  1,  1),      # y-x out: 32
-         'M',
-         ],      
-        [(3, 160, 1,  1),      # y-x out: 16
-         ],
-        [('FC', 1024),
-         ('activation', nn.Sigmoid()), 
-         ('dropout', 0.20),
-         ('FC', 1024),
-         ('activation', nn.Sigmoid()), 
-         ('dropout', 0.20),
-        ]     
-    ]
     maxp_arch = [
         #kernelsize, out_channels, stride, groups
         [(3, 20,  2,  1),      # y-x out: 256
@@ -277,48 +231,23 @@ if __name__ == '__main__':
          ('activation', nn.Sigmoid()), 
         ]     
     ]
-    maxp_3in_arch = [
-        #kernelsize, out_channels, stride, groups
-        [(3, 20,  2,  1),      # y-x out: 256
-         (3, 40,  2,  1),      # y-x out: 128
-         (3, 80,  1,  1),      # y-x out: 64
-         'M',
-         (3, 80,  1,  1),      # y-x out: 64
-         (3, 80,  1,  1),      # y-x out: 32
-         'M',
-         (3, 80,  1,  1),      # y-x out: 32
-         (3, 80,  1,  1),      # y-x out: 32
-         'M',
-         ],      
-        [(3, 160, 1,  1),      # y-x out: 16
-         ],
-        [('FC', 1024),
-         ('activation', nn.Sigmoid()), 
-         ('FC', 1024),
-         ('activation', nn.Sigmoid()), 
-        ]     
-    ]
 
 
-    parameters = copy(default_parameters)
-    parameters['DEVICE'] = 'cuda:0'
-    parameters['NON_MAX_SUPRESSION_DIST'] = 23
-    parameters['ARCHITECTURE'] = maxp_arch
-    parameters['FROM_CACHE'] = OUTPUT_DIR
-    parameters['NOTES'] = 'old - from_cache=True'
-    # run_experiment(exp6_name, parameters, save_results=True)
-    
+
     parameters = copy(default_parameters)
     parameters['DEVICE'] = 'cuda:1'
     parameters['NON_MAX_SUPRESSION_DIST'] = 23
     parameters['ARCHITECTURE'] = maxp_arch
+    parameters['FROM_CACHE'] = None
+    parameters['NUM_WORKERS'] = 10
     parameters['FROM_CACHE'] = OUTPUT_DIR
-    parameters['USE_TRANSFORMS'] = ['vflip', 'hflip', 'rot', 'translateY', 'translateX', 'intensity_scaling']
-    parameters['NOTES'] = 'old - from_cache=True, augmenting *0.5-1.5 intensity'
-    # run_experiment(exp6_name, parameters, save_results=True)
+    parameters['TRAIN_TIMEPOINTS'] = list(range(2,30))
+    parameters['TEST_TIMEPOINTS'] = list(range(32,35))
+    parameters['CLIP_LOWERLIM'] = 55 /2**16
+    parameters['STANDARDIZE_FRAMEWISE'] = False
+    parameters['NOTES'] = 'like run29, train/test changed'
+    run_experiment(exp6_name, parameters, save_results=True)
     
-
-
     # ========== GPU experiments ===========
     parameters = copy(default_parameters)
     parameters['DEVICE'] = 'cuda:2'
@@ -347,8 +276,6 @@ if __name__ == '__main__':
     parameters['NON_MAX_SUPRESSION_DIST'] = 23
     parameters['ARCHITECTURE'] = maxp_arch
     parameters['FROM_CACHE'] = None
-    parameters['CLIP_LOWERLIM'] = 55 /2**16
-    parameters['STANDARDIZE_FRAMEWISE'] = False
     parameters['NOTES'] = 'clip55, non-framewise,global std=1'
     # run_experiment(exp6_name, parameters, save_results=True)
     

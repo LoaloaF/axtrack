@@ -74,20 +74,25 @@ def process_dir(all_files, inp_dir, outp_dir, notes):
                             1*textsize, (2**16,2**16,2**16), 3)
 
             img_stacked = cv2.UMat.get(img_stacked).astype(float) /2**16
-            imsave(f'{outp_dir}/{area}_annotated.tif', img_stacked, compression='deflate')
+            if show:
+                plt.imshow(img_stacked)
+                plt.show()
+            skimage.io.imsave(f'{outp_dir}/{area}_annotated.png', img_stacked)
 
-inp_dir = '/run/media/loaloa/lbb_ssd/timelapse13_onemonthlater/'
-outp_dir = '/run/media/loaloa/lbb_ssd/timelapse13_onemonthlater_processed/'
-notes = 'Retrograde Ruby virus after 2d, GFP-actin from a month ago (timelapse)'
-all_files = sorted(glob(inp_dir+'Stitch*_G0*.oir'))
+inp_dir = '/run/media/loaloa/lbb_ssd/primitives_13.10/exp14_DIV7/main_Cycle_01'
+outp_dir = '/run/media/loaloa/lbb_ssd/primitives_13.10/exp14_DIV7_processed/'
+notes = 'DIV14 undergrowth structure'
+
+all_files = sorted(glob(inp_dir+'/Stitch*_G0*.oir'))
 print_files = '\n\t'.join([f for f in all_files])
 print(f'Found {len(all_files)} areas: \n\t{print_files}')
 
-save_tifs = False
-rotate = True
+save_tifs = True
+rotate = False
 save_merged_annotated = True
 scale_12bit_to16bit = True
-textsize = 3
+show = False
+textsize = 1
 
 def main():
     start_java_vm()

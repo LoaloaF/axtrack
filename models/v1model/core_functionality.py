@@ -147,7 +147,7 @@ def one_epoch(dataset, model, loss_fn, params, epoch, optimizer=None, lr_schedul
                            which_dataset, optimizer)
     
     # every 5th epoch calculate precision, recall, and F1 for entire dataset
-    if not (epoch % 20):
+    if not (epoch % 50):
         ax_dets = AxonDetections(model, dataset, params)
         cnfs_mtrx = sum([ax_dets.compute_TP_FP_FN(t) for t in range(len(ax_dets))])
         epoch_metrics = ax_dets.compute_prc_rcl_F1(cnfs_mtrx, epoch, which_dataset)

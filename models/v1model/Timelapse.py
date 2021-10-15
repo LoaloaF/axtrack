@@ -333,7 +333,7 @@ class Timelapse(Dataset):
             # get neighbouring timepoints 
             tps = [[t-tpad,t,t+tpad] for t in self.timepoints for tpad in range(1,self.temporal_context+1)]
             # unpack list and drop duplicates
-            tps = list(set([t for tp in tps for t in tp]))
+            tps = sorted(list(set([t for tp in tps for t in tp])))
         # temporal padding makes things a bit messy... the list below holds the
         # timepoints to actually feed into the model. This will be equal to
         # self.timepoints if the passed timepoints are continuous, eg (2,3,4,5)

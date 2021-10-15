@@ -22,14 +22,12 @@ from plotting import (
     plot_training_process,
     plot_prc_rcl,
     draw_all,
-    plot_axon_IDs_lifetime,
-    plot_dist_to_target,
     )
 from AxonDetections import AxonDetections
 from exp_parameters import load_parameters, params2text
 from config import OUTPUT_DIR, SPACER
 
-from PDMSDesignScreen import PDMSDesignScreen
+from StructureScreen import StructureScreen
 
 def setup_evaluation(exp_name, run, print_params=True):
     EXP_DIR = f'{OUTPUT_DIR}/runs/{exp_name}/'
@@ -89,56 +87,47 @@ def evaluate_training(exp_run_ids, recreate=False, use_prepend_ifavail=True, sho
     plot_training_process(training, dest_dir=dest_dir, show=show)
     print('Done. ')
     
-def evaluate_model(exp_name, run, epoch='latest', **kwargs):
+def evaluate_model(exp_name, run, epoch='latest', which_data='test', **kwargs):
     print('\nEvaluating model...', end='')
 
     RUN_DIR, params = setup_evaluation(exp_name, run)
-    params = to_device_specifc_params(params, get_default_parameters())
+    params = to_device_specifc_params(params, get_default_parameters(), from_cache=OUTPUT_DIR)
     params['LOAD_MODEL'] = [exp_name, run, epoch]
     params['DEVICE'] = 'cpu'
 
     model, _, _, _ = setup_model(params)
     train_data, test_data = setup_data(params)
-    for data in test_data, train_data:
-        
-        axon_detections = AxonDetections(model, data, params, f'{RUN_DIR}/axon_detections')
-        # axon_detections.update_conf_thr_to_best_F1()
-        
-        os.makedirs(f'{RUN_DIR}/model_out', exist_ok=True)
-        fname = f'{data.name}_E:{epoch}_timepoint:---|{data.sizet}'
-        draw_all(axon_detections, fname, dest_dir=f'{RUN_DIR}/model_out', 
-                 notes=params["NOTES"], color_det1_ids=False, **kwargs)
+    data = test_data if which_data == 'test' else train_data
+
+    axon_detections = AxonDetections(model, data, params, f'{RUN_DIR}/axon_detections')
+    # axon_detections.update_conf_thr_to_best_F1()
+    
+    os.makedirs(f'{RUN_DIR}/model_out', exist_ok=True)
+    fname = f'{data.name}_E:{epoch}_timepoint:---|{data.sizet}'
+    draw_all(axon_detections, fname, dest_dir=f'{RUN_DIR}/model_out', 
+                notes=params["NOTES"], color_det1_ids=False, **kwargs)
 
 def evaluate_ID_assignment(exp_name, run, epoch='latest', cached_astar_paths='from',
-                           do_draw_all_vis=False, do_ID_lifetime_vis=False, 
+                           which_data='test', do_draw_all_vis=False, do_ID_lifetime_vis=False, 
                            **kwargs):
     RUN_DIR, params = setup_evaluation(exp_name, run)
-    params = to_device_specifc_params(params, get_default_parameters())
+    params = to_device_specifc_params(params, get_default_parameters(), from_cache=OUTPUT_DIR)
     params['LOAD_MODEL'] = [exp_name, run, epoch]
     params['DEVICE'] = 'cpu'
 
     model, _, _, _ = setup_model(params)
     train_data, test_data = setup_data(params)
-    for data in test_data,train_data:
-        IDed_dets_dir = f'{RUN_DIR}/axon_detections'
-        axon_detections = AxonDetections(model, data, params, IDed_dets_dir)
+    data = test_data if which_data == 'test' else train_data
+    IDed_dets_dir = f'{RUN_DIR}/axon_detections'
 
-        # axon_detections.search_MCF_params(False)
-        
-        axon_detections.assign_ids(cache=cached_astar_paths)
-        if do_draw_all_vis:
-            fname = f'{data.name}_E:{epoch}_timepoint:---|{data.sizet}'
-            draw_all(axon_detections, fname, dest_dir=IDed_dets_dir, 
-                     notes=params["NOTES"], use_IDed_dets=True, **kwargs)
-
-        if do_ID_lifetime_vis:
-            plot_axon_IDs_lifetime(axon_detections, dest_dir=f'{RUN_DIR}/model_out', show=True)
-
-        
-        axon_detections.compute_target_distances(cache=cached_astar_paths)
-        plot_dist_to_target(axon_detections, dest_dir=f'{RUN_DIR}/model_out', 
-                            show=False)
-        break
+    axon_detections = AxonDetections(model, data, params, IDed_dets_dir)
+    
+    # axon_detections.search_MCF_params(True)
+    
+    axon_detections.assign_ids(cache=cached_astar_paths)
+    fname = f'{data.name}_E:{epoch}_timepoint:---|{data.sizet}'
+    draw_all(axon_detections, fname, dest_dir=IDed_dets_dir, dt=31,
+                notes=params["NOTES"], use_IDed_dets=True, **kwargs)
 
 def evaluate_precision_recall(exp_run_epoch_ids, show=True, avg_over_t=30):
     metrics = {}

@@ -7,12 +7,12 @@ from torch import nn as nn
 import matplotlib.pyplot as plt
 import matplotlib.font_manager as font_manager
 
-from config import RAW_DATA_DIR, OUTPUT_DIR, DEFAULT_DEVICE, DEFAULT_NUM_WORKERS, SPACER
+from config import RAW_TRAINING_DATA_DIR, OUTPUT_DIR, DEFAULT_DEVICE, DEFAULT_NUM_WORKERS, SPACER
 from utils import get_run_dir, architecture_to_text
 
 def get_default_parameters():
     # DATA
-    TIMELAPSE_FILE = RAW_DATA_DIR + 'G001_red_compr.deflate.tif'
+    TIMELAPSE_FILE = RAW_TRAINING_DATA_DIR + 'G001_red_compr.deflate.tif'
     LABELS_FILE = OUTPUT_DIR + 'labelled_axons_astardists.csv'
     MASK_FILE = OUTPUT_DIR + 'mask_wells_excl.npy'
     TRAIN_TIMEPOINTS = range(4,33)
@@ -139,9 +139,14 @@ def check_parameters(passed_params, default_params):
         print(f'Invalid parameters passed: {inval_keys}')
         exit(1)
 
-def to_device_specifc_params(model_parameters, local_default_params):
-    to_update = ('TIMELAPSE_FILE', 'LABELS_FILE', 'MASK_FILE', 'DEVICE', 'FROM_CACHE')
+def to_device_specifc_params(model_parameters, local_default_params, 
+                             from_cache=None, cache=None):
+    to_update = ('TIMELAPSE_FILE', 'LABELS_FILE', 'MASK_FILE', 'DEVICE')
     [model_parameters.update({key: local_default_params[key]}) for key in to_update]
+    if from_cache:
+        model_parameters['FROM_CACHE'] = from_cache
+    if cache:
+        model_parameters['CACHE'] = cache
     return model_parameters
 
 def compare_parameters(param1, param2):
