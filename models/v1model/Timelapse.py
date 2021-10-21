@@ -174,7 +174,9 @@ class Timelapse(Dataset):
         if mask_path:
             print('masking...', end='', flush=True)
             mask = np.load(mask_path).astype(bool)
-            imseq[:,~mask] = 0
+            if mask.ndim == 2:
+                mask = np.stack([mask]*len(imseq))
+            imseq[~mask] = 0
         if any(self.pad):
             print('padding...', end='', flush=True)
             top, right, bottom, left = self.pad
@@ -182,8 +184,8 @@ class Timelapse(Dataset):
             W = imseq.shape[2] + right + left
             padded = np.zeros((imseq.shape[0], H, W), dtype=np.float32)
             padded[:, top:top+imseq.shape[1], left:left+imseq.shape[2]] = imseq
-            padded_mask = np.zeros((H, W), dtype=int)
-            padded_mask[top:top+imseq.shape[1], left:left+imseq.shape[2]] = mask
+            padded_mask = np.zeros((imseq.shape[0], H, W), dtype=int)
+            padded_mask[:, top:top+imseq.shape[1], left:left+imseq.shape[2]] = mask
             imseq = padded
             mask = padded_mask
         print('Done.')
@@ -317,6 +319,7 @@ class Timelapse(Dataset):
             bboxes = pd.DataFrame([], index=range(self.sizet), columns=cols)
         else:
             bboxes = pd.read_csv(labels_csv, index_col=0, header=[0,1])
+            print(bboxes)
             bboxinfo_cols = ['anchor_x', 'anchor_y']
             bboxes = bboxes.loc[:, (slice(None), bboxinfo_cols)].sort_index()
             bboxes = bboxes.reset_index(drop=True)

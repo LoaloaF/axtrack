@@ -65,7 +65,7 @@ def process_dir(all_files, inp_dir, outp_dir, notes, designs, flips):
     dt = float(inp_dir[dt_idx+2:inp_dir.find('_', dt_idx)])
     print(f'Found {len(all_files)} areas - dt={dt}')
     for i, oir_file in enumerate(all_files):
-        if i <25:
+        if i >=25:
             continue
         area_index = oir_file.find('_G0')+1
         area = oir_file[area_index:area_index+4]
@@ -206,7 +206,7 @@ all_flips.append(flips)
 
 save_tifs = True
 compress = 'deflate'
-make_video = True
+make_video = False
 annotate_video = True
 textsize = 1.3
 which_tl = 'tl14'

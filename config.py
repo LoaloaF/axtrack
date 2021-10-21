@@ -9,8 +9,8 @@ if where.startswith('/home/ssteffens'):
     BASE_DIR = '/home/ssteffens/'
     
     RAW_TRAINING_DATA_DIR = '/srv/beegfs-data/projects/biohybrid-signal-p/data/timelapse01_40_min_processed/'
-    # RAW_INFERENCE_DATA_DIR = '/srv/beegfs-data/projects/biohybrid-signal-p/data/timelapse13_processed_remote/'
-    RAW_INFERENCE_DATA_DIR = '/srv/beegfs-data/projects/biohybrid-signal-p/data/tl13_tl14_all'
+    RAW_INFERENCE_DATA_DIR = '/srv/beegfs-data/projects/biohybrid-signal-p/data/timelapse13_processed_remote/'
+    # RAW_INFERENCE_DATA_DIR = '/srv/beegfs-data/projects/biohybrid-signal-p/data/tl13_tl14_all'
     SCREENING_DIR = '/srv/beegfs-data/projects/biohybrid-signal-p/data/PDMS_structure_screen/'
     
     DEFAULT_DEVICE = 'cuda:0'
@@ -44,16 +44,24 @@ BLUE = '#80A8FF'
 ORANGE = '#FFAE00'
 GREEN = '#01FF6B'
 DARK_GRAY = '#6b6b6b'
+GRAY = '#858585'
 LIGHT_GRAY = '#cfcfcf'
 WHITE = '#ffffff'
 BLACK = '#000000'
 FIGURE_FILETYPE = 'png'
-SMALL_FONTS = 9.5
-FONTS = 11
+SMALL_FONTS = 12.5
+FONTS = 16
 
 SMALL_FIGSIZE = (4.5,3.5)
 MEDIUM_FIGSIZE = (8.5,5.5)
+D21_COLOR = '#54aeb3'
+D22_COLOR = DARK_GRAY
+
+BARPLOT_HEIGHT = 3.5
+
+um_h = r'$[\frac{\mathrm{\upmu}\mathrm{m}}{\mathrm{h}}]$'
+um_d = r'$[\frac{\mathrm{\upmu}\mathrm{m}}{\mathrm{day}}]$'
 
 import matplotlib.pyplot as plt
-plt.rc('text', usetex=True)
-plt.rc('text.latex', preamble=r'\usepackage{amsmath} \usepackage{upgreek}')
+from matplotlib.colors import ListedColormap
+DESIGN_CMAP = ListedColormap([*plt.cm.get_cmap('tab20b', 20).colors, D21_COLOR, D22_COLOR])

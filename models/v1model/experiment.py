@@ -140,14 +140,13 @@ if __name__ == '__main__':
     exp4_name = 'v1Model_exp4_NewCNN'
     exp5_name = 'v1Model_exp5_RefactIDFocus'
     exp6_name = 'v1Model_exp6_AxonDetClass'
+    exp7_name = 'v1Model_exp7_final'
     
     # from utils import print_models
     # print_models()
     # exit()
 
-    # os.chdir('code')
-
-    clean_rundirs(exp6_name, delete_runs=1, keep_only_latest_model=False)
+    # clean_rundirs(exp6_name, delete_runs=1, keep_only_latest_model=False)
     # clean_rundirs(exp6_name, keep_runs=[12,17,18,20,22,23,28,28,35], keep_only_latest_model=False)
     # clean_rundirs(exp6_name, delete_runs=100, keep_only_latest_model=False)
     
@@ -187,10 +186,10 @@ if __name__ == '__main__':
     # evaluate_model(exp6_name, 'run35', 3000,  animated=True, show=True, filter2FP_FN=False)
     # evaluate_model(exp6_name, 'run39', 3000,  animated=True, show=True, filter2FP_FN=False)
 
-    evaluate_ID_assignment(exp6_name, 'run39', 3000, cached_astar_paths='from', 
-                           do_draw_all_vis=True, animated=True, show=False, # which_axons=['Axon_016'],
-                           hide_det2=False, draw_axons=True, color_det2_ids=False, 
-                           color_det1_ids=True, t_y_x_slice=[None, [1000,2000], [2000,4000]])
+    # evaluate_ID_assignment(exp6_name, 'run39', 3000, cached_astar_paths='from', 
+    #                        do_draw_all_vis=True, animated=False, show=True, # which_axons=['Axon_016'],
+    #                        hide_det2=False, draw_axons=True, color_det2_ids=False, 
+    #                        color_det1_ids=True, )#t_y_x_slice=[None, [1000,2000], [2000,4000]])
     
     # evaluate_ID_assignment(exp6_name, 'run20', 500,  animated=False, show=False, 
     #                        cached_astar_paths='from')
@@ -201,14 +200,11 @@ if __name__ == '__main__':
     # parameters['FROM_CACHE'] = None
     # parameters['DEVICE'] = 'cuda:0'
     # parameters['USE_TRANSFORMS'] = []
-    parameters = load_parameters(exp6_name, 'run12')
-    parameters = to_device_specifc_params(parameters, get_default_parameters())
-    parameters['EPOCHS'] = 1
-    # parameters['NON_MAX_SUPRESSION_DIST'] = 23
-    parameters['CACHE'] = OUTPUT_DIR
+    parameters = load_parameters(exp6_name, 'run39')
     parameters['FROM_CACHE'] = None
-    parameters['NOTES'] = 'trying'
-    # run_experiment(exp6_name, parameters, save_results=True)
+    parameters = to_device_specifc_params(parameters, get_default_parameters())
+    parameters['NOTES'] = 'setup'
+    run_experiment(exp6_name, parameters, save_results=False)
 
     maxp_arch = [
         #kernelsize, out_channels, stride, groups

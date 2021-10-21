@@ -7,6 +7,7 @@ from scipy.signal import find_peaks
 from scipy.stats import linregress
 
 from config import OUTPUT_DIR
+import config
 
 import matplotlib.pyplot as plt
 
@@ -14,14 +15,20 @@ class StructureScreen(object):
     def __init__(self, timelapse, directory, axon_detections, 
                  cache_target_distances='from'):
         self.name = timelapse.name
+        
+        self.identifier = (self.name[:4],int(self.name[6:8]),self.name[9:13])
+        self.mask = timelapse.mask
+        self.dt = timelapse.dt
+
         self.notes = timelapse.notes
         self.sizet = timelapse.sizet
         self.pixelsize = timelapse.pixelsize
-        self.pixelsize = timelapse.dt
         self.goal_mask = timelapse.goal_mask
         self.start_mask = timelapse.start_mask
         self.incubation_time = timelapse.incubation_time
         self.structure_outputchannel_coo = timelapse.structure_outputchannel_coo
+        
+        self.mask_size = self._compute_mask_size()
         
         self.dir = directory
         os.makedirs(self.dir, exist_ok=True)
@@ -43,7 +50,9 @@ class StructureScreen(object):
         self.trans_det_threshold = 4
         self.trans_det_width = (1,24)
         self.stagnating_axon_std_thr = 44
-        self.crossgrowth_speed_thr = 40
+
+        self.crossgrowth_speed_thr = 250
+        self.last_growth_trend_n = 10
 
     def __len__(self):
         return self.sizet
@@ -54,15 +63,24 @@ class StructureScreen(object):
     def get_id_lifetime(self):
         return self.all_dets.loc[self.axon_subset, (slice(None), 'conf')].fillna(False).astype(bool).values
     
-    def get_distances(self, px2um=True, timepoints2minutes=True, timeopints2DIV=True):
+    def get_distances(self, px2um=True, timepoints2minutes=True, DIV_range=None,
+                      add_incubation_time=True, interpolate_missing_det=True,
+                      timeopints2DIV=True):
         dists = self.distances.loc[self.axon_subset]
+        if interpolate_missing_det:
+            dists = dists.interpolate(axis=1, limit_area='inside')
         if px2um:
             dists *= self.pixelsize
         if timepoints2minutes:
             dists.columns = dists.columns *self.dt
-        if timeopints2DIV:
+        if add_incubation_time:
             dists.columns = dists.columns + self.incubation_time
-
+            if DIV_range:
+                tps = dists.columns.values
+                in_range = (tps > DIV_range[0]*24*60) & (tps < DIV_range[1]*24*60)
+                dists = dists.T[in_range].T.dropna(how='all')
+            if timeopints2DIV:
+                dists.columns = dists.columns /(60*24)
         return dists
     
     def _compute_goalmask2target_maxdist(self):
@@ -70,33 +88,32 @@ class StructureScreen(object):
         # euclidean distance from every point in the mask to the target coo
         # the one furthest away is the distance to the target where an axon made it
         return np.max(np.sqrt((yx-self.structure_outputchannel_coo)**2))
-
     
-    
-    
-    
-    
-    
+    def _compute_mask_size(self):
+        return self.mask.sum() * self.pixelsize
     
     # for lazyness - cache screen again to not need this thing below
     def hacky_adhoc_param_setter(self):
-        # self.id_lifetime = self._compute_id_lifetime() 
-        self.structure_outputchannel_coo = (0, 1900)
-        self.goalmask2target_maxdist = self._compute_goalmask2target_maxdist()
-        self.set_axon_subset(self.distances.index)
-        self.dt = 31
-        self.incubation_time = 52*60
+        # self.pixelsize = 0.61
+        # self.dt = 31
+        # self.identifier = (self.name[:4],int(self.name[6:8]),self.name[9:13])
+        # self.mask_size = 234000
+        # self.metric = pd.Series([self.n_axons()], index=['n_axons'], name=self.identifier)
+        # self.incubation_time = 52*60
+        self.crossgrowth_speed_thr = 250
+        self.last_growth_trend_n = 10
+
+        from glob import glob
+        goal_mask_file = glob(f'{config.RAW_INFERENCE_DATA_DIR}*{self.name}*goal.npy')
+        self.goal_mask = np.load(goal_mask_file[0])
+        self.goal_mask = np.pad(self.goal_mask, 50, mode='constant')
+        
+        start_mask_file = glob(f'{config.RAW_INFERENCE_DATA_DIR}*{self.name}*start.npy')
+        self.start_mask = np.load(start_mask_file[0])
+        self.start_mask = np.pad(self.start_mask, 50, mode='constant')
 
 
-
-
-
-
-
-
-
-
-
+        pass
 
     def compute_metrics(self, draw=False):
 
@@ -104,8 +121,6 @@ class StructureScreen(object):
         pred_gr_directions = self.growth_direction(self.distances)
         pred_axon_gr_directions = self.growth_direction_start2end(self.distances)
 
-        self.pixelsize = .62
-        
         pred_gr_directions *= self.pixelsize
         pred_axon_gr_directions *= self.pixelsize
         
@@ -123,68 +138,115 @@ class StructureScreen(object):
 
         metrics = pred_gr_directions, pred_axon_gr_directions, stagnating_axons, good_trans_axons, bad_trans_axons, reached_target_axons, crossgrown_axons
         return metrics
+        
 
 
-    def detect_axons_final_location(self, dists, dets, draw=False):
+    def detect_axons_final_location(self, dists, crossgrowth_params=None, draw=True):
         if draw:
-            fig, axes = plt.subplots(10,10, figsize=(18,12), sharex=True, sharey=True)
-            fig.subplots_adjust(wspace=0, hspace=0, top=.97, left=.03, bottom=.03, right=1)
-            fig2, ax2 = plt.subplots()
-            mask = self.goal_mask | self.start_mask
+            # one panel shows 100 axons
+            panels_needed = dists.shape[0]//100 +1
+            panels = [plt.subplots(10,10, figsize=(18,12), 
+                                  sharex=True, sharey=True) for _ in range(panels_needed)]
+            [fig.subplots_adjust(wspace=0, hspace=0, top=.96, left=.06, bottom=.06, right=.99) 
+             for fig, _ in panels]
+            panels[0][0].suptitle(self.name)
+            mask =  self.start_mask
+            # mask[self.goal_mask] = 2
+            mask_fig, mask_ax = plt.subplots(figsize=(mask.shape[1]/350, mask.shape[0]/350))
 
         axons_reached_target, axons_crossgrown = [], []
         for i in range(dists.shape[0]):
-            axon_det = dets.iloc[i].dropna()
-            dets_coos = axon_det.loc[slice(None),['anchor_y','anchor_x']].unstack().astype(int)
-            x_coos = list(dets_coos.values[:,1])
-            y_coos = list(dets_coos.values[:,0])
+            axon_det = self.all_dets.iloc[i].dropna()
+            x_coos = axon_det.loc[slice(None),['anchor_x']].astype(int).values
+            y_coos = axon_det.loc[slice(None),['anchor_y']].astype(int).values
 
             reached_goal = self.goal_mask[y_coos, x_coos]
             if reached_goal.any():
                 axons_reached_target.append(dists.index[i])
 
+            if crossgrowth_params is not None:
+                n = crossgrowth_params[0]
+                min_speed = crossgrowth_params[1]
+            else:
+                n = self.last_growth_trend_n
+                min_speed = self.crossgrowth_speed_thr
+
+
             axon_dists = dists.iloc[i].dropna()
-            last_values = axon_dists.iloc[-6:]
-            last_growth_trend = linregress(last_values.index.astype(int), last_values).slope
-            crossgrowth = self.start_mask[y_coos[-6:], x_coos[-6:]]
-            if last_growth_trend >self.crossgrowth_speed_thr and crossgrowth.any():
+            last_values = axon_dists.iloc[-n:]
+            last_growth_trend = linregress(last_values.index, last_values).slope
+            
+            crossgrowth = self.start_mask[y_coos[-n:], x_coos[-n:]]
+            if last_growth_trend >min_speed and crossgrowth.any():
                 axons_crossgrown.append(dists.index[i])
             
-            if draw:            
-                # ax = axes.flatten()[i]
-                # x = axon_dists.index.astype(int).values
-                # ax.scatter(x, axon_dists, s=4)
+            if draw:
+                panel_i, axes_i = divmod(i, 100)
+                ax = panels[panel_i][1].flatten()[axes_i]
+                ax.set_xlim(dists.columns.min(), dists.columns.max())
+                if not axes_i:
+                    ax.text(0.5, 0.02, 'DIV', fontsize=config.FONTS, transform=panels[panel_i][0].transFigure)
+                    ax.text(0.02, 0.5, 'distance to outputchannel', rotation=90, fontsize=config.FONTS, transform=panels[panel_i][0].transFigure)
+                x = axon_dists.index.values
+                # ax.scatter(x, axon_dists, s=1)
+                lbl = f'{axon_det.name}, l={len(axon_det.index.unique(0))} gt:{last_growth_trend:.2f}'
                 
-                if last_growth_trend >self.crossgrowth_speed_thr and crossgrowth.any():
-                    ax2.scatter(x_coos[-6:], y_coos[-6:], s=5)
-                    # ax.set_title(round(last_growth_trend, 2))
+                if last_growth_trend >min_speed and crossgrowth.any():
+                    mask_ax.scatter(x_coos, y_coos, s=30, marker='x', linewidth=.5)
+                    [ax.spines[w].set_color(config.ORANGE) for w in ax.spines]
+                    [ax.spines[w].set_linewidth(3) for w in ax.spines]
+                    lbl += ' - CROSS-GROWTH!'
+                    # [mask_ax.text(x, y, i, fontsize=8, color='gray') for i, (x, y) in enumerate(zip(x_coos, y_coos))]
+                
+                # if axon_det.name in ('Axon_146', 'Axon_081'):
+                #     mask_ax.scatter(x_coos, y_coos, s=10, marker='.')
 
                 if reached_goal.any():
-                    ax2.scatter(x_coos, y_coos, s=5)
-                    # ax.set_title('GOAL!')
+                    mask_ax.scatter(x_coos, y_coos, s=40, marker='+', linewidth=.5)
+                    [ax.spines[w].set_color(config.GREEN) for w in ax.spines]
+                    [ax.spines[w].set_linewidth(3) for w in ax.spines]
+                    lbl += ' - GOAL!'
                 
-                # f = np.poly1d(np.polyfit(x, axon_dists, 5))
-                # x_new = np.linspace(x[0], x[-1], 50)
-                # ax.plot(x_new, f(x_new), color='purple', linestyle='dashed', alpha=.7)
+                ax.text(.05,.05, lbl, fontsize=8, transform=ax.transAxes)
 
         if draw:
-            ax2.imshow(mask, cmap='gray')
-            plt.show()
+            mask_ax.imshow(mask, cmap='gray')
+            for i, (fig, _) in enumerate(panels):
+                fig.savefig(f'{self.dir}/single_destianations_{i}.png')
+            mask_fig.savefig(f'{self.dir}/destinations.png')
         return axons_reached_target, axons_crossgrown
 
     def n_axons(self):
         return self.distances.shape[0]
     
-    def growth_direction(self, dists):
-        ddt_growth = [dists.iloc[:,t+1] - dists.iloc[:,t] for t in range(len(self)-1)]
-        return np.array([g for ddt_g in ddt_growth for g in ddt_g if not pd.isna([g])])
+    def get_delta_growth(self, dists, absolute=True):
+        delta_growth = [dists.iloc[:,t+1] - dists.iloc[:,t].values for t in range(dists.shape[1]-1)]
+        delta_growth = pd.concat(delta_growth, axis=1)
+        if absolute:
+            delta_growth = delta_growth.abs()
+        return delta_growth
+
+    def get_growth_speed(self, dists, absolute=True, average=True, per_time_unit='d'):
+        delta_growth = self.get_delta_growth(dists, absolute)
+        if per_time_unit == 'd':
+            ddt_growth = delta_growth/ (self.dt/(60*24))
+        elif per_time_unit == 'h':
+            ddt_growth = delta_growth/ (self.dt/(60))
+        if average:
+            ddt_growth = ddt_growth.mean(1)
+        return ddt_growth
+
+
 
     def growth_direction_start2end(self, dists):
         start_dist = dists.groupby(level=0).apply(lambda row: row.dropna(axis=1).iloc[:,0])
         end_dist = dists.groupby(level=0).apply(lambda row: row.dropna(axis=1).iloc[:,-1])
-
-        distr = end_dist.values-start_dist.values
-        return distr
+        
+        # growth_direction = dists.notna().sum(1).rename('id_lifetime').to_frame()
+        # growth_direction = (growth_direction*self.dt) /60
+        growth_direction = pd.Series(end_dist.values-start_dist.values, 
+                                        index=dists.index, name='dist_change')
+        return growth_direction
     
     def detect_transitions(self, dists, draw=False):
         dists = self.subtract_initial_dist(dists)

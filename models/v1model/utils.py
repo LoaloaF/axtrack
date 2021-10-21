@@ -13,6 +13,8 @@ from torchsummary import summary
 
 from config import OUTPUT_DIR
 
+import matplotlib.pyplot as plt
+
 def create_logging_dirs(exp_name):
     EXP_DIR = f'{OUTPUT_DIR}/runs/{exp_name}'
     os.makedirs(EXP_DIR, exist_ok=True)
@@ -198,3 +200,12 @@ def prepend_prev_run(exp_name, older_run, newer_run):
         data.append(dat)
     data = pd.concat(data, axis=1)
     data.to_pickle(training_file.replace('all_epochs', 'all_epochs_prepend'))
+
+def turn_tex(on_off):
+    if on_off == 'on':
+        plt.rc('text', usetex=True)
+        plt.rc('text.latex', preamble=r'\usepackage{amsmath} \usepackage{upgreek} \usepackage{underscore}')
+    else:
+        plt.rc('text', usetex=False)
+
+    

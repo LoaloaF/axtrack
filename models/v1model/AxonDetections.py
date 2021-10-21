@@ -55,13 +55,13 @@ class AxonDetections(object):
         self.MCF_entry_exit_cost = 1
         self.MCF_miss_rate =  0.6
         self.MCF_max_num_misses = 1
-        self.MCF_min_flow = 1
-        self.MCF_max_flow = 120
+        self.MCF_min_flow = 5
+        self.MCF_max_flow = 450
         self.MCF_max_conf_cost = 4.6
         self.MCF_vis_sim_weight = 0.05
         # self.MCF_conf_capping_method = 'ceil'
         self.MCF_conf_capping_method = 'scale_to_max'
-        self.MCF_min_ID_lifetime = 1
+        self.MCF_min_ID_lifetime = 5
 
         self.yolo_targets, self.pandas_tiled_dets, self.detections = self._detect_dataset()
         if self.dir:
@@ -243,7 +243,7 @@ class AxonDetections(object):
             # get the assigned ID by masking for matching box coordinates (hacky)
             coo_mask = (IDed_det.values==(anchor_x-half_boxs, anchor_y-half_boxs)).all(1)
             ID = IDed_det.index[coo_mask]
-            # if the box coordinates where still in the IDed detections add them
+            # if the box coordinates were still in the IDed detections add them
             if not ID.empty:
                 ilocs.append(i)
                 valid_det.append(pd.Series([conf, anchor_x, anchor_y], 
@@ -496,7 +496,8 @@ class AxonDetections(object):
         print('Done.')
         return dets_astar_paths
 
-    def get_axon_reconstructions(self, t):
+    def get_axon_reconstructions(self, t, interpolate_missed_dets=True):
+        weights = np.where(self.dataset.mask, 1, 2**16).astype(np.float32)
         if not t:
             return pd.DataFrame([])
         # get the paths from t0 to t before (t0-1)
@@ -506,8 +507,10 @@ class AxonDetections(object):
         # get the IDed (filtered) detections
         dets_t, ilocs_t = self.get_IDed_det(t, return_ilocs=True)
         dets_t_bef, ilocs_t_bef = self.get_IDed_det(t-1, return_ilocs=True)
+        if interpolate_missed_dets and t>1:
+            dets_2t_bef = self.get_IDed_det(t-2, return_ilocs=False)
         
-        reconstructions = []
+        reconstructions = [pd.DataFrame([])]
         # iterate the IDed (filtered) detections at t=0
         for i, axon_t0 in enumerate(dets_t.index):
             # check which iloc this det had in the unfiltered t0 dets
@@ -516,15 +519,24 @@ class AxonDetections(object):
             # from the IDed (filtered) t0-1 dets, get the iloc of its t0 match
             t_bef_IDed_dets_matched_idx = np.where(dets_t_bef.index.values == axon_t0)[0]
             # if the matching name was in the filtered t0-1 dets
-            if t_bef_IDed_dets_matched_idx:
+            if len(t_bef_IDed_dets_matched_idx) == 1:
                 # check which iloc this t0-1 det had in the unfiltered t0-1 dets
                 t_bef_unfilt_dets_idx = ilocs_t_bef[t_bef_IDed_dets_matched_idx[0]]
-
                 # finally use the indices corresbonding to unfiltered dets to 
                 # index the paths (which were computed on the unfiltered dets...)
                 p = paths[t_bef_unfilt_dets_idx][t0_unfilt_dets_idx]
-                cols = pd.MultiIndex.from_product([[axon_t0],['X','Y'],[t]])
-                reconstructions.append(pd.DataFrame([p.col, p.row], index=cols).T)
+            
+            # interpolate one frame detection by calculating A* from t0 to t-2
+            elif interpolate_missed_dets and t>1 and axon_t0 in dets_2t_bef.index:
+                yx_det_2t_before = dets_2t_bef.loc[axon_t0][['anchor_y','anchor_x']]
+                yx_det = dets_t.loc[axon_t0][['anchor_y','anchor_x']]
+                p = self._compute_astar_path(yx_det.astype(int), 
+                                             yx_det_2t_before.astype(int), 
+                                             weights, False)
+            else:
+                continue 
+            cols = pd.MultiIndex.from_product([[axon_t0],['X','Y'],[t]])
+            reconstructions.append(pd.DataFrame([p.col, p.row], index=cols).T)
         return pd.concat(reconstructions, axis=1)
 
     def _compute_dets_path_to_target(self, cache='to'):
@@ -723,20 +735,13 @@ class AxonDetections(object):
             # iterate over lifetime timepoints
             for j, box in enumerate(t):
                 record.append([box[0], i, box[2][0], box[2][1], box[2][2], box[2][3]])
+        print(f'-> {i} axon IDs. Done.')
 
         track = np.array(record)
         track = track[np.argsort(track[:, 0])]
 
         IDed_detections = pd.DataFrame(track, columns=['FrameId', 'Id', 'X', 'Y', 'Width', 'Height'])
-        print('Done.\n')
         return IDed_detections.set_index(['FrameId', 'Id'])
-
-
-
-    
-
-
-
 
 
 
