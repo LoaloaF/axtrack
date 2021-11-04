@@ -55,6 +55,8 @@ def get_model(exp_name, run, epoch, parameters, print_params=True):
     return model
 
 def get_data_standardization_scaler(parameters):
+    if 'OFFSET' not in parameters:
+        parameters['OFFSET'] = None
     train_data, _ = setup_data(parameters)
     return train_data.stnd_scaler, train_data
 
@@ -87,13 +89,14 @@ def create_structure_screen(structure_name, directory, model, parameters,
     if check_preproc:
         preproc_file = save_preproc_metrics(directory, timelapse, train_data)
         plot_preprocessed_input_data(preproc_file, dest_dir=directory, show=False)
+    exit()
 
     axon_detections = AxonDetections(model, timelapse, parameters, f'{directory}/axon_dets')
     cache = 'to' if not use_cached_det_astar_paths else 'from'
     axon_detections.assign_ids(cache=cache)
     
     if make_tracking_video:
-        fname = f'timepoint:---of{timelapse.sizet}'
+        fname = f'timepoint---of{timelapse.sizet}'
         dest_dir = f'{directory}/det_videos'
         os.makedirs(dest_dir, exist_ok=True)
         draw_all(axon_detections, fname, dest_dir=dest_dir, 
@@ -113,7 +116,7 @@ def create_structure_screen(structure_name, directory, model, parameters,
         dists = screen.get_distances()
         target_axons, cg_axons = screen.detect_axons_final_location(dists)
         
-        fname = f'timepoint:---of{timelapse.sizet}'
+        fname = f'timepoint---of{timelapse.sizet}'
         draw_all(axon_detections, fname, dest_dir=dest_dir, which_axons=target_axons+cg_axons,
                  dt=timelapse.dt, pixelsize=timelapse.pixelsize, hide_det2=True, 
                  color_det1_ids=True, use_IDed_dets=True, anim_fname_postfix='_special_axons',
@@ -140,21 +143,22 @@ def create_structure_screen(structure_name, directory, model, parameters,
 def main():
     # general setup 
     structure_names_subset = None
-    # structure_names_subset = range(26,28)
+    # structure_names_subset = range(5,13)
     # structure_names_subset = (3,4,5,6,9,12,13,15,16)
-    # structure_names_subset = [0,25]
+    # structure_names_subset = [0,1,2,4,7]
+    structure_names_subset = [0,]
     check_preproc = True
     make_tracking_video = True
-    make_tracking_video_finaldest = True
+    make_tracking_video_finaldest = False
     tracking_video_kwargs = {'draw_axons':None, 'show':False, 'animated':True, 
                              'draw_scalebar':'top_right', }#'t_y_x_slice':[(0,20), None, None]}
     use_cached_datasets = True
-    use_cached_det_astar_paths = True
+    use_cached_det_astar_paths = False
     use_cached_target_astar_paths = False
-    use_cached_screen = True
-    num_workers = 10
+    use_cached_screen = False
+    num_workers = 4
     device = 'cuda:0'
-    exp_name, run, epoch = 'v1Model_exp6_AxonDetClass', 'run39', 3000
+    exp_name, run, epoch = 'v1Model_exp7_final', 'run24', 1500
     
     if not use_cached_screen:
         parameters = get_params(exp_name, run, num_workers, device)
@@ -199,28 +203,32 @@ def main():
         all_screens.append(screen)
 
     
-    screen = PDMSDesignScreen(all_screens, f'{config.SCREENING_DIR}/all_screens')
+    screen = PDMSDesignScreen(all_screens, f'{config.SCREENING_DIR}/all_screens_v2')
     # screen.show_masks()
     
-    # screen.sss_ID_lifetime(symlink_results=True, plot_kwargs={'show':False})
+    # screen.sss_ID_lifetime(symlink_results=False, plot_kwargs={'show':True})
     
-    # screen.sss_target_distance_over_time(symlink_results=False, plot_kwargs={'show':True})
-    # screen.sss_target_distance_over_time(symlink_results=False, plot_kwargs={'show':True, 'subtr_init_dist':False})
-    
+    show, rank = False, True
+    # screen.sss_target_distance_over_time(symlink_results=True, plot_kwargs={'show':show, 'rank':rank, })
+    # screen.sss_target_distance_over_time(symlink_results=True, plot_kwargs={'show':show, 'rank':rank, 'subtr_init_dist':False, 'fname_postfix':'_delta'})
     # screen.sss_target_distance_over_time(symlink_results=False, plot_kwargs={'show':True, 'draw_until_t':200, 'subtr_init_dist':False})
     # screen.sss_target_distance_over_time(symlink_results=False, plot_kwargs={'show':True, 'draw_until_t':140, 'subtr_init_dist':True})
     
+    screen.cs_target_distance_over_time(speed=False, plot_kwargs={'show':show})
 
+    # screen.cs_naxons(DIV_range=(2.5,6), plot_kwargs={'show':show, 'rank':rank})
+    # screen.cs_naxons(DIV_range=None, plot_kwargs={'show':show, 'rank':rank, 'fname_postfix':'_MCF_5-550_norank'})
+
+    # screen.cs_axon_growthspeed(DIV_range=None, plot_kwargs={'show':show, 'rank':rank, 'fname_postfix': '_design_norank', 'split_by':'design'})
+    # screen.cs_axon_growthspeed(DIV_range=None, plot_kwargs={'show':show, 'rank':rank, 'fname_postfix': '_channel_width', 'split_by':'channel width'})
+    # screen.cs_axon_growthspeed(DIV_range=None, plot_kwargs={'show':show, 'rank':rank, 'fname_postfix': '_2-joint placement', 'split_by':'2-joint placement'})
+
+    # screen.cs_axon_growth_direction(counted=True, plot_kwargs={'show':show, 'rank':rank, 'fname_postfix':'_norank'})
+    # screen.cs_axon_growth_direction(counted=False, plot_kwargs={'show':show, 'rank':rank, 'fname_postfix':'_norank'})
     
-    # screen.cs_naxons(DIV_range=(2.5,6), plot_kwargs={'show':False, 'fname_postfix':'_MCF_5-550'})
-    # screen.cs_naxons(DIV_range=None, plot_kwargs={'show':False, 'fname_postfix':'_MCF_5-550'})
-
-    # screen.cs_axon_growthspeed(DIV_range=(2.5,6), percentile=None, plot_kwargs={'show':True, 'fname_postfix':'20percentile_MCF_5-550'})
-    # screen.cs_axon_growthspeed(DIV_range=None, percentile=None, absolute=False, plot_kwargs={'show':False, 'fname_postfix':'non-absolute'})
-
-    screen.cs_axon_growth_direction(plot_kwargs={'show':False, 'fname_postfix':'_min500um_prop'})
-
-    # screen.cs_axon_destinations(plot_kwargs={'show':False})#DIV_range=(5.8,6.57))
+    screen.cs_axon_growth_direction(counted=False, plot_kwargs={'show':show, 'rank':rank})
+    for design_feature in config.DESIGN_FEATURE_NAMES:
+        screen.cs_axon_growth_direction(counted=False, plot_kwargs={'show':show, 'rank':rank, 'split_by':design_feature, 'fname_postfix':'_'+design_feature})
 
 
 

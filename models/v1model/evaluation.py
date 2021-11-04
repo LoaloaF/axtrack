@@ -16,6 +16,7 @@ from utils import (
     create_metricsovertime_pkl,
     get_run_dir,
     set_seed,
+    turn_tex,
     )
 from plotting import (
     plot_preprocessed_input_data, 
@@ -40,6 +41,7 @@ def setup_evaluation(exp_name, run, print_params=True):
 
 def evaluate_preprocssing(exp_name, run, show=True):
     print('Evaluating preprocessing steps...', end='')
+    turn_tex('on')
     # get the matching directory for the comb of experiment name and run name
     RUN_DIR, params = setup_evaluation(exp_name, run)
     PREPROC_DATA_DIR = f'{RUN_DIR}/preproc_data/'
@@ -75,6 +77,7 @@ def evaluate_training(exp_run_ids, recreate=False, use_prepend_ifavail=True, sho
         # check if there exists a prepended version of that run
         loss_file_prd = loss_file.replace('.pkl', '_prepend.pkl')
         metrics_file_prd = metrics_file.replace('.pkl', '_prepend.pkl')
+        print(os.path.exists(loss_file_prd) and os.path.exists(metrics_file_prd))
         if use_prepend_ifavail and os.path.exists(loss_file_prd) and os.path.exists(metrics_file_prd):
             loss_file, metrics_file = loss_file_prd, metrics_file_prd
         # if files files don't exists yet, make them here 
@@ -93,6 +96,9 @@ def evaluate_model(exp_name, run, epoch='latest', which_data='test', **kwargs):
     RUN_DIR, params = setup_evaluation(exp_name, run)
     params = to_device_specifc_params(params, get_default_parameters(), from_cache=OUTPUT_DIR)
     params['LOAD_MODEL'] = [exp_name, run, epoch]
+    params['OFFSET'] = None
+    # params['FROM_CACHE'] = None
+    # params['CACHE'] = OUTPUT_DIR
     params['DEVICE'] = 'cpu'
 
     model, _, _, _ = setup_model(params)
@@ -103,7 +109,7 @@ def evaluate_model(exp_name, run, epoch='latest', which_data='test', **kwargs):
     # axon_detections.update_conf_thr_to_best_F1()
     
     os.makedirs(f'{RUN_DIR}/model_out', exist_ok=True)
-    fname = f'{data.name}_E:{epoch}_timepoint:---|{data.sizet}'
+    fname = f'{data.name}_E:{epoch}_timepoint---of{data.sizet}'
     draw_all(axon_detections, fname, dest_dir=f'{RUN_DIR}/model_out', 
                 notes=params["NOTES"], color_det1_ids=False, **kwargs)
 
@@ -113,7 +119,8 @@ def evaluate_ID_assignment(exp_name, run, epoch='latest', cached_astar_paths='fr
     RUN_DIR, params = setup_evaluation(exp_name, run)
     params = to_device_specifc_params(params, get_default_parameters(), from_cache=OUTPUT_DIR)
     params['LOAD_MODEL'] = [exp_name, run, epoch]
-    params['DEVICE'] = 'cpu'
+    # params['DEVICE'] = 'cuda:6'
+    params['OFFSET'] = None
 
     model, _, _, _ = setup_model(params)
     train_data, test_data = setup_data(params)
@@ -122,7 +129,7 @@ def evaluate_ID_assignment(exp_name, run, epoch='latest', cached_astar_paths='fr
 
     axon_detections = AxonDetections(model, data, params, IDed_dets_dir)
     
-    # axon_detections.search_MCF_params(True)
+    axon_detections.search_MCF_params(True)
     
     axon_detections.assign_ids(cache=cached_astar_paths)
     fname = f'{data.name}_E:{epoch}_timepoint:---|{data.sizet}'
@@ -144,8 +151,12 @@ def evaluate_precision_recall(exp_run_epoch_ids, show=True, avg_over_t=30):
 
         metrics_files = [f'{RUN_DIR}/metrics/E{e:0>4}_metrics.pkl' 
                          for e in range(epoch-avg_over_t//2, epoch+avg_over_t//2+1)]
+        import pandas as pd
         # for the last Epoch, there are no 15 epochs into the future, delete those
-        metrics_files = [file for file in metrics_files if os.path.exists(file)]
+        metrics_files = [file for file in metrics_files if os.path.exists(file) and not pd.read_pickle(file).empty]
+        print()
+        print(metrics_files)
+        print()
         metrics[lbl] = metrics_files
     plot_prc_rcl(metrics, dest_dir=dest_dir, show=show)
     print('Done.')

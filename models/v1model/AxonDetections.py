@@ -26,10 +26,12 @@ from libmot.data_association  import MinCostFlowTracker
 import motmetrics as mm
 
 class AxonDetections(object):
-    def __init__(self, model, dataset, parameters, directory=None):
+    def __init__(self, model, dataset, parameters, directory=None, timepoint_subset=None):
         self.model = model
         self.dataset = dataset 
         self.dir = directory
+
+        self.timepoint_subset = timepoint_subset if timepoint_subset is not None else range(self.dataset.sizet)
         
         # basic parameters
         self.device = parameters['DEVICE']
@@ -43,7 +45,7 @@ class AxonDetections(object):
         self.axon_box_size = 70
         self.max_px_assoc_dist = 500
         # self.all_conf_thrs = np.arange(0.6, 1.13, .03).round(2)
-        self.all_conf_thrs = np.arange(0.4, 1.13, .03)
+        self.all_conf_thrs = np.arange(0.55, 1, .04).round(2)
         self.labelled = False if isinstance(dataset, UnlabelledTimelapse) else True
 
         # min cost flow hyperparamters 
@@ -68,7 +70,8 @@ class AxonDetections(object):
             os.makedirs(self.dir, exist_ok=True)
 
     def __len__(self):
-        return self.dataset.sizet
+        return len(self.timepoint_subset)
+        # return self.dataset.sizet
 
     def _detect_dataset(self):
         self.dataset.construct_tiles(self.device, force_no_transformation=True)
@@ -77,7 +80,8 @@ class AxonDetections(object):
         pandas_tiled_dets = []
         detections = []
         print(f'Detecting axons in {self.dataset.name} data: ', end='\n')
-        for t in range(len(self)):
+        # for t in range(len(self)):
+        for t in self.timepoint_subset:
             print(f'frame {t}/{(len(self)-1)}', end='...', flush=True)
             # get a stack of tiles that makes up a frame
             # batch dim of X corresbonds to all tiles in frame at time t
@@ -294,6 +298,7 @@ class AxonDetections(object):
     def get_FP_FN_detections(self, t):
         FP_dets = self.get_confident_det(t).copy()
         FN_dets = self.get_det_image_and_target(t, False)[1]
+        # FN_dets = self.get_det_image_and_target(self.timepoint_subset[t], False)[1]
 
         FP_mask, FN_mask = self.compute_TP_FP_FN(t, return_FP_FN_mask=True)
         FP_dets = FP_dets[FP_mask]
@@ -322,7 +327,7 @@ class AxonDetections(object):
         return img, pd_image_true_det
 
     def compute_TP_FP_FN(self, t, which_det='confident', return_FP_FN_mask=False):
-        print('Calculating FP, TP, and FN...', end='', flush=True)
+        print(f'Calculating FP, TP, and FN at t{t}...', end='', flush=True)
         if which_det == 'confident':
             det = self.get_confident_det(t)
         elif which_det == 'ID_assigned':
@@ -330,10 +335,11 @@ class AxonDetections(object):
         elif which_det == 'unfiltered':
             det = self.detections[t]
 
+        true_det = self.get_det_image_and_target(t, return_tiled=False)[1]
         if det.shape[0] == 0:
             det = pd.DataFrame([0,0,0], ['conf', 'anchor_x', 'anchor_y']).T
-        
-        true_det = self.get_det_image_and_target(t, return_tiled=False)[1]
+        if true_det.shape[0] == 0:
+            true_det = pd.DataFrame([0,0,0], ['conf', 'anchor_x', 'anchor_y']).T
         d = metrics.pairwise.euclidean_distances(true_det.iloc[:,1:], det.iloc[:,1:])
 
         TP_masks, FP_masks, FN_masks = [], [], []
@@ -452,13 +458,13 @@ class AxonDetections(object):
         else:
             print('Computing A* detection paths between detections...', end='')
             # make the cost matrix for finding the astar path
-            weights = np.where(self.dataset.mask==1, 1, 2**16).astype(np.float32)
-
             dets_astar_paths = {}
             for t in range(len(self)):
                 lbl = f'{self.dataset.name}_t:{t:0>3}'
                 print('\n')
-                
+
+                weights = np.where(self.dataset.mask[t].todense()==1, 1, 2**16).astype(np.float32)
+
                 # get current detections
                 t_dets = self.detections[t]
                 # ids (placeholders)
@@ -548,7 +554,6 @@ class AxonDetections(object):
             
         else:
             print('Computing A* paths to target...', end='')
-            weights = np.where(self.dataset.mask, 1, 2**16).astype(np.float32)
             target_yx = self.dataset.structure_outputchannel_coo
             
             target_astar_paths = []
@@ -556,6 +561,8 @@ class AxonDetections(object):
                 print(f't:{t:0>3}', end='...', flush=True)
                 yx = self.get_IDed_det(t).loc[:, ['anchor_y', 'anchor_x']].values.astype(int)
                 # yx = self.get_det_image_and_target(t, return_tiled=False)[1].loc[:, ['anchor_y', 'anchor_x']].values
+                
+                weights = np.where(self.dataset.mask[t].todense(), 1, 2**16).astype(np.float32)
 
                 with ThreadPoolExecutor() as executer:
                     args = repeat(target_yx), yx, repeat(weights), repeat(False)
@@ -751,8 +758,6 @@ class AxonDetections(object):
     def search_MCF_params(self, show_results=False):
         # if below ran once, viz results
         if show_results:
-            metrics = pd.read_csv(f'{self.dir}/MCF_param_search.csv', index_col=0)
-            # print(metrics.iloc[:,[1169, 1029, 813, 914, 780, 483, 316, 252, 32, 1, 0, 18]].T.to_string())
             ec = self.MCF_edge_cost_thr
             eec = self.MCF_entry_exit_cost
             mr = self.MCF_miss_rate
@@ -760,6 +765,8 @@ class AxonDetections(object):
             ccm = self.MCF_conf_capping_method
             print(f'Current params: ec:{ec} eec:{eec} mr:{mr} vsw:{vsw} ccm:{ccm}')
 
+            metrics = pd.read_csv(f'{self.dir}/MCF_param_search.csv', index_col=0)
+            # print(metrics.iloc[:,[1169, 1029, 813, 914, 780, 483, 316, 252, 32, 1, 0, 18]].T.to_string())
             metrics.sort_values('mota', axis=1, inplace=True, ascending=False)
             x = metrics.loc['idr']
             y = metrics.loc['idp']

@@ -17,6 +17,8 @@ from plotting import (
     plot_axon_growthspeed,
     plot_axon_destinations,
     plot_growth_directions,
+    plot_counted_growth_directions,
+    plot_target_distance_over_time_allscreens,
 )
 
 class PDMSDesignScreen(object):
@@ -63,7 +65,7 @@ class PDMSDesignScreen(object):
         turn_tex('off')
             
     # single screens
-    def sss_target_distance_over_time(self, symlink_results=False, plot_kwargs={}):
+    def sss_target_distance_over_time(self,symlink_results=False, plot_kwargs={}):
         print('Plotting target distance over time.')
         turn_tex('on')
         
@@ -78,9 +80,25 @@ class PDMSDesignScreen(object):
 
         turn_tex('off')
             
+    # compare designs
+    def cs_target_distance_over_time(self, speed=False, plot_kwargs={}):
+        turn_tex('on')
+
+        all_delta_dists = []
+        for ss in self:
+            dists = ss.get_distances()
+            if speed:
+                delta_dists = ss.get_growth_speed(dists, average=False)
+            else:
+                delta_dists = ss.subtract_initial_dist(dists)
+
+            delta_dists.index = pd.MultiIndex.from_product([*[[iden] for iden in ss.identifier], delta_dists.index], names=['timelapse','design','CLSM_area','axon_id'])
+            all_delta_dists.append(delta_dists)
+        all_delta_dists = pd.concat(all_delta_dists, axis=0)
         
-                # all_sizet_days = [self[i].sizet*self[i].dt /(60*24) for i in range(len(self))]
-    
+        plot_target_distance_over_time_allscreens(all_delta_dists, self.dir, speed=speed, **plot_kwargs)
+        turn_tex('off')
+            
     # compare structures 
     def cs_naxons(self, DIV_range=None, plot_kwargs={}):
         print('Plotting number of axons identified in each structure.')
@@ -104,27 +122,34 @@ class PDMSDesignScreen(object):
     #         # plt.show()
     
     # compare structures 
-    def cs_axon_growthspeed(self, DIV_range=None, percentile=None, absolute=True, plot_kwargs={}):
+    def cs_axon_growthspeed(self, DIV_range=None, percentile=None, plot_kwargs={}):
         # print('Plotting number of axons identified in each structure.')
         turn_tex('on')
         
         all_growth_speeds = []
         for ss in self:
             dists = ss.get_distances(DIV_range=DIV_range)
-            growth_speed = ss.get_growth_speed(dists, average=True, absolute=absolute).reset_index(drop=True)
+            growth_speed = ss.get_growth_speed(dists, average=True, absolute=True).reset_index(drop=True)
+            
+            identifier = ss.identifier
+            identifier = tuple(list(identifier) + ss.design_features)
+
             if percentile:
                 n = int(growth_speed.shape[0]*percentile)
                 growth_speed = growth_speed.sort_values(ascending=False).iloc[:n]
-            all_growth_speeds.append(growth_speed.rename(ss.identifier))
+            all_growth_speeds.append(growth_speed.rename(identifier))
         all_growth_speeds = pd.concat(all_growth_speeds, axis=1).T
-        all_growth_speeds.index.rename(['timelapse','design','CLSM_area'], inplace=True)
+        
+        index_names = ['timelapse','design','CLSM_area']
+        index_names.extend(config.DESIGN_FEATURE_NAMES)
+        all_growth_speeds.index.rename(index_names, inplace=True)
 
         fname = plot_axon_growthspeed(all_growth_speeds, self.dir, DIV_range, **plot_kwargs)
 
         turn_tex('off')
     
     # compare structures 
-    def cs_axon_growth_direction(self, DIV_range=None, percentile=None, absolute=True, plot_kwargs={}):
+    def cs_axon_growth_direction(self, DIV_range=None, counted=False, plot_kwargs={}):
         # print('Plotting number of axons identified in each structure.')
         turn_tex('on')
         
@@ -132,16 +157,25 @@ class PDMSDesignScreen(object):
         for ss in self:
             dists = ss.get_distances(DIV_range=DIV_range)
             growth_dir = ss.growth_direction_start2end(dists)
-            all_growth_direcs.append(growth_dir.rename(ss.identifier))
-        all_growth_direcs = pd.concat(all_growth_direcs, axis=1).T
-        all_growth_direcs.index.rename(['timelapse','design','CLSM_area'], inplace=True)
+            
+            identifier = ss.identifier
+            identifier = tuple(list(identifier) + ss.design_features)
+            all_growth_direcs.append(growth_dir.rename(identifier))
 
-        fname = plot_growth_directions(all_growth_direcs, self.dir, **plot_kwargs)
+        all_growth_direcs = pd.concat(all_growth_direcs, axis=1).T
+        index_names = ['timelapse','design','CLSM_area']
+        index_names.extend(config.DESIGN_FEATURE_NAMES)
+        all_growth_direcs.index.rename(index_names, inplace=True)
+
+        if not counted:
+            fname = plot_growth_directions(all_growth_direcs, self.dir, **plot_kwargs)
+        else:
+            plot_counted_growth_directions(all_growth_direcs, self.dir, **plot_kwargs)
 
         turn_tex('off')
     # compare structures 
     
-    def cs_axon_destinations(self, DIV_range=None, plot_kwargs={}):
+    def cs_axon_destinations(self, DIV_range=None, counted=False, plot_kwargs={}):
         # print('Plotting number of axons identified in each structure.')
         turn_tex('on')
         

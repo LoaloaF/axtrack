@@ -29,6 +29,7 @@ class StructureScreen(object):
         self.structure_outputchannel_coo = timelapse.structure_outputchannel_coo
         
         self.mask_size = self._compute_mask_size()
+        self.design_features = config.DESIGN_FEATURES[self.identifier[1]]
         
         self.dir = directory
         os.makedirs(self.dir, exist_ok=True)
@@ -90,7 +91,7 @@ class StructureScreen(object):
         return np.max(np.sqrt((yx-self.structure_outputchannel_coo)**2))
     
     def _compute_mask_size(self):
-        return self.mask.sum() * self.pixelsize
+        return self.mask[0].getnnz() * self.pixelsize
     
     # for lazyness - cache screen again to not need this thing below
     def hacky_adhoc_param_setter(self):
@@ -100,8 +101,8 @@ class StructureScreen(object):
         # self.mask_size = 234000
         # self.metric = pd.Series([self.n_axons()], index=['n_axons'], name=self.identifier)
         # self.incubation_time = 52*60
-        self.crossgrowth_speed_thr = 250
-        self.last_growth_trend_n = 10
+        # self.crossgrowth_speed_thr = 250
+        # self.last_growth_trend_n = 10
 
         from glob import glob
         goal_mask_file = glob(f'{config.RAW_INFERENCE_DATA_DIR}*{self.name}*goal.npy')
@@ -111,6 +112,9 @@ class StructureScreen(object):
         start_mask_file = glob(f'{config.RAW_INFERENCE_DATA_DIR}*{self.name}*start.npy')
         self.start_mask = np.load(start_mask_file[0])
         self.start_mask = np.pad(self.start_mask, 50, mode='constant')
+
+        self.design_features = config.DESIGN_FEATURES[self.identifier[1]]
+
 
 
         pass

@@ -5,7 +5,8 @@ import torch
 import torchvision.transforms.functional as TF
 
 def gen_denseTensorChunk(X, tchunksize):
-    X_coal = X.coalesce()
+    # X_coal = X.to('cpu').coalesce()
+    X_coal = X
     (t_idx, c_idx, y_idx, x_idx), vals = X_coal.indices(), X_coal.values()
     
     tstart, tstop = 0, tchunksize
@@ -22,7 +23,7 @@ def gen_denseTensorChunk(X, tchunksize):
         yield torch.sparse_coo_tensor(indices, vals[t_mask], size=outshape).to_dense()
         tstart, tstop = tstop, tstop+tchunksize
 
-def transform_X(X, tchunksize, angle, flip_dims, dy, dx, sizey, sizex):
+def transform_X(X, tchunksize, angle, flip_dims, dy, dx, sizey, sizex, device):
     # translating
     if dx or dy:
         X_coal = X.coalesce()
@@ -42,10 +43,13 @@ def transform_X(X, tchunksize, angle, flip_dims, dy, dx, sizey, sizex):
         X = torch.sparse_coo_tensor(indices, vals[oof], X.shape)
     
     if not flip_dims and not angle:
-        return X.to('cpu').to_dense()
+        return X.to_dense()
     else:
+        X_coal = X.coalesce()
+
         X_dense = []
-        for X_chunk in gen_denseTensorChunk(X, tchunksize):
+        for X_chunk in gen_denseTensorChunk(X_coal, tchunksize):
+            # X_chunk = X_chunk.to(device)
             
             # flipping
             if flip_dims:
@@ -135,41 +139,42 @@ def transform_Y(target, angle, flip_dims,  dy, dx, sizey, sizex):
 def apply_transformations(transform_configs, X, target, sizey, sizex, device):
     # make a transformation config: rotate, hflip, vflip translate - or not
     transform_configs = {key: round(torch.rand(1).item(), 3) for key in transform_configs}
+    # transform_configs = {key: .7 for key in transform_configs}
     print(f'New transform config set: {transform_configs}\n'
             'Transforming data...', end='', flush=True)
 
     # translating parameter
     dy, dx = 0, 0
     # dy and dx are in [-.25, +.25]
-    if transform_configs.get('translateY', 0) >.5:
-        dy = round(sizey *(transform_configs.get('translateY', 0)-.75))
-    if transform_configs.get('translateX', 0) >.5:
-        dx = round(sizex *(transform_configs.get('translateY', 0)-.75))
+    if transform_configs.get('translateY', 0) >.6:
+        dy = round(512 *(transform_configs.get('translateY', 0)-.75))
+    if transform_configs.get('translateX', 0) >.6:
+        dx = round(512 *(transform_configs.get('translateX', 0)-.75))
 
     # flipping parameter
     flip_dims = []
-    if transform_configs.get('hflip',0) > .5:
+    if transform_configs.get('hflip',0) > .6:
         flip_dims.append(2)
-    if transform_configs.get('vflip',0) > .5:
+    if transform_configs.get('vflip',0) > .6:
         flip_dims.append(3)
 
     # rotating parameter
     angle = None
-    if transform_configs.get('rot',0) > .5:
-        # angle = ((transform_configs['rot'] * 40) -20)
-        angle = ((transform_configs['rot'] * 90) -45)
+    if transform_configs.get('rot',0) > .6:
+        angle = ((transform_configs['rot'] * 40) -20)
+        # angle = ((transform_configs['rot'] * 90) -45)
 
-    if transform_configs.get('intensity_scaling',0) > .5:
-        factor = transform_configs.get('intensity_scaling',0) +.25
-        print('Intsty scaling factor: ', factor)
-        X *= factor
+    # if transform_configs.get('intensity_scaling',0) > .5:
+    #     factor = transform_configs.get('intensity_scaling',0) +.25
+    #     print('Intsty scaling factor: ', factor)
+    #     X *= factor
     
     # apply the transformation using paramters above, do on GPU, return on CPU
-    tchunksize = 2
-    X = transform_X(X.to(device), tchunksize, angle, flip_dims, dy, dx, sizey, sizex)
+    tchunksize = 60
+    X = transform_X(X, tchunksize, angle, flip_dims, dy, dx, sizey, sizex, device)
     # now transform the bboxes with the same paramters
     target_transf = transform_Y(target, angle, flip_dims, dy, dx, sizey, sizex)
-    print('Done.')
+    print('Done.', flush=True)
     torch.cuda.empty_cache()
     return X, target_transf
 

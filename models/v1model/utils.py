@@ -166,6 +166,7 @@ def merge_axes(axes, fig, merge):
 
 def set_seed(seed):
     torch.manual_seed(seed)
+    torch.cuda.manual_seed_all(seed)
     np.random.seed(seed)
 
 def architecture_to_text(arch):
@@ -182,24 +183,54 @@ def architecture_to_text(arch):
             text += f'{empty:28} {layer}\n'
     return text
 
-def prepend_prev_run(exp_name, older_run, newer_run):
+def prepend_prev_run(exp_name, older_run, newer_run, older_run_until_e=None, newer_run_until_e=None):
+    pass
     EXP_DIR = f'{OUTPUT_DIR}/runs/{exp_name}/'
 
     data = []
+    metrics_data = []
     for i, run in enumerate([older_run, newer_run]):
         RUN_DIR = get_run_dir(EXP_DIR, run)
+        
         if i == 0:
-            last_epoch = dat.columns.unique(0)[-1]
-            training_file = f'{RUN_DIR}/metrics/all_epochs.pkl'
-            dat = pd.read_pickle(training_file)
-
+            training_file = f'{RUN_DIR}/metrics/loss_all_epochs_prepend.pkl'
+            training_file_metrics = f'{RUN_DIR}/metrics/metrics_all_epochs_prepend.pkl'
         else:
+            training_file = f'{RUN_DIR}/metrics/loss_all_epochs.pkl'
+            training_file_metrics = f'{RUN_DIR}/metrics/metrics_all_epochs.pkl'
+
+        dat = pd.read_pickle(training_file)
+        
+        dat_metrics = pd.read_pickle(training_file_metrics)
+        dat_metrics.dropna(how='all',axis=1, inplace=True)
+        if i == 0:
+            if older_run_until_e:
+                dat = dat.T[dat.columns.get_level_values(0) <=older_run_until_e].T
+                dat_metrics = dat_metrics.T[dat_metrics.columns.get_level_values(0) <=older_run_until_e].T
+
+            last_epoch = dat.columns.unique(0)[-1]
+            last_epoch_metrics = dat_metrics.columns.unique(0)[-1]
+        else:
+            if newer_run_until_e:
+                dat = dat.T[dat.columns.get_level_values(0) <=newer_run_until_e].T
+                dat_metrics = dat_metrics.T[dat_metrics.columns.get_level_values(0) <=newer_run_until_e].T
             dat = dat.stack(level=(-1,-2))
             dat.columns = dat.columns.values + last_epoch+1
             dat = dat.unstack(level=(-1,-2))
+
+            dat_metrics = dat_metrics.stack(level=(-1,-2))
+            dat_metrics.columns = dat_metrics.columns.values + last_epoch_metrics+1
+            dat_metrics = dat_metrics.unstack(level=(-1,-2))
+            dat_metrics.dropna(how='all',axis=1, inplace=True)
+        print(dat)
+        print(dat_metrics)
         data.append(dat)
+        metrics_data.append(dat_metrics)
     data = pd.concat(data, axis=1)
+    metrics_data = pd.concat(metrics_data, axis=1)
     data.to_pickle(training_file.replace('all_epochs', 'all_epochs_prepend'))
+    # print(data)
+    metrics_data.to_pickle(training_file_metrics.replace('all_epochs', 'all_epochs_prepend'))
 
 def turn_tex(on_off):
     if on_off == 'on':

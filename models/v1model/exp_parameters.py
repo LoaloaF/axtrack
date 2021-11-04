@@ -17,16 +17,21 @@ def get_default_parameters():
     MASK_FILE = OUTPUT_DIR + 'mask_wells_excl.npy'
     TRAIN_TIMEPOINTS = range(4,33)
     TEST_TIMEPOINTS = list(range(2,4)) + list(range(33,35))
+    
+    TEST_TIME_DISCONTINUITIES = [37+80]
+    TRAIN_TIME_DISCONTINUITIES = [37, 37+80-20, 37+80+20]
+    
     LOG_CORRECT = True
     PLOT_PREPROC = True
     STANDARDIZE = ('zscore', None)
 
-    STANDARDIZE_FRAMEWISE = True
+    STANDARDIZE_FRAMEWISE = False
     TEMPORAL_CONTEXT = 2
     USE_MOTION_DATA = 'exclude' #, 'include'  'only'
     USE_SPARSE = False
     USE_TRANSFORMS = ['vflip', 'hflip', 'rot', 'translateY', 'translateX']
-    CLIP_LOWERLIM = 43 /2**16
+    CLIP_LOWERLIM = 55 /2**16
+    OFFSET = None
     PAD = [0,300,0,300]
     CACHE = None
     FROM_CACHE = OUTPUT_DIR
@@ -38,20 +43,24 @@ def get_default_parameters():
         #kernelsize, out_channels, stride, groups
         [(3, 20,  2,  1),      # y-x out: 256
          (3, 40,  2,  1),      # y-x out: 128
-         (3, 80,  2,  1),      # y-x out: 64
          (3, 80,  1,  1),      # y-x out: 64
-         (3, 80,  2,  1),      # y-x out: 32
+         'M',
+         (3, 80,  1,  1),      # y-x out: 64
+         (3, 80,  1,  1),      # y-x out: 32
+         'M',
          (3, 80,  1,  1),      # y-x out: 32
          (3, 80,  1,  1),      # y-x out: 32
+         'M',
          ],      
-        [(3, 160, 2,  1),      # y-x out: 16
+        [(3, 160, 1,  1),      # y-x out: 16
          ],
         [('FC', 1024),
          ('activation', nn.Sigmoid()), 
          ('FC', 1024),
          ('activation', nn.Sigmoid()), 
-        ]     
+        ]
     ]
+
     IMG_DIM = 2920, 6364
     SY, SX = 12, 12
     TILESIZE = 512
@@ -59,7 +68,7 @@ def get_default_parameters():
     ACTIVATION_FUNCTION = nn.LeakyReLU(0.1)
 
     # ID stuff
-    NON_MAX_SUPRESSION_DIST = 18
+    NON_MAX_SUPRESSION_DIST = 23
 
     WEIGHT_DECAY = 5e-4
     BATCH_SIZE = 32

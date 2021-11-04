@@ -22,14 +22,16 @@ from AxonDetections import AxonDetections
 def plot_preprocessed_input_data(preporc_dat_csv, notes='', dest_dir=None, show=False, motion_plots=False):
     data = pd.read_csv(preporc_dat_csv, header=[0,1,2], index_col=0)
 
-    fig = plt.figure(figsize=(18,9))
-    fig.subplots_adjust(hspace=.4, wspace=.05, top=.95, bottom=.05, left= .03, right=.97)
+    fig = plt.figure(figsize=config.LARGE_FIGSIZE)
+    fig.subplots_adjust(hspace=.4, wspace=.05, top=.95, bottom=.1, left= .07, right=.97)
     widths = [1, 1, 0.3, 1, 1]
     heights = [1, 1, 1] if motion_plots else [1, 1]
     spec = fig.add_gridspec(ncols=5, nrows=len(heights), width_ratios=widths,
                             height_ratios=heights)
     axes = [fig.add_subplot(spec[row,col]) for row in range(len(heights)) for col in (0,1,3,4)]
-    fig.suptitle(notes)
+    axes[0].text(.48,.03, 'pixel intensity', transform=fig.transFigure, fontsize=config.FONTS)
+    axes[0].text(.02,.5, 'density', transform=fig.transFigure, rotation=90, fontsize=config.FONTS)
+    # fig.suptitle(notes)
 
     which_preproc_steps = data.columns.unique(1)
     
@@ -45,10 +47,12 @@ def plot_preprocessed_input_data(preporc_dat_csv, notes='', dest_dir=None, show=
             ax.spines['top'].set_visible(False)
             ax.spines['right'].set_visible(False)
             ax.grid(color='#d1d1cf', zorder=0)
-            ax.tick_params(axis='both', labelsize=8)
-            ax.set_title(f'{which_timpoint}-data: {which_preproc}', fontsize=9)
+            ax.tick_params(axis='both', labelsize=config.SMALL_FONTS)
+            which_preproc_title = which_preproc if not which_preproc.startswith('Standardized') else 'Standardized'
+            tit = which_timpoint if which_timpoint == 't_0' else 't_N'
+            ax.set_title(f'{tit}-data: {which_preproc_title}', fontsize=config.FONTS)
             if j:
-                ax.tick_params(labelleft=False, labelright=True)
+                ax.tick_params(labelleft=False)
             
             for dat_name in data.columns.unique(0):
                 # when standardized label differs....
@@ -57,23 +61,26 @@ def plot_preprocessed_input_data(preporc_dat_csv, notes='', dest_dir=None, show=
                 dat = data[(dat_name, which_preproc, which_timpoint)]
                 
                 if which_preproc.startswith('Standardized'):
-                    args = {'bins': 2**14, 'range':(0, 60)}
-                    ax.set_ylim((0, 2))
-                    ax.set_xlim((-.5, 1.5))
-                    # ax.set_xlim((-.5, 1.5))
+                    args = {'bins': 2**9, }
+                    ax.set_ylim((0, .95))
+                    ax.set_xlim((-.06, 1.15))
                 elif 'Motion' in which_preproc:
                     args = {'bins': 2**10, }
                     ax.set_ylim((0, 0.1))
-                    ax.set_xlim((-.5, 14))
+                    ax.set_xlim((-.1, 14))
                 else:
-                    args = {'bins': 2**10, 'range':(0, 1/2**4)} # image data is saved in 12bit format (0-4095)
-                    ax.set_ylim((0, 50))
-                    ax.set_xlim((-.01, .09))
+                    args = {'bins': 2**9} # image data is saved in 12bit format (0-4095)
+                    ax.set_ylim((0, 65))
+                    ax.set_xlim((-.001, .014))
                 
-                dat_sprsty = f', sparsity: {(dat==0).sum()/len(dat):.3f}'
+                lbl = f'{(dat==0).sum()/len(dat):.2f}'
+
+                if i == 0:
+                    name = 'Train' if dat_name == 'train' else 'Infer'
+                    lbl = f'{name}, sparsity {lbl}'
                 ax.hist(dat, alpha=.5, density=True, zorder=3,
-                                label=dat_name+dat_sprsty, **args)
-            ax.legend(fontsize=8)
+                                label=lbl, **args)
+            ax.legend(fontsize=config.SMALL_FONTS, loc='upper right', bbox_to_anchor=(1.03, 1.03))
     if show:
         plt.show()
     if dest_dir is not None:
@@ -85,8 +92,8 @@ def plot_preprocessed_input_data(preporc_dat_csv, notes='', dest_dir=None, show=
 def plot_training_process(training_data_files, draw_detailed_loss=False, 
                           draw_best_thresholds=False, show=False, dest_dir=None):
     # create the figure, share epoch (x axis)
-    fig, axes = plt.subplots(2,4, figsize=(19,9), sharex=True)
-    fig.subplots_adjust(wspace=.03, left=.03, right=.97, bottom=.05, top=.95)
+    fig, axes = plt.subplots(2,4, figsize=config.LARGE_FIGSIZE, sharex=True)
+    fig.subplots_adjust(wspace=.03, left=.05, right=.97, bottom=.08, top=.95)
     axes = axes.flatten()
     
     # iterate over different runs
@@ -101,13 +108,14 @@ def plot_training_process(training_data_files, draw_detailed_loss=False,
         
         # iterate the different plots/ value groups to plot
         for i, ax in enumerate(axes):
+            ax.tick_params(labelsize=config.SMALL_FONTS)
             if i not in [0,4]:
                 ax.tick_params(labelleft=False)
 
             # loss plots: xy anchor, box loss, no-box loss, summed loss
             if i<4:
                 x_epochs = loss_x_epochs
-                ax.set_ylim(0,15)
+                ax.set_ylim(0,10)
 
                 # get one specific loss
                 name = loss.index[i]
@@ -120,27 +128,27 @@ def plot_training_process(training_data_files, draw_detailed_loss=False,
             # metrics plots (precision, recall, F1)
             elif i <7:
                 x_epochs = metric_x_epochs
-                ax.set_ylim(0.45,1.05)
+                ax.set_ylim(0.25,1.05)
                 ax.set_yticks(np.arange(0.4,1.01, .1))
-                ax.set_xlabel('Epoch')
+                ax.set_xlabel('Epoch', fontsize=config.FONTS)
                 
                 # get one specific metrics
                 name = metric.index[i-4]
                 trn_mtrc = metric.loc[name, (slice(None), 'train')].droplevel((1,2))
                 tst_mtrc = metric.loc[name, (slice(None), 'test')].droplevel((1,2))
                 # smooth 
-                trn_data = trn_mtrc.ewm(span=10).mean()
-                tst_data = tst_mtrc.ewm(span=10).mean()
+                trn_data = trn_mtrc.ewm(span=1).mean()
+                tst_data = tst_mtrc.ewm(span=1).mean()
 
             # last plot (8/8) has no data, legend is place here
             elif i == 7:
                 ax.axis('off')
                 # save the run's identifying color to make legend in the end
                 legend_elements.extend([
-                    Line2D([0], [0], label=f'Train - {exp_run_id}', color=trn_col,
-                            **dict(TRAIN_Ps, **{'linewidth':4})),
+                    Line2D([0], [0], label=f'Train', color=trn_col,
+                            **dict(TRAIN_Ps, **{'linewidth':3})),
                     Line2D([0], [0], label=f'Test', color=tst_col,
-                            **dict(TEST_Ps, **{'linewidth':4}),),])
+                            **dict(TEST_Ps, **{'linewidth':3}),),])
                 # for filename later
                 if len(training_data_files) >1:
                     file_name_apdx += exp_run_id[:5]
@@ -153,7 +161,7 @@ def plot_training_process(training_data_files, draw_detailed_loss=False,
             
             # general args for every axis
             ax.grid(True)
-            ax.set_title(name)
+            ax.set_title(name, fontsize=config.FONTS)
 
             # finally draw the train and test data defined above
             ls = ax.plot(x_epochs, trn_data, **TRAIN_Ps)
@@ -163,12 +171,12 @@ def plot_training_process(training_data_files, draw_detailed_loss=False,
 
     # draw legend at last exes
     ax.legend(handles=legend_elements, bbox_to_anchor=(.05, .95), ncol=1,
-                    loc='upper left', fontsize=11)
+                    loc='upper left', fontsize=config.FONTS)
     
     if show:
         plt.show()
     if dest_dir is not None:
-        fname = f'{dest_dir}/training{file_name_apdx}.png'
+        fname = f'{dest_dir}/training{file_name_apdx}.{config.FIGURE_FILETYPE}'
         fig.savefig(fname, dpi=450)
 
 def draw_frame(image, det1=None, det2=None, fname='image', dest_dir=None,  lbl='',
@@ -206,14 +214,14 @@ def draw_frame(image, det1=None, det2=None, fname='image', dest_dir=None,  lbl='
     ax.set_facecolor('#242424')
 
     # draw yolo lines
-    if draw_grid and int(fname[fname.rfind(':')+1:fname.rfind('of')]) == 0:
+    if (draw_grid and not animation) or (draw_grid and animation and int(fname[fname.rfind('of')-3:fname.rfind('of')]) == 0):
         ax.set_xlim(0, width)
         ax.set_ylim(height, 0)
         gridsize = round(draw_grid)
         at_x = [gridsize*i for i in range(width//gridsize+1)]
         at_y = [gridsize*i for i in range(width//gridsize+1)]
-        ax.vlines(at_x, 0, height, color='white', linewidth=.5, alpha=.1)
-        ax.hlines(at_y, 0, width, color='white', linewidth=.5, alpha=.1)
+        ax.vlines(at_x, 0, height, color='white', linewidth=.5, alpha=.3)
+        ax.hlines(at_y, 0, width, color='white', linewidth=.5, alpha=.3)
 
     # draw scalebar
     if draw_scalebar and pixelsize:
@@ -280,36 +288,36 @@ def draw_frame(image, det1=None, det2=None, fname='image', dest_dir=None,  lbl='
     if show:
         plt.show()
     if dest_dir:
-        fig.savefig(f'{dest_dir}/{fname}.png')
+        fig.savefig(f'{dest_dir}/{fname}.{config.FIGURE_FILETYPE}')
         plt.close(fig) 
 
 
 def plot_prc_rcl(metrics_files, dest_dir=None, show=None):
-    fig, axes = plt.subplots(1, 2)
-    fig.subplots_adjust(bottom=.001)
-    ticks = np.arange(0.2, 1.1, 0.1)
+    fig, axes = plt.subplots(1, 2, figsize=config.MEDIUM_FIGSIZE)
+    fig.subplots_adjust(bottom=.01, wspace=.3, right=.95)
+    ticks = np.arange(0.3, 1.1, 0.2)
     lims = (.25, 1.04)
 
     # setup both axes
     for i, ax in enumerate(axes):
         ax.set_ylim(*lims) 
         ax.set_yticks(ticks)
-        ax.set_yticklabels([f'{t:.1f}' for t in ticks], fontsize=8)
+        ax.set_yticklabels([f'{t:.1f}' for t in ticks], fontsize=config.SMALL_FONTS)
 
         ax.set_xlim(*lims)
         ax.set_xticks(ticks)
-        ax.set_xticklabels([f'{t:.1f}' for t in ticks], fontsize=8)
+        ax.set_xticklabels([f'{t:.1f}' for t in ticks], fontsize=config.SMALL_FONTS)
 
         ax.set_aspect('equal')
         ax.spines['top'].set_visible(False)
         ax.spines['right'].set_visible(False)
         ax.grid()
         if i == 0:
-            ax.set_xlabel('Precision', fontsize=10)
-            ax.set_ylabel('Recall', fontsize=10)
+            ax.set_xlabel('Precision', fontsize=config.FONTS)
+            ax.set_ylabel('Recall', fontsize=config.FONTS)
         else:
-            ax.set_xlabel('Thresholds', fontsize=10)
-            ax.set_ylabel('F1', fontsize=10)
+            ax.set_xlabel('Thresholds', fontsize=config.FONTS)
+            ax.set_ylabel('F1', fontsize=config.FONTS)
 
     # iterate different files
     legend_elements, runs = [], ''
@@ -319,6 +327,7 @@ def plot_prc_rcl(metrics_files, dest_dir=None, show=None):
         # not only the metrics file for the epoch is passed, but also the 15  
         # epochs before and after. the average over these 30 is computed below
         metrics = [pd.read_pickle(file) for file in files]
+        # print(metrics)
         metric = np.stack([df.values for df in metrics if not df.empty]).mean(0)
         metric = pd.DataFrame(metric, index=metrics[0].index, 
                               columns=metrics[0].columns.droplevel(0))
@@ -342,15 +351,15 @@ def plot_prc_rcl(metrics_files, dest_dir=None, show=None):
 
         # legend 
         legend_elements.extend([
-            Line2D([0], [0], label=f'Train - {name}', color=col, **dict(TRAIN_Ps, **{'linewidth':4})),
+            Line2D([0], [0], label=f'Train - {name[6:12]}', color=col, **dict(TRAIN_Ps, **{'linewidth':4})),
             Line2D([0], [0], label=f'Test', color=col, **dict(TEST_Ps, **{'linewidth':3}))
             ])
-    axes[0].legend(handles=legend_elements, bbox_to_anchor=(-.2, 1.05), ncol=2,
-                   loc='lower left', fontsize=8,)
+    axes[0].legend(handles=legend_elements, bbox_to_anchor=(-.2, 1.05), ncol=3,
+                   loc='lower left', fontsize=config.SMALL_FONTS)
     if show:
         plt.show()
     if dest_dir:
-        fig.savefig(f'{dest_dir}/prc_rcl_{runs}.png', dpi=450)
+        fig.savefig(f'{dest_dir}/prc_rcl_{runs}.{config.FIGURE_FILETYPE}')
 
 # def draw_axon_reconstruction(reconstructions, img_shape, color='green'):
 #     draw_y = reconstructions.loc[:, (slice(None),'Y')].unstack().dropna().astype(int)
@@ -384,7 +393,6 @@ def draw_all(axon_dets, filename, dest_dir=None, notes='', dt=None, show=False,
         anim_frames = []
         animated = plt.subplots(1, figsize=(xmax/350, ymax/350), facecolor='#242424')
     which_det = 'confident' if not use_IDed_dets else 'ID_assigned'
-    
     # iterate the timepoints
     for t in range(len(axon_dets))[tslice]:
         fname = filename.replace('---', f'{t:0>3}') 
@@ -454,7 +462,6 @@ def draw_all(axon_dets, filename, dest_dir=None, notes='', dt=None, show=False,
             det2 = det2[(det2.anchor_y>=ymin).values & (det2.anchor_y<ymax).values]
             det2 = det2[(det2.anchor_x>=xmin).values & (det2.anchor_x<xmax).values]
         
-
         # draw stitched frame
         frame_artists = draw_frame(img, det1, det2, animation=animated, 
                                    dest_dir=dest_dir, draw_grid=axon_dets.tilesize, 
@@ -471,7 +478,7 @@ def draw_all(axon_dets, filename, dest_dir=None, notes='', dt=None, show=False,
             for tile_i in range(n_tiles):
                 tile = img_tiled[tile_i][axon_dets.dataset.get_tcenter_idx()]
                 target_det = tiled_true_det[tile_i]
-                draw_frame(tile, tiled_det[tile_i], target_det, 
+                draw_frame(tile, None, None, 
                            draw_grid=axon_dets.tilesize/axon_dets.Sx, boxs=axon_dets.axon_box_size,
                            dest_dir=dest_dir, show=show, 
                            fname=f'{fname}_tile{tile_i:0>2}|{n_tiles:0>2}')
@@ -487,8 +494,8 @@ def draw_all(axon_dets, filename, dest_dir=None, notes='', dt=None, show=False,
             # pickle.dump(ani, open(f'{dest_dir}/{axon_dets.dataset.name}_assoc_dets_unrendered.pkl', 'wb'))
         ani.save(f'{dest_dir}/{axon_dets.dataset.name}_assoc_dets{anim_fname_postfix}.mp4', 
                  writer=writers[VIDEO_ENCODER](fps=4), dpi=160)
-        plt.close()
         print(f'{axon_dets.dataset.name} animation saved.')
+    plt.close('all')
     print(' - Done.', flush=True)
 
 
@@ -529,6 +536,7 @@ def plot_axon_IDs_lifetime(structure_screen, show=False, sort=True, subtr_t0=Tru
         id_lifetime = id_lifetime_new
 
     fig, ax = plt.subplots(figsize=config.SMALL_FIGSIZE)
+    fig.subplots_adjust(left=.15)
     # colormap that is white for False (ID not present at t) and green for True
     ax.imshow(id_lifetime, cmap=ListedColormap([config.WHITE, config.GREEN]))
     ax.set_title(f'ID lifetime - {structure_screen.name}', fontsize=config.FONTS)
@@ -555,16 +563,16 @@ def plot_axon_IDs_lifetime(structure_screen, show=False, sort=True, subtr_t0=Tru
         
 
 def plot_target_distance_over_time(structure_screen, show=False, subtr_init_dist=True,
-                                   draw_until_t=None):
+                                   draw_until_t=None, fname_postfix=''):
     dists = structure_screen.get_distances()
     if subtr_init_dist:
         dists = structure_screen.subtract_initial_dist(dists)
     nIDs, sizet = dists.shape
 
     fig, ax = plt.subplots(figsize=config.MEDIUM_FIGSIZE)
-    fig.subplots_adjust(left=.15)
+    fig.subplots_adjust(left=.14, right=.95)
     [ax.spines[which_spine].set_visible(False) for which_spine in ax.spines]
-    title = 'distance to outputchannel'
+    # title = 'distance to outputchannel'
     
     # for dynamic plotting, eg inserting distance over time into timelapse video
     if draw_until_t:
@@ -578,45 +586,48 @@ def plot_target_distance_over_time(structure_screen, show=False, subtr_init_dist
         tmax = sizet
         main_col = config.BLACK
 
-    # look at absolute distance to outputchannel
-    if not subtr_init_dist:
-        min_dist = structure_screen.goalmask2target_maxdist
-        ax.add_patch(Rectangle((0,0), sizet, min_dist, facecolor=config.DARK_GRAY, 
-                               edgecolor='none', alpha=.2))
-        ymin, ymax = 0, 4000
-        yticks = range(ymin, ymax, 1500)
-        ax.text(.14, 0.13, 'outputchanel\nreached', fontsize=config.FONTS, 
-                color=main_col, transform=fig.transFigure, ha='right') 
-    
-    # or let every ID start at distance=0, then see if it increases or decreases
-    else:
-        title = 'relative ' + title
-        ymin, ymax = -2500, 2500
-        yticks = range(ymin+500,ymax-499, 1000)
-        ax.text(.1, 0.5, r'decreases \hspace{4cm} increases', rotation=90,
-                fontsize=config.FONTS, color=main_col, transform=fig.transFigure,
-                va='center', ha='center')
-
-    # y axis setup (distance)
-    ax.grid(axis='y', which='major', alpha=.4)
-    ax.set_ylim(ymin, ymax)
-    ax.set_yticks(yticks)
-    ax.set_yticklabels([str(yt)+r' $\upmu$m' for yt in yticks])
-    ax.tick_params(labelsize=config.SMALL_FONTS, color=main_col, labelleft=False,
-                   left=False, labelright=True, labelcolor=main_col)
-
     # x axis setup (time)
     xmin, xmax = 0, sizet
     ax.set_xlim(xmin, xmax)
-    days = np.array([t//(24*60) for t in dists.columns])
+    days = dists.columns.values.astype(int)
     # get the indices where a new day starts, only plot those
     timepoints_indices = np.unique(days, return_index=True)[1]
     ax.set_xticks(timepoints_indices)
     ax.set_xticklabels([days[t] for t in timepoints_indices])
     ax.set_xlabel('DIV', color=main_col, fontsize=config.FONTS)
 
+    # look at absolute distance to outputchannel
+    if not subtr_init_dist:
+        min_dist = structure_screen._compute_goalmask2target_maxdist()
+        ax.add_patch(Rectangle((0,0), sizet, min_dist, facecolor=config.DARK_GRAY, 
+                               edgecolor='none', alpha=.2))
+        ymin, ymax = 0, 4000
+        yticks = range(ymin, ymax, 1500)
+        ylbl = f'distance to outputchannel {config.um}'
+        ax.text(xmax-5,ymin+200, 'outputchannel reached', ha='right', va='center', fontsize=config.SMALL_FONTS, color=main_col)
+    
+    # or let every ID start at distance=0, then see if it increases or decreases
+    else:
+        ymin, ymax = -2500, 2500
+        yticks = range(ymin+500,ymax-499, 1000)
+        ylbl = f'{config.delta} distance to outputchannel {config.um}'
+        alpha = .06 if not draw_until_t else .12
+        ax.add_patch(Rectangle((0,0), xmax, ymax, color=config.RED, alpha=alpha, zorder=1))
+        ax.text(xmax-5,ymax-200, 'distance increases', ha='right', va='center', fontsize=config.SMALL_FONTS, color=main_col)
+        ax.add_patch(Rectangle((0,0), xmax, ymin, color=config.GREEN, alpha=alpha, zorder=1))
+        ax.text(xmax-5,ymin+200, 'distance decreases', ha='right', va='center', fontsize=config.SMALL_FONTS, color=main_col)
+
+    # y axis setup (distance)
+    ax.grid(axis='y', which='major', alpha=.4)
+    ax.set_ylim(ymin, ymax)
+    ax.set_ylabel(ylbl, fontsize=config.FONTS, color=main_col)
+    ax.set_yticks(yticks)
+    ax.set_yticklabels(yticks)
+    # ax.set_yticklabels([f'{yt}' for yt in yticks])
+    ax.tick_params(labelsize=config.SMALL_FONTS, color=main_col, labelcolor=main_col)
+
     # title and spines
-    title = f'{structure_screen.name.replace("_", "-")}: {title}'
+    title = f'{structure_screen.name.replace("_", "-")}'
     ax.set_title(title, color=main_col, pad=15, fontsize=config.FONTS)
     ax.axline((0, ymin), (0, ymax), color=main_col, linewidth=1.3)
     ax.axline((xmin, 0), (xmax, 0), color=main_col, linewidth=1.3)
@@ -625,19 +636,130 @@ def plot_target_distance_over_time(structure_screen, show=False, subtr_init_dist
     cmap = plt.cm.get_cmap('tab10', 20)
     for axon_id, dists in dists.iterrows():
         dists = dists.iloc[:tmax]
-        ax.plot(dists.values, color=cmap(int(axon_id[-3:])%20), linewidth=1)
+        ax.plot(dists.values, color=cmap(int(axon_id[-3:])%20), linewidth=1, zorder=3)
 
+    fname = f'{structure_screen.dir}/target_distance_{structure_screen.name}{fname_postfix}.{config.FIGURE_FILETYPE}'
     if show:
         plt.show()
     if not draw_until_t:
-        fname = f'{structure_screen.dir}/target_distance_{structure_screen.name}.{config.FIGURE_FILETYPE}'
         plt.savefig(fname)
         plt.close()
-        return fname
+        print(fname)
     # for draw until t, return the figure objects so that they can be inserted 
     # in a video
     else:
         return fig,ax
+    return fname
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+def plot_target_distance_over_time_allscreens(all_delta_dists, dest_dir, speed, show=False,
+                                            fname_postfix=''):
+    
+    print(all_delta_dists)
+    all_delta_dists = all_delta_dists.rolling(40, min_periods=10, center=True, axis=1).mean()
+    # all_delta_dists = all_delta_dists.ewm(span=25).mean()
+    print(all_delta_dists)
+    all_delta_dists_med = all_delta_dists.groupby(level='design').mean()
+    print(all_delta_dists_med)
+    all_delta_dists_std = all_delta_dists.groupby(level='design').std()
+    print(all_delta_dists_std)
+    
+    n_designs, sizet = all_delta_dists_med.shape
+
+    fig, ax = plt.subplots(figsize=config.MEDIUM_FIGSIZE)
+    fig.subplots_adjust(left=.14, right=.95)
+    [ax.spines[which_spine].set_visible(False) for which_spine in ax.spines]
+    # title = 'distance to outputchannel'
+    
+    tmax = sizet
+    main_col = config.BLACK
+
+    # x axis setup (time)
+    xmin, xmax = 0, sizet
+    ax.set_xlim(xmin, xmax)
+    days = all_delta_dists.columns.values.astype(int)
+    # get the indices where a new day starts, only plot those
+    timepoints_indices = np.unique(days, return_index=True)[1]
+    ax.set_xticks(timepoints_indices)
+    ax.set_xticklabels([days[t] for t in timepoints_indices])
+    ax.set_xlabel('DIV', color=main_col, fontsize=config.FONTS)
+    
+    # or let every ID start at distance=0, then see if it increases or decreases
+    
+    if speed:
+        ymin, ymax = 0, 4000
+        yticks = range(ymin, ymax, 1500)
+        ylbl = f'axon growth {config.um_d}'
+    
+    else:
+        ymin, ymax = -700, 700
+        yticks = range(ymin+100,ymax-99, 400)
+        ylbl = f'{config.delta} distance to outputchannel {config.um}'
+        alpha = .12
+        ax.add_patch(Rectangle((0,0), xmax, ymax, color=config.RED, alpha=alpha, zorder=1))
+        ax.text(xmax-5,ymax-100, 'distance increases', ha='right', va='center', fontsize=config.SMALL_FONTS, color=main_col)
+        ax.add_patch(Rectangle((0,0), xmax, ymin, color=config.GREEN, alpha=alpha, zorder=1))
+        ax.text(xmax-5,ymin+100, 'distance decreases', ha='right', va='center', fontsize=config.SMALL_FONTS, color=main_col)
+
+    # y axis setup (distance)
+    ax.grid(axis='y', which='major', alpha=.4)
+    ax.set_ylim(ymin, ymax)
+    ax.set_ylabel(ylbl, fontsize=config.FONTS, color=main_col)
+    ax.set_yticks(yticks)
+    ax.set_yticklabels(yticks)
+    # ax.set_yticklabels([f'{yt}' for yt in yticks])
+    ax.tick_params(labelsize=config.SMALL_FONTS, color=main_col, labelcolor=main_col)
+
+    # title and spines
+    # title = f'{structure_screen.name.replace("_", "-")}'
+    # ax.set_title(title, color=main_col, pad=15, fontsize=config.FONTS)
+    ax.axline((0, ymin), (0, ymax), color=main_col, linewidth=1.3)
+    ax.axline((xmin, 0), (xmax, 0), color=main_col, linewidth=1.3)
+    
+    # finally draw axon distances over time
+    cmap = plt.cm.get_cmap('tab10', 20)
+    for i in range(n_designs):
+        design_medians = all_delta_dists_med.iloc[i,:]
+        print(design_medians)
+        design_stds = all_delta_dists_std.iloc[i,:]
+        design = all_delta_dists_med.index[i]
+        x = np.arange(sizet)
+        ax.plot(x, design_medians.values, color=config.DESIGN_CMAP(design-1), linewidth=1, zorder=3)
+
+        ax.vlines(x, design_medians-design_stds, design_medians+design_stds, color=config.DESIGN_CMAP(design-1), linewidth=.4, zorder=3, alpha=.2)
+
+    speed = '' if not speed else '_growth_speed'
+
+    fname = f'{dest_dir}/target_distance_alldesigns{speed}{fname_postfix}.{config.FIGURE_FILETYPE}'
+    if show:
+        plt.show()
+    else:
+        plt.savefig(fname)
+        plt.close()
+
+
+
+
+
+
+
+
+
 
 
 
@@ -656,13 +778,13 @@ def _draw_designcolorbar(colorbar_axes):
     im = plt.imshow(designs[:,np.newaxis], cmap=config.DESIGN_CMAP)
     plt.close()
     cbar = plt.colorbar(im, ticks=np.linspace(1.5,21.5, 22), cax=colorbar_axes)
-    ticklabels = [f'D{d:0>2}' if not i%3 else '' for i, d in enumerate(designs)]
+    ticklabels = [f'D{d:0>2}' if not i%4 else '' for i, d in enumerate(designs)]
     cbar.set_ticklabels(ticklabels)
-    cbar.ax.tick_params(labelsize=config.SMALL_FONTS)
+    cbar.ax.tick_params(labelsize=config.FONTS)
 
 def _get_barplot(n_bars, draw_colorbar=True):
     # define the size of plot elements in inches
-    lr_pad = [.9, .4]
+    lr_pad = [1, .6]
     # bars, white space between bars, space on left and right
     ax_width = 0.5*n_bars + 0.1*(n_bars-1) +.4
     width = ax_width + lr_pad[0] + lr_pad[1]
@@ -676,227 +798,275 @@ def _get_barplot(n_bars, draw_colorbar=True):
     # calculate proportional valuesby dividing through overall figure width
     lr_pad_prop = lr_pad[0]/width, 1-lr_pad[1]/width
     # make plot
-    fig.subplots_adjust(left=lr_pad_prop[0], right=lr_pad_prop[1], top=.9, bottom=.1)
+    fig.subplots_adjust(left=lr_pad_prop[0], right=lr_pad_prop[1], top=.9, bottom=.2)
 
     if draw_colorbar:
-        bottom, left = .1, (lr_pad[0]+ax_width+cbar_width*2/3) /width
-        width, height = (cbar_width*1/3) /width, .8
+        bottom, left = .2, (lr_pad[0]+ax_width+cbar_width*2/3) /width
+        width, height = (cbar_width*3/5) /width, .7
         cax = fig.add_axes([left, bottom, width, height])
         # draw colorbar
         _draw_designcolorbar(cax)
     return fig, ax
 
-def plot_n_axons(n_axons, dest_dir, DIV_range, show=False, fname_postfix=''):
+def plot_n_axons(n_axons, dest_dir, DIV_range, rank=False, show=False, fname_postfix=''):
     # average over designs
-    n_axons_design_avg = n_axons.groupby(level='design').mean()
-    # xlocs
-    x_design_avg = n_axons.index.unique(1)
-    x_design = n_axons.index.get_level_values('design')
+    if rank:
+        m = n_axons.unstack(level=('timelapse', 'CLSM_area')).mean(1)
+        n_axons = n_axons.reindex(m.sort_values(ascending=False).index, level=1)
+    n_axons_design_avg = n_axons.unstack(level=('timelapse', 'CLSM_area')).mean(1)
+    
+    # x locations of bars
+    xlocs = np.arange(1,n_axons_design_avg.shape[0]+1)
+    
+    designs_idx = n_axons.index.get_level_values(1)
+    x, xlocs_single = 1, []
+    for i in range(len(designs_idx)):
+        xlocs_single.append(x)
+        if i+1<len(designs_idx) and designs_idx[i] != designs_idx[i+1]:
+            x += 1
+    # x_design_avg = n_axons.index.unique(1)
+    # x_design = n_axons.index.get_level_values('design')
     
     # get the figure
-    fig, ax = _get_barplot(n_bars=len(n_axons_design_avg))
+    fig, ax = _get_barplot(n_bars=n_axons_design_avg.shape[0])
+    ax.tick_params(labelsize=config.SMALL_FONTS)
 
     # set ticks
-    ax.set_xlim((x_design_avg[0]-.75, x_design_avg[-1]+.75))
-    ax.set_xticks(x_design_avg)
-    ax.set_xticklabels([f'D{i:0>2}' for i in x_design_avg], fontsize=config.FONTS)
+    ax.set_xlim((xlocs[0]-.75, xlocs[-1]+.75))
+    ax.set_xticks(xlocs)
+    ax.set_xticklabels([f'D{x:0>2}' for x in n_axons_design_avg.index], fontsize=config.FONTS, weight='bold')
     lbl = 'Axons identified'
     if DIV_range:
         lbl += f' DIV{DIV_range[0]}-{DIV_range[1]}'
-    ax.set_ylabel(lbl, fontsize=config.FONTS)
-    ax.tick_params(labelsize=config.SMALL_FONTS)
+    ax.set_ylabel(lbl, fontsize=config.FONTS, weight='bold')
     
     # finally draw the number of axons
-    ax.bar(x_design_avg, n_axons_design_avg, color=config.DESIGN_CMAP(x_design_avg-1), zorder=1)
-    ax.scatter(x_design, n_axons, marker='1', s=80, color='k', zorder=2)
+    ax.bar(xlocs, n_axons_design_avg, color=config.DESIGN_CMAP(n_axons_design_avg.index-1), zorder=1)
+    ax.scatter(xlocs_single, n_axons, marker='1', s=80, color='k', zorder=2)
     
     return _save_plot(show, dest_dir, 'naxons', DIV_range, fname_postfix)
     
-def plot_axon_growthspeed(growth_speeds, dest_dir, DIV_range,
-                          show=False, fname_postfix=''):
+def plot_axon_growthspeed(growth_speeds, dest_dir, DIV_range, rank=False,
+                          show=False, split_by = 'design', fname_postfix=''):
     # flatten which dataset/ timelapse dim and design replicate dim
-    growth_speeds = growth_speeds.unstack(level=('timelapse', 'CLSM_area'))
     
-    # # rank    
-    # order = growth_speeds_avg.sort_values(ascending=True).index
-    # growth_speeds_avg = growth_speeds_avg.reindex(order)
-    # growth_speeds = growth_speeds.reindex(order)
+    average_over = [dim for dim in growth_speeds.index.names if dim != split_by]
+    
+    growth_speeds = growth_speeds.unstack(level=tuple(average_over))
+    growth_speeds.drop('NA', errors='ignore', inplace=True)
 
-    # xlocs
-    x_design_avg = growth_speeds.index.unique()
-    
+    if rank:
+        growth_speeds = growth_speeds.reindex(growth_speeds.median(1).sort_values(ascending=False).index)
+    growth_speeds_medians = growth_speeds.median(1)
+    # x llocations of violin plots
+    xlocs = np.arange(1,growth_speeds.shape[0]+1)
+
     # get the figure
-    fig, ax = _get_barplot(n_bars=growth_speeds.shape[0])
-
-    # set ticks
-    ax.set_xlim((x_design_avg.min()-.75, x_design_avg.max()+.75))
-    ax.set_xticks(x_design_avg)
-    ax.set_xticklabels([f'D{i:0>2}' for i in x_design_avg], fontsize=config.FONTS)
-    lbl = 'Axon outgrowth speed ' + config.um_d
-    if DIV_range:
-        lbl += f' DIV{DIV_range[0]}-{DIV_range[1]}'
-    ax.set_ylabel(lbl, fontsize=config.FONTS)
+    fig, ax = _get_barplot(n_bars=growth_speeds.shape[0], draw_colorbar=split_by=='design')
     ax.tick_params(labelsize=config.SMALL_FONTS)
 
-    # finally draw the number of axons
-    for x in x_design_avg:
-        Y = growth_speeds.loc[x,:].dropna().sort_values()
-        ax.boxplot(Y, widths=.8, patch_artist=True, positions=(x,),
-                   flierprops={'markerfacecolor':'k', 'marker':'.', 'markersize':3}, 
-                   medianprops={'color':'k'},
-                   boxprops={'facecolor': config.DESIGN_CMAP(x-1)},
-        )
+    # set y axis up
+    ymin, ymax = 0, 4000
+    ax.set_ylim(ymin, ymax)
+    lbl = f'Axon growth {config.um_d}'
+    ax.set_ylabel(lbl, fontsize=config.FONTS, weight='bold')
     
-    print(fname_postfix)
-    return _save_plot(show, dest_dir, 'growth_speed', DIV_range, fname_postfix)
+    # setup x axis
+    xmin, xmax = xlocs.min()-.75, xlocs.max()+.75
+    ax.set_xlim(xmin, xmax)
+    ax.set_xticks(xlocs)
+    ax.set_title(split_by, fontsize=config.FONTS, weight='bold')
 
+    xtl = [f'D{i:0>2}' for i in growth_speeds.index] if split_by == 'design' else growth_speeds.index
+    ax.set_xticklabels(xtl, fontsize=config.FONTS, weight='bold')
+    
+    # finally draw the number of axons
+    for i, x in enumerate(xlocs):
+        Y = growth_speeds.iloc[i,:].dropna()
+        vp = ax.violinplot(Y, widths=.8, positions=(x,), showextrema=False, 
+                           showmedians=True)  
+        vp['cmedians'].set_color('k')
+        vp['cmedians'].set_zorder(6)
+        vp['bodies'][0].set_zorder(5)
+        vp['bodies'][0].set_alpha(1)
+        if split_by == 'design':
+            vp['bodies'][0].set_color(config.DESIGN_CMAP(growth_speeds.index[i]-1))
+    return _save_plot(show, dest_dir, 'growth_direction', None, fname_postfix)
 
-def plot_axon_destinations(destinations, dest_dir, show=False, fname_postfix=''):
+def plot_axon_destinations(destinations, dest_dir, show=False, fname_postfix='', rank=False):
     # average over designs
-    print(destinations)
+
     destinations['metric'] = destinations.target - destinations.cross_growth
+    destinations_mean = destinations.metric.groupby(level='design').mean()
     print(destinations)
+    print(destinations_mean)
+    if rank:
+        designs_order = destinations_mean.sort_values(ascending=False).index
+        destinations = destinations.reindex(designs_order, level=1)
+        destinations_mean = destinations_mean.reindex(designs_order)
+    print(destinations)
+    print(destinations_mean)
 
-
-    destinations_design_avg = destinations.groupby(level='design').mean()
-    print(destinations_design_avg)
-    # xlocs
-    x_design_avg = destinations.index.unique('design')
-    x_design_left = destinations.index.get_level_values('design')-.15
-    x_design_right = destinations.index.get_level_values('design')+.15
+    # x locations of bars
+    xlocs = np.arange(1,destinations_mean.shape[0]+1)
     
+    designs_idx = destinations.index.get_level_values(1)
+    x, xlocs_single = 1, []
+    for i in range(len(designs_idx)):
+        xlocs_single.append(x)
+        if i+1<len(designs_idx) and designs_idx[i] != designs_idx[i+1]:
+            x += 1
+        
     # get the figure
-    fig, ax = _get_barplot(n_bars=len(destinations_design_avg))
-
-    # set ticks
-    ax.set_xlim((x_design_avg[0]-.75, x_design_avg[-1]+.75))
-    ax.set_xticks(x_design_avg)
-    ax.set_xticklabels([f'D{i:0>2}' for i in x_design_avg], fontsize=config.FONTS)
-    lbl = 'n axons targetgrown - cross-grown'
-    ax.set_ylabel(lbl, fontsize=config.FONTS)
+    fig, ax = _get_barplot(n_bars=len(destinations_mean))
     ax.tick_params(labelsize=config.SMALL_FONTS)
+
+    # setup y axis
+    ymin,ymax = -16, 16
+    yticks = np.arange(ymin+1,ymax,5)
+    ax.set_ylim(ymin, ymax)
+    lbl = 'axons targetgrown - cross-grown'
+    ax.set_ylabel(lbl, fontsize=config.FONTS, weight='bold')
+    ax.set_yticks(yticks)
+    ax.set_yticklabels(abs(yticks))
     
-    ax.hlines(0, x_design_avg[0]-.75, x_design_avg[-1]+.75, color='k', linewidth=1)
-    ax.vlines([*x_design_left,*x_design_right], -.8, .8, color='k', linewidth=.5)
+    # setup x axis
+    xmin, xmax = (xlocs[0]-.75, xlocs[-1]+.75)
+    ax.set_xlim(xmin, xmax)
+    ax.set_xticks(xlocs)
+    ax.set_xticklabels([f'D{i:0>2}' for i in destinations_mean.index], fontsize=config.FONTS, weight='bold')
+    
+    ax.add_patch(Rectangle((0,0), xmax, ymax, color=config.GREEN, alpha=.1, zorder=1))
+    ax.text(xmax-.1,ymax-2, 'reached target', ha='right', va='center', fontsize=config.SMALL_FONTS)
+    ax.add_patch(Rectangle((0,0), xmax, ymin, color=config.RED, alpha=.1, zorder=1))
+    ax.text(xmax-.1,ymin+2, 'reached neighbour', ha='right', va='center', fontsize=config.SMALL_FONTS)
     
     # finally draw the number of axons
-    ax.bar(x_design_avg, destinations_design_avg.metric, color=config.DESIGN_CMAP(x_design_avg-1), zorder=1)
-    # ax.scatter(x_design, destinations.metric, marker='1', s=80, color='k', zorder=2)
-    ax.scatter(x_design_left, destinations.target, marker='+', s=50, color='k', zorder=2, linewidth=1)
-    ax.scatter(x_design_right, destinations.cross_growth, marker='_', s=50, color='k', zorder=2, linewidth=1)
+    ax.bar(xlocs, destinations_mean, color=config.DESIGN_CMAP(destinations_mean.index-1), zorder=2)
+    ax.scatter(xlocs_single, destinations.target, marker='+', s=50, color='k', zorder=3, linewidth=1)
+    ax.scatter(xlocs_single, -destinations.cross_growth, marker='_', s=50, color='k', zorder=3, linewidth=1)
     
     return _save_plot(show, dest_dir, 'destinations', DIV_range=None, fname_postfix=fname_postfix)
     
 
-def plot_growth_directions(directions, dest_dir, show=False, fname_postfix=''):
-    # average over designs
-    print(directions)
-    # directions['metric'] = directions.target - directions.cross_growth
-    # print(directions)
-
-    min_dist = 500
-    # directions[directions.abs()<500] = np.nan
-    # print((directions>min_dist))
-    # print((directions>min_dist).sum())
-    naxons = directions.notna().sum(1)
-    print(naxons)
-    directions.fillna(0, inplace=True)
-    # print(directions)
-    # print(directions< -min_dist)
-    # directions = (directions< -min_dist).sum(1)
-
-    # directions = pd.DataFrame(((directions< -min_dist).sum(1), (directions>min_dist).sum(1)), 
-    directions = pd.DataFrame(((directions< -min_dist).sum(1) /naxons.values, (directions>min_dist).sum(1)/naxons.values), 
-                               columns=directions.index, index=['n_correct_dir','n_incorrect_dir']).T
-    print(directions)
-    # directions = directions/naxons.values
-    directions['metric'] = directions['n_correct_dir'] - directions['n_incorrect_dir']
-    print(directions)
-
-
-    directions_design_avg = directions.groupby(level='design').mean()
-    print(directions_design_avg)
-    # xlocs
-    x_design_avg = directions.index.unique('design')
-    x_design_left = directions.index.get_level_values('design')-.15
-    x_design_right = directions.index.get_level_values('design')+.15
-    
-    # get the figure
-    fig, ax = _get_barplot(n_bars=len(directions_design_avg))
-
-    # set ticks
-    ax.set_xlim((x_design_avg[0]-.75, x_design_avg[-1]+.75))
-    ax.set_xticks(x_design_avg)
-    ax.set_xticklabels([f'D{i:0>2}' for i in x_design_avg], fontsize=config.FONTS)
-    lbl = 'n axons targetgrown - cross-grown'
-    ax.set_ylabel(lbl, fontsize=config.FONTS)
-    ax.tick_params(labelsize=config.SMALL_FONTS)
-    
-    ax.hlines(0, x_design_avg[0]-.75, x_design_avg[-1]+.75, color='k', linewidth=1)
-    # ax.vlines([*x_design_left,*x_design_right], -.8, .8, color='k', linewidth=.5)
-    
-    # finally draw the number of axons
-    ax.bar(x_design_avg, directions_design_avg.metric, color=config.DESIGN_CMAP(x_design_avg-1), zorder=1)
-    # ax.scatter(x_design, destinations.metric, marker='1', s=80, color='k', zorder=2)
-    ax.scatter(x_design_left, directions.n_correct_dir, marker='+', s=50, color='k', zorder=2, linewidth=1)
-    ax.scatter(x_design_right, directions.n_incorrect_dir, marker='_', s=50, color='k', zorder=2, linewidth=1)
-    
-    return _save_plot(show, dest_dir, 'growth_direction', DIV_range=None, fname_postfix=fname_postfix)
-    
-
-
-
-
-
-
-
-
+def plot_growth_directions(directions, dest_dir, show=False, rank=False, 
+                           draw_min_dist_lines=True, fname_postfix='',
+                           split_by='design'):
     # flatten which dataset/ timelapse dim and design replicate dim
-    directions = directions.unstack(level=('timelapse', 'CLSM_area'))
-    print(directions)
-    
-    # # rank    
-    # order = growth_speeds_avg.sort_values(ascending=True).index
-    # growth_speeds_avg = growth_speeds_avg.reindex(order)
-    # growth_speeds = growth_speeds.reindex(order)
 
+    average_over = [dim for dim in directions.index.names if dim != split_by]
+    directions = directions.unstack(level=tuple(average_over))
+    directions.drop('NA', errors='ignore', inplace=True)
+    if directions.empty:
+        return None
+
+    # directions = directions.unstack(level=('timelapse', 'CLSM_area'))
+    if rank:
+        directions = directions.reindex(directions.median(1).sort_values().index)
+    directions_medians = directions.median(1)
     # xlocs
-    x_design_avg = directions.index.unique()
-    x_design_left = directions.index.get_level_values('design')-.15
-    x_design_right = directions.index.get_level_values('design')+.15
-    
+    xlocs = np.arange(1,directions.shape[0]+1)
+
     # get the figure
     fig, ax = _get_barplot(n_bars=directions.shape[0])
-
-    # set ticks
-    ax.set_xlim((x_design_avg.min()-.75, x_design_avg.max()+.75))
-    ax.set_xticks(x_design_avg)
-    ax.set_xticklabels([f'D{i:0>2}' for i in x_design_avg], fontsize=config.FONTS)
-    lbl = 'Axon delta distance to target' + config.um_d
-    # if DIV_range:
-    #     lbl += f' DIV{DIV_range[0]}-{DIV_range[1]}'
-    ax.set_ylabel(lbl, fontsize=config.FONTS)
     ax.tick_params(labelsize=config.SMALL_FONTS)
 
-    # finally draw the number of axons
-    for x in x_design_avg:
-        Y = directions.loc[x,:].dropna().sort_values()
-        print(Y)
-        Y = Y[Y.abs()>500]
-        print(Y)
-        n_good_ones = (Y<0).sum() *100
-        n_bad_ones = (Y>0).sum() *100
-        ax.scatter(x-.15, n_good_ones, marker='+', color='k', zorder=2, s=50, linewidth=1)
-        ax.scatter(x+.15, n_bad_ones, marker='_', color='k', zorder=2, s=50, linewidth=1)
-        ax.boxplot(Y, widths=.8, patch_artist=True, positions=(x,),
-                   flierprops={'markerfacecolor':'k', 'marker':'.', 'markersize':3}, 
-                   medianprops={'color':'k'},
-                   boxprops={'facecolor': config.DESIGN_CMAP(x-1)},
-        )   
+    # set y axis up
+    ymin, ymax = -2500, 2500
+    ax.set_ylim(ymin, ymax)
+    lbl = f'Axons {config.delta} distance to target {config.um}'
+    ax.set_ylabel(lbl, fontsize=config.FONTS, weight='bold')
+    ax.set_title(split_by, fontsize=config.FONTS, weight='bold')
     
+    # setup x axis
+    xmin, xmax = xlocs.min()-.75, xlocs.max()+.75
+    ax.set_xlim(xmin, xmax)
+    ax.set_xticks(xlocs)
+
+    xtl = [f'D{i:0>2}' for i in directions.index] if split_by == 'design' else directions.index
+    ax.set_xticklabels(xtl, fontsize=config.FONTS, weight='bold', ha='right', va='top', rotation=25)
+
+    ax.hlines(0, xlocs[0]-.75, xlocs[-1]+.75, color='k', linewidth=1, zorder=2)
+    if draw_min_dist_lines:
+        ax.hlines(300, xlocs[0]-.75, xlocs[-1]+.75, color='k', linewidth=.5, linestyle='dashed', zorder=1)
+        ax.hlines(-300, xlocs[0]-.75, xlocs[-1]+.75, color='k', linewidth=.5, linestyle='dashed', zorder=1)
+    
+    ax.add_patch(Rectangle((0,0), xmax, ymax, color=config.RED, alpha=.1, zorder=1))
+    ax.text(xmax-.1,ymax-300, 'incorrect direction', ha='right', va='center', fontsize=config.SMALL_FONTS, zorder=8)
+    ax.add_patch(Rectangle((0,0), xmax, ymin, color=config.GREEN, alpha=.1, zorder=1))
+    ax.text(xmax-.1,ymin+300, 'correct direction', ha='right', va='center', fontsize=config.SMALL_FONTS, zorder=8)
+
+    # finally draw the number of axons
+    for i, x in enumerate(xlocs):
+        Y = directions.iloc[i,:].dropna()
+        vp = ax.violinplot(Y, widths=.8, positions=(x,), showextrema=False, 
+                           showmedians=True)  
+        vp['cmedians'].set_color('k')
+        vp['cmedians'].set_zorder(6)
+        vp['bodies'][0].set_zorder(5)
+        vp['bodies'][0].set_alpha(1)
+        if split_by == 'design':
+            vp['bodies'][0].set_color(config.DESIGN_CMAP(directions.index[i]-1))
     return _save_plot(show, dest_dir, 'growth_direction', None, fname_postfix)
 
+def plot_counted_growth_directions(directions, dest_dir, show=False, rank=False, 
+                                   fname_postfix=''):
+    # flatten which dataset/ timelapse dim and design replicate dim
+    # directions[directions.abs()<300] = np.nan
+    n_axons_grown = {'n_wrong_direc': -(directions>300).sum(1), 
+                     'n_right_direc': (directions<-300).sum(1)}
+    directions = pd.DataFrame(n_axons_grown, index=directions.index)
+    directions['metric'] = directions.n_right_direc + directions.n_wrong_direc
+    directions_sum = directions.metric.groupby(level='design').sum()
+    if rank:
+        designs_order = directions_sum.sort_values(ascending=False).index
+        directions = directions.reindex(designs_order, level=1)
+        directions_sum = directions_sum.reindex(designs_order)
+    
 
+    # x locations of bars
+    xlocs = np.arange(1,directions_sum.shape[0]+1)
+    
+    designs_idx = directions.index.get_level_values(1)
+    x, xlocs_single = 1, []
+    for i in range(len(designs_idx)):
+        xlocs_single.append(x)
+        if i+1<len(designs_idx) and designs_idx[i] != designs_idx[i+1]:
+            x += 1
+        
+    # get the figure
+    fig, ax = _get_barplot(n_bars=len(directions_sum))
+    ax.tick_params(labelsize=config.SMALL_FONTS)
+
+    # setup y axis
+    ymin,ymax = -51, 171
+    yticks = np.arange(ymin+1,ymax,25)
+    ax.set_ylim(ymin, ymax)
+    lbl = 'n axons growth direction'
+    ax.set_ylabel(lbl, fontsize=config.FONTS, weight='bold')
+    ax.set_yticks(yticks)
+    ax.set_yticklabels(abs(yticks))
+    
+    # setup x axis
+    xmin, xmax = (xlocs[0]-.75, xlocs[-1]+.75)
+    ax.set_xlim(xmin, xmax)
+    ax.set_xticks(xlocs)
+    ax.set_xticklabels([f'D{i:0>2}' for i in directions_sum.index], fontsize=config.FONTS, weight='bold')
+    ax.hlines(0, xlocs[0]-.75, xlocs[-1]+.75, color='k', linewidth=1, zorder=2)
+    
+    ax.add_patch(Rectangle((0,0), xmax, ymax, color=config.GREEN, alpha=.1, zorder=1))
+    ax.text(xmax-.1,ymax-10, 'correct direction', ha='right', va='center', fontsize=config.SMALL_FONTS)
+    ax.add_patch(Rectangle((0,0), xmax, ymin, color=config.RED, alpha=.1, zorder=1))
+    ax.text(xmax-.1,ymin+10, 'incorrect direction', ha='right', va='center', fontsize=config.SMALL_FONTS)
+
+    
+    # finally draw the number of axons
+    ax.bar(xlocs, directions_sum, color=config.DESIGN_CMAP(directions_sum.index-1), zorder=3)
+    ax.scatter(xlocs_single, directions.n_right_direc, marker='+', s=50, color='k', zorder=4, linewidth=1)
+    ax.scatter(xlocs_single, directions.n_wrong_direc, marker='_', s=50, color='k', zorder=4, linewidth=1)
+    
+    return _save_plot(show, dest_dir, 'destinations', DIV_range=None, fname_postfix=fname_postfix)
+    
 def _save_plot(show, dest_dir, base_fname, DIV_range, fname_postfix):
     if show:
         plt.show()

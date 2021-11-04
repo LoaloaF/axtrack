@@ -79,9 +79,33 @@ def process_dir(all_files, inp_dir, outp_dir, notes):
                 plt.show()
             skimage.io.imsave(f'{outp_dir}/{area}_annotated.png', img_stacked)
 
-inp_dir = '/run/media/loaloa/lbb_ssd/primitives_13.10/exp14_DIV7/main_Cycle_01'
-outp_dir = '/run/media/loaloa/lbb_ssd/primitives_13.10/exp14_DIV7_processed/'
-notes = 'DIV14 undergrowth structure'
+
+
+
+
+inp_dir = '/home/loaloa/ETZ_drive/biohybrid-signal-p/20.10_primitives/Exp14_DIV14_prim01_Cycle/'
+outp_dir = '/home/loaloa/ETZ_drive/biohybrid-signal-p/20.10_primitives/exp14_DIV14_processed_1/'
+
+# inp_dir = '/home/loaloa/ETZ_drive/biohybrid-signal-p/20.10_primitives/Exp14_DIV14_prim02_Cycle/'
+# outp_dir = '/home/loaloa/ETZ_drive/biohybrid-signal-p/20.10_primitives/exp14_DIV14_processed_2/'
+
+# inp_dir = '/home/loaloa/ETZ_drive/biohybrid-signal-p/20.10_primitives/Exp14_DIV14_prim02_real_Cycle/'
+# outp_dir = '/home/loaloa/ETZ_drive/biohybrid-signal-p/20.10_primitives/exp14_DIV14_processed_3/'
+
+# inp_dir = '/home/loaloa/ETZ_drive/biohybrid-signal-p/20.10_primitives/Exp14_DIV14_prim03_Cycle/'
+# outp_dir = '/home/loaloa/ETZ_drive/biohybrid-signal-p/20.10_primitives/exp14_DIV14_processed_4/'
+
+# inp_dir = '/home/loaloa/ETZ_drive/biohybrid-signal-p/20.10_primitives/Exp14_DIV14_prim04_Cycle_01/'
+# outp_dir = '/home/loaloa/ETZ_drive/biohybrid-signal-p/20.10_primitives/exp14_DIV14_processed_5/'
+
+# inp_dir = '/home/loaloa/ETZ_drive/biohybrid-signal-p/20.10_primitives/Exp14_DIV14_rest_Cycle/'
+# outp_dir = '/home/loaloa/ETZ_drive/biohybrid-signal-p/20.10_primitives/exp14_DIV14_processed_6/'
+
+# inp_dir = '/home/loaloa/ETZ_drive/biohybrid-signal-p/20.10_primitives/Exp14overview_Cycle_01/'
+# outp_dir = '/home/loaloa/ETZ_drive/biohybrid-signal-p/20.10_primitives/exp14_DIV14_processed_7/'
+
+
+notes = 'DIV14, Exp14, GFP RGC, RFP RGC, faint green=thalamus+GCamp'
 
 all_files = sorted(glob(inp_dir+'/Stitch*_G0*.oir'))
 print_files = '\n\t'.join([f for f in all_files])

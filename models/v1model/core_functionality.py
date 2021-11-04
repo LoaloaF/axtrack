@@ -18,6 +18,7 @@ def setup_data(P):
     train_data = Timelapse(P['TIMELAPSE_FILE'], P['LABELS_FILE'], P['MASK_FILE'], 
                            timepoints = P['TRAIN_TIMEPOINTS'],
                            log_correct = P['LOG_CORRECT'],
+                           offset = P['OFFSET'],
                            standardize_framewise = P['STANDARDIZE_FRAMEWISE'],
                            standardize = P['STANDARDIZE'],
                            use_motion_filtered = P['USE_MOTION_DATA'],
@@ -38,6 +39,7 @@ def setup_data(P):
     test_data = Timelapse(P['TIMELAPSE_FILE'], P['LABELS_FILE'], P['MASK_FILE'], 
                            timepoints = P['TEST_TIMEPOINTS'],
                            log_correct = P['LOG_CORRECT'],
+                           offset = P['OFFSET'],
                            standardize_framewise = P['STANDARDIZE_FRAMEWISE'],
                            use_motion_filtered = P['USE_MOTION_DATA'],
                            use_sparse = P['USE_SPARSE'],
@@ -138,7 +140,7 @@ def prepare_data(device, dataset):
 # this iterates over the entire dataset once
 def one_epoch(dataset, model, loss_fn, params, epoch, optimizer=None, lr_scheduler=None):
     which_dataset = 'train' if optimizer is not None else 'test'
-    while prepare_data(params['DEVICE'], dataset) < 1:
+    while prepare_data(params['DEVICE'], dataset) < .65:
         print('Bad data augmentation -- Doing it again --')
     
     # get the dataloader and run model on entire dataset
@@ -147,9 +149,11 @@ def one_epoch(dataset, model, loss_fn, params, epoch, optimizer=None, lr_schedul
                            which_dataset, optimizer)
     
     # every 5th epoch calculate precision, recall, and F1 for entire dataset
-    if not (epoch % 50):
-        ax_dets = AxonDetections(model, dataset, params)
-        cnfs_mtrx = sum([ax_dets.compute_TP_FP_FN(t) for t in range(len(ax_dets))])
+    if not (epoch % 20):
+        step = 10 if which_dataset == 'train' else 1
+        tstart = np.random.randint(0,10, ) if which_dataset == 'train' else 0
+        ax_dets = AxonDetections(model, dataset, params, timepoint_subset=range(tstart, dataset.sizet, step))
+        cnfs_mtrx = sum([ax_dets.compute_TP_FP_FN(t, which_det='unfiltered') for t in range(len(ax_dets))])
         epoch_metrics = ax_dets.compute_prc_rcl_F1(cnfs_mtrx, epoch, which_dataset)
     else:
         epoch_metrics = pd.DataFrame([], index=['precision', 'recall', 'F1'])

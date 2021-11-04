@@ -65,7 +65,7 @@ def process_dir(all_files, inp_dir, outp_dir, notes, designs, flips):
     dt = float(inp_dir[dt_idx+2:inp_dir.find('_', dt_idx)])
     print(f'Found {len(all_files)} areas - dt={dt}')
     for i, oir_file in enumerate(all_files):
-        if i >=25:
+        if i <=24:
             continue
         area_index = oir_file.find('_G0')+1
         area = oir_file[area_index:area_index+4]
@@ -157,13 +157,13 @@ all_files = []
 all_designs = []
 all_flips = []
 
-designs = [1, 2,    4, 5, 6, 7, 8,
-           5, 6, 7, 8, 1, 2, 3, 4,
+designs = [1, 2,    21, 5, 6, 7, 8,
+           5, 6, 7, 8, 1, 2, 3, 21,
            9, 10, 11, 12, 13, 14, 15, 16,
            13, 14, 15, 16, 9, 10, 11, 12,
            17, 18, 19, 20, 
            17, 18, 19, 20,
-           21, 21
+           4, 4
 ]
 flips = [True,True,      True,True,True,True,True,
         False,False,False,False,False,False,False,False,
@@ -178,7 +178,7 @@ flips = [True,True,      True,True,True,True,True,
 
 notes.append("idk dt=31:00min")
 inp_dir.append('/run/media/loaloa/lbb_ssd/timelapse14_Exp15/Exp15_infect_dt32_Cycle/')
-outp_dir.append('/run/media/loaloa/lbb_ssd/timelapse14_processed/')
+outp_dir.append('/run/media/loaloa/lbb_ssd/timelapse14_processed_second/')
 all_files.append(sorted(glob(inp_dir[-1]+'/Stitch*_G0*.oir')))
 print(sorted(glob(inp_dir[-1]+'/Stitch*_G0*.oir')))
 all_designs.append(designs)
@@ -206,7 +206,7 @@ all_flips.append(flips)
 
 save_tifs = True
 compress = 'deflate'
-make_video = False
+make_video = True
 annotate_video = True
 textsize = 1.3
 which_tl = 'tl14'

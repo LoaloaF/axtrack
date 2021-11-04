@@ -33,11 +33,14 @@ class UnlabelledTimelapse(Timelapse):
         use_transforms = []
         pad = [50,50,50,50]
 
+        intensity_offset = metadata.get('intensity_offset')
+
         # create a timelapse object with a dummy labels.csv
         super().__init__(imseq_path = imseq_path,
                         labels_csv = labels_csv,
                         mask_path = mask_path,
                         timepoints = timepoints,
+                        offset = intensity_offset,
                         use_transforms = use_transforms,
                         pad = pad, 
                         name = self.name,
@@ -60,7 +63,7 @@ class UnlabelledTimelapse(Timelapse):
         self.incubation_time = metadata['incubation_time']
         self.dt = metadata['dt']
         self.pixelsize = metadata['pixelsize']
-        self.structure_outputchannel_coo = metadata['target']
+        self.structure_outputchannel_coo = metadata['target'][0]+pad[0], metadata['target'][1]+pad[3]
         
         self.goal_mask = np.load(mask_path.replace('mask1', 'mask1_goal'))
         self.goal_mask = np.pad(self.goal_mask, 50, mode='constant')
@@ -80,6 +83,16 @@ class UnlabelledTimelapse(Timelapse):
         # newly added, not all csv have this, default to tl13 dataset params
         metadata['which_tl'] = df.which_tl if 'which_tl' in df.index else 'tl13'
         metadata['incubation_time'] = float(df.incubation_time) if 'incubation_time' in df.index else 52*60
+
+        if 'intensity_offset' in df.index:
+            int_offset = int(df.intensity_offset)
+        elif metadata['which_tl'] == 'tl13':
+            int_offset = 121 /2**16
+        elif metadata['which_tl'] == 'tl14':
+            int_offset = 137 /2**16
+
+
+        metadata['intensity_offset'] = int_offset
         
         return metadata        
 
