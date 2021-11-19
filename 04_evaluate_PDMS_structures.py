@@ -60,11 +60,13 @@ def get_data_standardization_scaler(parameters):
     train_data, _ = setup_data(parameters)
     return train_data.stnd_scaler, train_data
 
-def get_structure_screen_names(names_subset):
+def get_structure_screen_names(names_subset, exclude_names):
     segmted_timelapses = glob.glob(config.RAW_INFERENCE_DATA_DIR+'/*mask1.npy')
     names = sorted([f[f.rfind('/')+1:f.rfind('/')+14] for f in segmted_timelapses])
     if names_subset:
         names = [names[i] for i in names_subset]
+    if exclude_names:
+        names = [name for name in names if name not in exclude_names]
 
     print(f'{len(names)} structure timelapses found:\n{names}', flush=True)
     return names
@@ -88,8 +90,8 @@ def create_structure_screen(structure_name, directory, model, parameters,
 
     if check_preproc:
         preproc_file = save_preproc_metrics(directory, timelapse, train_data)
-        plot_preprocessed_input_data(preproc_file, dest_dir=directory, show=False)
-    exit()
+        plot_preprocessed_input_data(preproc_file, dest_dir=directory, show=False, 
+                                     fname_prefix=structure_name)
 
     axon_detections = AxonDetections(model, timelapse, parameters, f'{directory}/axon_dets')
     cache = 'to' if not use_cached_det_astar_paths else 'from'
@@ -123,50 +125,20 @@ def create_structure_screen(structure_name, directory, model, parameters,
                  **tracking_video_kwargs)
     return screen
     
+def get_PDMSscreen(num_workers, device, exp_name, run, epoch, 
+                   structure_names_subset, exclude_names, use_cached_datasets, 
+                   use_cached_det_astar_paths, use_cached_target_astar_paths, 
+                   use_cached_screen, check_preproc, make_tracking_video, 
+                   make_tracking_video_finaldest, tracking_video_kwargs, 
+                   PDMS_screen_dest_dir):
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-def main():
-    # general setup 
-    structure_names_subset = None
-    # structure_names_subset = range(5,13)
-    # structure_names_subset = (3,4,5,6,9,12,13,15,16)
-    # structure_names_subset = [0,1,2,4,7]
-    structure_names_subset = [0,]
-    check_preproc = True
-    make_tracking_video = True
-    make_tracking_video_finaldest = False
-    tracking_video_kwargs = {'draw_axons':None, 'show':False, 'animated':True, 
-                             'draw_scalebar':'top_right', }#'t_y_x_slice':[(0,20), None, None]}
-    use_cached_datasets = True
-    use_cached_det_astar_paths = False
-    use_cached_target_astar_paths = False
-    use_cached_screen = False
-    num_workers = 4
-    device = 'cuda:0'
-    exp_name, run, epoch = 'v1Model_exp7_final', 'run24', 1500
-    
     if not use_cached_screen:
         parameters = get_params(exp_name, run, num_workers, device)
         model = get_model(exp_name, run, epoch, parameters)
         stnd_scaler, train_data = get_data_standardization_scaler(parameters)
     
     all_screens = []
-    structure_screen_names = get_structure_screen_names(structure_names_subset)
+    structure_screen_names = get_structure_screen_names(structure_names_subset, exclude_names)
     for i, structure_name in enumerate(structure_screen_names):
         print(f'Processing structure screen {structure_name} now ({i}/'
               f'{len(structure_screen_names)})...', flush=True, end='')
@@ -192,46 +164,181 @@ def main():
                 continue
             
             print('Screen loaded from cache.')
-            if screen.dir.startswith('/srv/beegfs-data/') and \
-                config.BASE_DIR.startswith('/home/loaloa'):
-                screen.dir = f'{config.SCREENING_DIR}/{structure_name}/screen/'
+            screen.dir = f'{config.SCREENING_DIR}/{structure_name}/screen/'
+
+            # if screen.dir.startswith('/srv/beegfs-data/') and \
+            #     config.BASE_DIR.startswith('/home/loaloa'):
+            #     print('in')
+            #     screen.dir = f'{config.SCREENING_DIR}/{structure_name}/screen/'
         
             # remove me later when caching new screening objects
             screen.hacky_adhoc_param_setter()
             # pickle.dump(screen, open(f'{directory}/{structure_name}_screen.pkl', 'wb'))
-        
         all_screens.append(screen)
+    return PDMSDesignScreen(all_screens, f'{config.SCREENING_DIR}/{PDMS_screen_dest_dir}')
+
+
+
+
+
+
+
+def validate_screens(screen, symlink_results, plot_kwargs):
+
+    screen.sss_validate_masks(symlink_results=symlink_results, plot_kwargs=plot_kwargs)
+    
+    screen.sss_validate_IDlifetime(symlink_results=symlink_results, plot_kwargs=plot_kwargs)
+    
+
+
+
+
+
+
+
+
+
+def main():
+    # device run settings, which model used for inference
+    num_workers = 28
+    device = 'cuda:0'
+    exp_name, run, epoch = 'v1Model_exp7_final', 'run36', 400
+
+    # which timelapses to include in analysis, None = all
+    structure_names_subset = None
+    # structure_names_subset = range(34)  # all timelapse13 
+    # structure_names_subset = range(34, 75)  # all timelapse14
+    # structure_names_subset = [58,22,1]
+    exclude_names = ['tl13_D04_G004', 'tl13_D19_G035', # training data
+                     'tl14_D02_G002', 'tl14_D02_G014', 'tl14_D03_G015', # bad detections
+                     'tl13_D20_G036'] # only one exists for D20....
+    # exclude_names.extend(['tl13_D02_G002',  # not in both datasets
+    #                       'tl13_D02_G006',
+    #                       'tl13_D03_G003',
+    #                       'tl13_D03_G007',
+    #                       'tl14_D04_G041',
+    #                       'tl14_D04_G042',
+    #                       'tl14_D21_G004',
+    #                       'tl14_D21_G016',
+    #                       'tl14_D08_G008',
+    #                       'tl14_D08_G012',
+    #                       ])
+    # exclude_names = []
+    # recompute things or load from disk
+    use_cached_datasets = True
+    use_cached_det_astar_paths = True
+    use_cached_target_astar_paths = True
+    use_cached_screen = True
+    
+    # for a new screen which additional functions should be executed 
+    check_preproc = True
+    make_tracking_video = True
+    make_tracking_video_finaldest = True
+    tracking_video_kwargs = {'draw_axons':None, 'show':False, 'animated':True, 
+                             'draw_scalebar':'top_right', }#'t_y_x_slice':[(0,20), None, None]}
+    
+    # where to save the analysis output
+    # PDMS_screen_dest_dir = 'tl13_results'
+    PDMS_screen_dest_dir = 'all_results'
+    PDMS_screen_dest_dir = '../ETZ_drive/biohybrid-signal-p/PDMS_structure_screen_v2/all_results_v4'
+    
+    screen = get_PDMSscreen(num_workers, 
+                            device, 
+                            exp_name, 
+                            run, 
+                            epoch, 
+                            structure_names_subset, 
+                            exclude_names, 
+                            use_cached_datasets, 
+                            use_cached_det_astar_paths, 
+                            use_cached_target_astar_paths, 
+                            use_cached_screen, 
+                            check_preproc, 
+                            make_tracking_video, 
+                            make_tracking_video_finaldest, 
+                            tracking_video_kwargs, 
+                            PDMS_screen_dest_dir
+    )
+
+    rank = False
+    show = True if config.BASE_DIR.startswith('/home/loaloa/') else False # on server, show is always False
+    # show = False
+    symlink_results = False
+    DIV_range = (3.5,6.5)
+    plot_kwargs = {'show': show}
+    
+    """Validate the single screens, checking tha maks and ID lifetime"""
+    # validate_screens(screen, symlink_results, plot_kwargs)
+
+    """Take a first look at single-structure distance over time plots"""
+    # screen.sss_target_distance_timeline(symlink_results=symlink_results, plot_kwargs=plot_kwargs)
+    # _plot_kwargs = {**plot_kwargs, 'subtr_init_dist': False, 'fname_postfix':'_nodelta'}
+    # screen.sss_target_distance_timeline(symlink_results=symlink_results, plot_kwargs=_plot_kwargs)
+
+    """Compare the two datasets tl13, and 1l14 wrt growth speed variance & dist to target var"""
+    # screen.cs_target_distance_timeline(speed=False, plot_kwargs=plot_kwargs)
+    # screen.cs_target_distance_timeline(speed=True, plot_kwargs=plot_kwargs)
+    
+    """Compare all structures based on n axons detected, growth speed"""
+    # _plot_kwargs = {**plot_kwargs, 'rank': rank}
+    # screen.cs_naxons(DIV_range=DIV_range, plot_kwargs=_plot_kwargs)
+    # screen.cs_axon_growthspeed(DIV_range=DIV_range, plot_kwargs=_plot_kwargs)
+    # _plot_kwargs = {**_plot_kwargs, 'fname_postfix':'_D01-D03', 'split_by':'channel width'}
+    # designs_subset = (1,2,3)
+    # screen.cs_axon_growthspeed(DIV_range=DIV_range, designs_subset=designs_subset, plot_kwargs=_plot_kwargs)
 
     
-    screen = PDMSDesignScreen(all_screens, f'{config.SCREENING_DIR}/all_screens_v2')
-    # screen.show_masks()
+    import warnings
+    warnings.filterwarnings("ignore")
+
+    screen.cs_axon_growth_direction(counted=False, DIV_range=DIV_range, plot_kwargs={'show':show, 'rank':rank, 'fname_postfix':'_notcounted_ranked'})
+    # screen.cs_axon_growth_direction(counted=True, DIV_range=DIV_range, plot_kwargs={'show':show, 'rank':rank, 'fname_postfix':'_ranked'})
     
-    # screen.sss_ID_lifetime(symlink_results=False, plot_kwargs={'show':True})
     
-    show, rank = False, True
-    # screen.sss_target_distance_over_time(symlink_results=True, plot_kwargs={'show':show, 'rank':rank, })
-    # screen.sss_target_distance_over_time(symlink_results=True, plot_kwargs={'show':show, 'rank':rank, 'subtr_init_dist':False, 'fname_postfix':'_delta'})
-    # screen.sss_target_distance_over_time(symlink_results=False, plot_kwargs={'show':True, 'draw_until_t':200, 'subtr_init_dist':False})
-    # screen.sss_target_distance_over_time(symlink_results=False, plot_kwargs={'show':True, 'draw_until_t':140, 'subtr_init_dist':True})
+    # neg_comp_metrics = ['cross_grown'  ]#, 'wrong_dir_100', 'wrong_dir_200']
+    # relative_naxonss = [False]
+    # norm_to_sums = [True]
+
+    # for neg_comp_metric in neg_comp_metrics:
+        # for relative_naxons in relative_naxonss:
+        #     for norm_to_sum in norm_to_sums:
+        #         postfix = f'_neg_comp_metric-{neg_comp_metric}_relative_naxons-{relative_naxons}_norm_to_sum-{norm_to_sum}'
+        #         plot_kwargs['fname_postfix'] = postfix
+        #         screen.cs_axon_destinations(DIV_range=DIV_range, neg_comp_metric = neg_comp_metric, 
+        #                                     relative_naxons = relative_naxons, norm_to_sum = norm_to_sum, 
+        #                                     save_single_plots=False, plot_kwargs=plot_kwargs)
+
+    plot_kwargs['order'] = None
+    plot_kwargs['fname_postfix'] = ''
+    screen.cs_axon_destinations(DIV_range=DIV_range, plot_kwargs=plot_kwargs)
     
-    screen.cs_target_distance_over_time(speed=False, plot_kwargs={'show':show})
-
-    # screen.cs_naxons(DIV_range=(2.5,6), plot_kwargs={'show':show, 'rank':rank})
-    # screen.cs_naxons(DIV_range=None, plot_kwargs={'show':show, 'rank':rank, 'fname_postfix':'_MCF_5-550_norank'})
-
-    # screen.cs_axon_growthspeed(DIV_range=None, plot_kwargs={'show':show, 'rank':rank, 'fname_postfix': '_design_norank', 'split_by':'design'})
-    # screen.cs_axon_growthspeed(DIV_range=None, plot_kwargs={'show':show, 'rank':rank, 'fname_postfix': '_channel_width', 'split_by':'channel width'})
-    # screen.cs_axon_growthspeed(DIV_range=None, plot_kwargs={'show':show, 'rank':rank, 'fname_postfix': '_2-joint placement', 'split_by':'2-joint placement'})
-
-    # screen.cs_axon_growth_direction(counted=True, plot_kwargs={'show':show, 'rank':rank, 'fname_postfix':'_norank'})
-    # screen.cs_axon_growth_direction(counted=False, plot_kwargs={'show':show, 'rank':rank, 'fname_postfix':'_norank'})
+    plot_kwargs['order'] = 'rank_neg'
+    plot_kwargs['fname_postfix'] = '_neg_ranked'
+    screen.cs_axon_destinations(DIV_range=DIV_range, plot_kwargs=plot_kwargs)
     
-    screen.cs_axon_growth_direction(counted=False, plot_kwargs={'show':show, 'rank':rank})
-    for design_feature in config.DESIGN_FEATURE_NAMES:
-        screen.cs_axon_growth_direction(counted=False, plot_kwargs={'show':show, 'rank':rank, 'split_by':design_feature, 'fname_postfix':'_'+design_feature})
-
-
-
+    plot_kwargs['order'] = 'rank_pos'
+    plot_kwargs['fname_postfix'] = '_pos_ranked'
+    screen.cs_axon_destinations(DIV_range=DIV_range, plot_kwargs=plot_kwargs)
+    
+    plot_kwargs['order'] = 'rank'
+    plot_kwargs['fname_postfix'] = '_ranked'
+    screen.cs_axon_destinations(DIV_range=DIV_range, plot_kwargs=plot_kwargs)
+    
+    plot_kwargs['order'] = [0,1,2,3,4]
+    plot_kwargs['fname_postfix'] = '_group1'
+    screen.cs_axon_destinations(DIV_range=DIV_range, plot_kwargs=plot_kwargs)
+    plot_kwargs['order'] = [2,5,6,7,8]
+    plot_kwargs['fname_postfix'] = '_group2'
+    screen.cs_axon_destinations(DIV_range=DIV_range, plot_kwargs=plot_kwargs)
+    plot_kwargs['order'] = [2,9,10,11,12]
+    plot_kwargs['fname_postfix'] = '_group3'
+    screen.cs_axon_destinations(DIV_range=DIV_range, plot_kwargs=plot_kwargs)
+    plot_kwargs['order'] = [12,13,14,15,16,17,18,19,20]
+    plot_kwargs['fname_postfix'] = '_group4'
+    screen.cs_axon_destinations(DIV_range=DIV_range, plot_kwargs=plot_kwargs)
+    
+    # for design_feature in config.DESIGN_FEATURE_NAMES:
+    #     screen.cs_axon_growth_direction(counted=False, plot_kwargs={'show':show, 'rank':rank, 'split_by':design_feature, 'fname_postfix':'_'+design_feature})
 
 if __name__ == '__main__':
     main()

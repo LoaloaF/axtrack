@@ -149,8 +149,8 @@ if __name__ == '__main__':
     # print_models()
     # exit()
 
-    # clean_rundirs(exp7_name, delete_runs=160, keep_only_latest_model=False)
-    # clean_rundirs(exp6_name, keep_runs=[12,17,18,20,22,23,28,28,35], keep_only_latest_model=False)
+    # clean_rundirs(exp7_name, delete_runs=3, keep_only_latest_model=False)
+    # clean_rundirs(exp7_name, keep_runs=[2,35,36,38,41], keep_only_latest_model=False)
     # clean_rundirs(exp6_name, delete_runs=100, keep_only_latest_model=False)
     
     # evaluate_preprocssing(exp7_name, 'run34', show=False)
@@ -158,21 +158,27 @@ if __name__ == '__main__':
     # evaluate_training([(exp7_name, 'run02')], recreate=True)
     # evaluate_training([(exp7_name, 'run24')], recreate=True)
     # prepend_prev_run(exp7_name, 'run08', 'run09', 500, 250)
-    # prepend_prev_run(exp7_name, 'run09', 'run22', 750, 600)
     # evaluate_training([], recreate=False)
     # evaluate_training([(exp7_name, 'run24'), (exp7_name, 'run22'),]) #(exp7_name, 'run06')], recreate=False)
     # evaluate_training([(exp7_name, 'run08'), (exp7_name, 'run06')], recreate=False)
 
 
     # turn_tex('on')
-    # evaluate_training([(exp7_name, 'run24'), ], recreate=False, show=True)
-    # evaluate_precision_recall([(exp7_name, 'run24', 630), (exp7_name, 'run24', 1330), (exp7_name, 'run24', 1610)], avg_over_t=1)
-    # evaluate_ID_assignment(exp7_name, 'run24', cached_astar_paths='to')
+
+
+    # evaluate_training([(exp7_name, 'run41'), ], recreate=False, show=True)
+    # evaluate_training([(exp7_name, 'run38'), ], recreate=False, show=True)
+    # evaluate_precision_recall([(exp7_name, 'run38', 1000), (exp7_name, 'run41', 900)], avg_over_t=42)
+    evaluate_model(exp7_name, 'run38', 600, which_data='train', animated=False)
+    # evaluate_ID_assignment(exp7_name, 'run38', 1000, cached_astar_paths='from', which_data='test')
 
 
 
 
-    # evaluate_training([(exp6_name, 'run20'), (exp5_name, 'run17')], recreate=False)
+    # prepend_prev_run(exp7_name, 'run35', 'run36', 600, 935)
+    # evaluate_training([(exp7_name, 'run38')], recreate=False)
+    # evaluate_training([(exp7_name, 'run41')], recreate=False)
+    # evaluate_training([(exp7_name, 'run38'), (exp7_name, 'run41')], recreate=False)
     # evaluate_training([(exp6_name, 'run23'), 
     #                    (exp6_name, 'run17'), 
     #                    (exp6_name, 'run28'), 
@@ -196,7 +202,6 @@ if __name__ == '__main__':
                             #    (exp6_name, 'run22', 2500),
                             #    (exp6_name, 'run22', 3000),
     # ])
-    # evaluate_model(exp6_name, 'run39', animated=False, which_data='test', hide_det1=True, hide_det2=True, save_single_tiles=True)
     # evaluate_model(exp6_name, 'run39', 3000, animated=False, save_single_tiles=True)
     # evaluate_model(exp5_name, 'run34', 3000, animated=True)
     # evaluate_model(exp5_name, 'run34', 3000, assign_ids=True)
@@ -205,10 +210,10 @@ if __name__ == '__main__':
     # evaluate_model(exp6_name, 'run35', 3000,  animated=True, show=True, filter2FP_FN=False)
     # evaluate_model(exp6_name, 'run39', 3000,  animated=True, show=True, filter2FP_FN=False)
 
-    evaluate_ID_assignment(exp6_name, 'run39', 3000, cached_astar_paths='from', 
-                           do_draw_all_vis=False, animated=False, show=True, # which_axons=['Axon_016'],
-                           hide_det2=False, draw_axons=True, color_det2_ids=False, 
-                           color_det1_ids=True, )#t_y_x_slice=[None, [1000,2000], [2000,4000]])
+    # evaluate_ID_assignment(exp6_name, 'run39', 3000, cached_astar_paths='from', 
+    #                        do_draw_all_vis=False, animated=False, show=True, # which_axons=['Axon_016'],
+    #                        hide_det2=False, draw_axons=True, color_det2_ids=False, 
+    #                        color_det1_ids=True, )#t_y_x_slice=[None, [1000,2000], [2000,4000]])
     
     # evaluate_ID_assignment(exp6_name, 'run20', 500,  animated=False, show=False, 
     #                        cached_astar_paths='from')
@@ -289,6 +294,21 @@ if __name__ == '__main__':
         ]
     ]
     parameters = load_parameters(exp7_name, 'run24')
+    parameters['NUM_WORKERS'] = 2
+    parameters['BATCH_SIZE'] = 26
+    parameters['DEVICE'] = 'cuda:2'
+    parameters['OFFSET'] = None
+    parameters['CACHE'] = None
+    parameters['FROM_CACHE'] = OUTPUT_DIR
+    parameters['EPOCHS'] = 1601
+    parameters['TEST_TIMEPOINTS'] = list(range(37+80-20, 37+80+20))
+    parameters['TRAIN_TIMEPOINTS'] = list(range(2, 37+80-20-4)) + list(range(37+80+20+4, 37+80+210-2))
+    parameters['ARCHITECTURE'] = larger_arch
+    parameters['NOTES'] = 'Larger CNN architecture'
+    # run_experiment(exp7_name, parameters, save_results=True)
+
+
+    parameters = load_parameters(exp7_name, 'run24')
     parameters['NUM_WORKERS'] = 1
     parameters['DEVICE'] = 'cuda:3'
     parameters['OFFSET'] = None
@@ -298,7 +318,7 @@ if __name__ == '__main__':
     parameters['TEST_TIMEPOINTS'] = list(range(37+80-20, 37+80+20))
     parameters['TRAIN_TIMEPOINTS'] = list(range(2, 37+80-20-4)) + list(range(37+80+20+4, 37+80+210-2))
     parameters['NOTES'] = 'run24 params, final'
-    run_experiment(exp7_name, parameters, save_results=True)
+    # run_experiment(exp7_name, parameters, save_results=True)
 
     # final final final
     parameters = load_parameters(exp7_name, 'run24')

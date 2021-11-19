@@ -53,14 +53,16 @@ class AxonDetections(object):
         # new from run39, test: ec:1 eec:1 mr:0.6 vsw:0 ccm:scale_to_max
         #                       ec:0.6 eec:0.8 mr:0.8 vsw:0 ccm:scale_to_max
         #                       ec:3 eec:0.4 mr:0.6 vsw:0.2 ccm:ceil
-        self.MCF_edge_cost_thr =  1
-        self.MCF_entry_exit_cost = 1
+        #  ec:0.7 eec:2 mr:0.6 vsw:0 ccm:scale_to_max'
+
+        self.MCF_edge_cost_thr =  0.7
+        self.MCF_entry_exit_cost = 2
         self.MCF_miss_rate =  0.6
         self.MCF_max_num_misses = 1
         self.MCF_min_flow = 5
         self.MCF_max_flow = 450
         self.MCF_max_conf_cost = 4.6
-        self.MCF_vis_sim_weight = 0.05
+        self.MCF_vis_sim_weight = 0
         # self.MCF_conf_capping_method = 'ceil'
         self.MCF_conf_capping_method = 'scale_to_max'
         self.MCF_min_ID_lifetime = 5
@@ -469,6 +471,15 @@ class AxonDetections(object):
                 t_dets = self.detections[t]
                 # ids (placeholders)
                 t_ids = [int(idx[-3:]) for idx in t_dets.index]
+                
+                # from matplotlib import pyplot as plt
+                # plt.subplots(1,1, figsize=(16,9))
+                # plt.imshow(weights, cmap='gray')
+                # plt.scatter(t_dets.anchor_x, t_dets.anchor_y, s=50, alpha=.6, )
+                # plt.figure(16,9)
+                # plt.save(f'/home/ssteffens/frame{t:0>2}.png')
+                # plt.close()
+                
                 t_dets = np.stack([t_ids, t_dets.anchor_y, t_dets.anchor_x], -1)
                 
                 # predecessor timestamps
@@ -503,7 +514,7 @@ class AxonDetections(object):
         return dets_astar_paths
 
     def get_axon_reconstructions(self, t, interpolate_missed_dets=True):
-        weights = np.where(self.dataset.mask, 1, 2**16).astype(np.float32)
+        weights = np.where(self.dataset.mask[t].todense(), 1, 2**16).astype(np.float32)
         if not t:
             return pd.DataFrame([])
         # get the paths from t0 to t before (t0-1)
@@ -755,9 +766,9 @@ class AxonDetections(object):
 
 
     # dirty zone
-    def search_MCF_params(self, show_results=False):
+    def search_MCF_params(self, show_results=False, dest_dir=None):
         # if below ran once, viz results
-        if show_results:
+        if show_results or dest_dir:
             ec = self.MCF_edge_cost_thr
             eec = self.MCF_entry_exit_cost
             mr = self.MCF_miss_rate
@@ -767,110 +778,159 @@ class AxonDetections(object):
 
             metrics = pd.read_csv(f'{self.dir}/MCF_param_search.csv', index_col=0)
             # print(metrics.iloc[:,[1169, 1029, 813, 914, 780, 483, 316, 252, 32, 1, 0, 18]].T.to_string())
-            metrics.sort_values('mota', axis=1, inplace=True, ascending=False)
-            x = metrics.loc['idr']
-            y = metrics.loc['idp']
-            z = metrics.loc['mota']
-            a = metrics.loc['mostly_tracked']
-            print(z.sort_values())
-            # print(z2.sort_values())
-            print(a)
-            plt.scatter(x, y, color=plt.cm.get_cmap('winter')(z), s=20)
-            plt.xlabel('mot accuracy')
-            plt.ylabel('mot precision')
+            metrics.sort_values(['mota', 'idf1'], axis=1, inplace=True, ascending=False)
+            prc = metrics.loc['idp']
+            rcl = metrics.loc['idr']
+            mota = metrics.loc['mota']
+            f1 = metrics.loc['idf1']
 
-            # # annotate all drawn points with their iloc column
-            for i in range(len(x)):
-                if i %13:
-                    continue
-                # print(i)
-                col = metrics.columns[i]
-                lr = 'left' if i%2 else 'right'
-                bt = 'bottom' if not i%2 else 'top'
-                # plt.annotate(col, (metrics.loc['mota', col], metrics.loc['motp', col]), alpha=.7, ha=lr, va=bt)
-                plt.annotate(i, (metrics.loc['idr', col], metrics.loc['idp', col]), alpha=.7, ha=lr, va=bt)
-            
-            # draw only the best (preselcted by hand)
-            for i in range(len(x)):
-                if i in [29, 1410, 1140, 0, 325]:
-                    print(metrics.columns[i])
-                    plt.annotate(metrics.columns[i], (x[i],y[i]))
-            plt.show()
+            n = metrics.loc['num_unique_objects'][0]
+            mostly_tr = metrics.loc['mostly_tracked'][0] / n
+            part_tr = metrics.loc['partially_tracked'][0] / n
+            mostly_lost = metrics.loc['mostly_lost'][0] / n
 
-            # dataframe column names to list of params to pass to search below 
-            prom_combs_str = metrics.columns.values[([10, 37, 85])]
-            print(prom_combs_str)
             print()
-            # prom_combs = []
-            for comb in prom_combs_str:
-                prom_comb = [param[param.rfind(':')+1:] for param in comb.split(' ')]
-                prom_combs.append([float(e) if i+1 != len(prom_comb) else e for i, e in enumerate(prom_comb)])
-            print(prom_combs)
+            print(metrics.iloc[:,:10].columns)
+            print(metrics.iloc[:,:10].T.reset_index(drop=True).T)
+            print()
 
-        # get the targets to compute MOT metrics later
-        target_dets_IDed = []
-        for t in range(len(self)):
-            frame_target = self.get_det_image_and_target(t, return_tiled=False)[1]
-            target_dets_IDed.append(self.det2libmot_det(frame_target, t, 
-                                                to_pandas=True, drop_conf=True))
-        target_dets_IDed = pd.concat(target_dets_IDed)
 
-        # hyperparams to search over
-        edge_cost_thr_values =  [.4, .6, .8, 1, 1.2, 1.4, 1.6, 2, 3]
-        entry_exit_cost_values = [.1, .2, .4, .6, .8, 1, 1.2, 2, 4]
-        miss_rate_values =  [0.8, 0.7, 0.6]
-        vis_sim_weight_values = [0, 0.05, 0.1, 0.2]
-        conf_capping_method_values = ['ceil' , 'scale_to_max']
+            fig, axes = plt.subplots(1, 2, figsize=config.MEDIUM_FIGSIZE)
+            fig.subplots_adjust(bottom=.01, left=.1, wspace=.3, right=.95)
+            ticks = np.arange(0.5, .91, 0.2)
+            lims = (.3, .94)
 
-        results = []
-        # # uncomment below to search over small preslected param combinations
-        # for (ec, eec, mr, vsw, ccm) in prom_combs:
-        #     self.MCF_edge_cost_thr = ec
-        #     self.MCF_entry_exit_cost = eec
-        #     self.MCF_miss_rate = mr
-        #     self.MCF_vis_sim_weight = vsw
-        #     self.MCF_conf_capping_method = ccm
-        
-        # brute search all param combinations 
-        for ec in reversed(edge_cost_thr_values):
-            self.MCF_edge_cost_thr = ec
-            for eec in reversed(entry_exit_cost_values):
-                self.MCF_entry_exit_cost = eec
-                for mr in miss_rate_values:
-                    self.MCF_miss_rate = mr
-                    for vsw in vis_sim_weight_values:
-                        self.MCF_vis_sim_weight = vsw
-                        for ccm in conf_capping_method_values:
-                            self.MCF_conf_capping_method = ccm
+            # setup both axes
+            for i, ax in enumerate(axes):
+                ax.set_ylim(*lims) 
+                ax.set_yticks(ticks)
+                ax.set_yticklabels([f'{t:.1f}' for t in ticks], fontsize=config.SMALL_FONTS)
 
-                            key = f'ec:{ec} eec:{eec} mr:{mr} vsw:{vsw} ccm:{ccm}'
-                            print('\n\n\n', key, flush=True)
+                ax.set_xlim(*lims)
+                ax.set_xticks(ticks)
+                ax.set_xticklabels([f'{t:.1f}' for t in ticks], fontsize=config.SMALL_FONTS)
 
-                            # using MCF params defined above, assign IDs
-                            self.assign_ids(cache='from')
-                            
-                            # compute MOT benchmark
-                            acc = mm.utils.compare_to_groundtruth(target_dets_IDed, self.IDed_detections, 'euclidean', distth=(self.nms_min_dist)**2)
-                            mh = mm.metrics.create()
-                            summary = mh.compute(acc, metrics=mm.metrics.motchallenge_metrics, \
-                                                return_dataframe=True).iloc[0]
-                            
-                            # # compute precision and recall my way (tiny difference with MOT Prc, Rcl?)
-                            # prc_rcl = np.array([(self.get_detection_metrics(t, 'ID_assigned')) for t in range(len(self))])
-                            # prc_rcl = pd.Series(prc_rcl.mean(0)[:-1], index=['MyPrc', 'MyRcl'])
-                            # summary = summary.T.append(prc_rcl)
+                ax.set_aspect('equal')
+                ax.spines['top'].set_visible(False)
+                ax.spines['right'].set_visible(False)
+                ax.grid()
+                if i == 0:
+                    ax.set_xlabel('Identity precision', fontsize=config.FONTS)
+                    ax.set_ylabel('Identity recall', fontsize=config.FONTS)
+                else:
+                    ax.set_xlabel('MOT accuracy', fontsize=config.FONTS)
+                    ax.set_ylabel('Identity F1', fontsize=config.FONTS)
 
-                            # # compute the distance to target metrics
-                            # design_screen = StructureScreen(self.dataset, self.dir, 
-                            #                                 axon_detections=self, 
-                            #                                 cache_target_distances='no')
-                            # # compare if metrics like n axons crossgrown match ground truth
-                            # metrics = pd.Series(design_screen.compare_to_gt_hacky(self.dataset.name))
-                            # summary = summary.append(metrics)
-                            
-                            print(summary)
-                            summary.name = key
-                            results.append(summary)
+            colors = []
+            sizes = []
+            for i in range(len(mota)):
+                if i == 0:
+                    colors.append(config.DEFAULT_COLORS[0])
+                    sizes.append(250)
+                else:
+                    colors.append('k')
+                    sizes.append(3)
+            axes[0].scatter(prc, rcl, alpha=1, edgecolor='k', color=colors, s=sizes)
+            axes[1].scatter(mota, f1, alpha=1, edgecolor='k', color=colors, s=sizes)
 
-        results_csv = pd.concat(results, axis=1)
-        results_csv.to_csv(f'{self.dir}/MCF_param_search.csv')
+
+            bottom, left = .85, .1
+            width, height = .85, .1
+            ax = fig.add_axes([left, bottom, width, height])
+            ax.set_ylim(.2,.8)
+            ax.set_xlim(0,1)
+            ax.set_xticks(np.arange(0,1.01,.1))
+            ax.tick_params(left=False, labelleft=False, labelsize=config.SMALL_FONTS)
+
+            ax.text(mostly_tr/2, .5, 'mostly tracked', clip_on=False, 
+                    ha='center', va='center', fontsize=config.SMALL_FONTS)
+            ax.text(mostly_tr + part_tr/2, .5, 'partially tracked', clip_on=False, 
+                    ha='center', va='center', fontsize=config.SMALL_FONTS)
+            ax.text(mostly_tr + part_tr + mostly_lost/2, .5, 'mostly lost', clip_on=False, 
+                    ha='center', va='center', fontsize=config.SMALL_FONTS)
+            ax.set_title('Proportion of axons', fontsize=config.FONTS)
+
+            ax.barh(0.5, mostly_tr, color=config.DEFAULT_COLORS[0], alpha=.8)
+            ax.barh(0.5, part_tr, left=mostly_tr, color=config.DEFAULT_COLORS[2], alpha=.8)
+            ax.barh(0.5, mostly_lost, left=mostly_tr+part_tr, color=config.DEFAULT_COLORS[1], alpha=.8)
+            
+            if show_results:
+                plt.show()
+            elif dest_dir:
+                plt.savefig(f'{dest_dir}/MCF_param_search_results.{config.FIGURE_FILETYPE}')
+
+
+
+        else:
+            # get the targets to compute MOT metrics later
+            target_dets_IDed = []
+            for t in range(len(self)):
+                frame_target = self.get_det_image_and_target(t, return_tiled=False)[1]
+                target_dets_IDed.append(self.det2libmot_det(frame_target, t, 
+                                                    to_pandas=True, drop_conf=True))
+            target_dets_IDed = pd.concat(target_dets_IDed)
+
+            # hyperparams to search over
+            edge_cost_thr_values =  [.4, .6, .7, .8, .9, 1, 1.2, 3]
+            entry_exit_cost_values = [ .2, .8, .9, 1, 1.1,  2]
+            miss_rate_values =  [0.9, 0.6]
+            vis_sim_weight_values = [0, 0.1]
+            conf_capping_method_values = ['ceil' , 'scale_to_max']
+            # edge_cost_thr_values =  [.5, .6, .7, .8, .9, 1, 1.2, 1.6]
+            # entry_exit_cost_values = [.4, .8, .9, 1, 1.1, 1.5]
+            # miss_rate_values =  [0.7]
+            # vis_sim_weight_values = [0]
+            # conf_capping_method_values = ['scale_to_max']
+
+            results = []
+            # # uncomment below to search over small preslected param combinations
+            # for (ec, eec, mr, vsw, ccm) in prom_combs:
+            #     self.MCF_edge_cost_thr = ec
+            #     self.MCF_entry_exit_cost = eec
+            #     self.MCF_miss_rate = mr
+            #     self.MCF_vis_sim_weight = vsw
+            #     self.MCF_conf_capping_method = ccm
+            
+            # brute search all param combinations 
+            for ec in reversed(edge_cost_thr_values):
+                self.MCF_edge_cost_thr = ec
+                for eec in reversed(entry_exit_cost_values):
+                    self.MCF_entry_exit_cost = eec
+                    for mr in miss_rate_values:
+                        self.MCF_miss_rate = mr
+                        for vsw in vis_sim_weight_values:
+                            self.MCF_vis_sim_weight = vsw
+                            for ccm in conf_capping_method_values:
+                                self.MCF_conf_capping_method = ccm
+
+                                key = f'ec:{ec} eec:{eec} mr:{mr} vsw:{vsw} ccm:{ccm}'
+                                print('\n\n\n', key, flush=True)
+
+                                # using MCF params defined above, assign IDs
+                                self.assign_ids(cache='from')
+                                
+                                # compute MOT benchmark
+                                acc = mm.utils.compare_to_groundtruth(target_dets_IDed, self.IDed_detections, 'euclidean', distth=(self.nms_min_dist)**2)
+                                mh = mm.metrics.create()
+                                summary = mh.compute(acc, metrics=mm.metrics.motchallenge_metrics, \
+                                                    return_dataframe=True).iloc[0]
+                                
+                                # # compute precision and recall my way (tiny difference with MOT Prc, Rcl?)
+                                # prc_rcl = np.array([(self.get_detection_metrics(t, 'ID_assigned')) for t in range(len(self))])
+                                # prc_rcl = pd.Series(prc_rcl.mean(0)[:-1], index=['MyPrc', 'MyRcl'])
+                                # summary = summary.T.append(prc_rcl)
+
+                                # # compute the distance to target metrics
+                                # design_screen = StructureScreen(self.dataset, self.dir, 
+                                #                                 axon_detections=self, 
+                                #                                 cache_target_distances='no')
+                                # # compare if metrics like n axons crossgrown match ground truth
+                                # metrics = pd.Series(design_screen.compare_to_gt_hacky(self.dataset.name))
+                                # summary = summary.append(metrics)
+                                
+                                print(summary)
+                                summary.name = key
+                                results.append(summary)
+
+                results_csv = pd.concat(results, axis=1)
+                results_csv.to_csv(f'{self.dir}/MCF_param_search.csv')

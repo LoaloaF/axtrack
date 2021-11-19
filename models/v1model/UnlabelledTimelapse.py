@@ -80,13 +80,13 @@ class UnlabelledTimelapse(Timelapse):
         metadata['dt'] = float(df["dt"])
         metadata['pixelsize'] = float(df.pixelsize)
         
-        # newly added, not all csv have this, default to tl13 dataset params
+        # newly added, old csv dont have this, default to tl13 dataset params
         metadata['which_tl'] = df.which_tl if 'which_tl' in df.index else 'tl13'
         metadata['incubation_time'] = float(df.incubation_time) if 'incubation_time' in df.index else 52*60
 
-        if 'intensity_offset' in df.index:
-            int_offset = int(df.intensity_offset)
-        elif metadata['which_tl'] == 'tl13':
+        # if 'intensity_offset' in df.index:
+        #     int_offset = int(df.intensity_offset)
+        if metadata['which_tl'] == 'tl13':
             int_offset = 121 /2**16
         elif metadata['which_tl'] == 'tl14':
             int_offset = 137 /2**16

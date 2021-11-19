@@ -10,6 +10,7 @@ import config
 from utils import turn_tex
 
 import matplotlib.pyplot as plt
+import plotting
 from plotting import (
     plot_axon_IDs_lifetime,
     plot_target_distance_over_time,
@@ -22,13 +23,14 @@ from plotting import (
 )
 
 class PDMSDesignScreen(object):
-    def __init__(self, structure_screens, directory):
+    def __init__(self, structure_screens, directory, tex=True):
         self.structure_screens = structure_screens
         
         self.dir = directory
         os.makedirs(self.dir, exist_ok=True)
 
         self.str_names = [ss.name for ss in structure_screens]
+        print(self.str_names)
         self.identifiers = [ss.identifier for ss in structure_screens]
         # self.metrics = pd.concat([ss.metric for ss in structure_screens], axis=1)
         # self.metrics.columns.set_names(['timelapse','design','CLSM_area'], inplace=True)
@@ -38,7 +40,12 @@ class PDMSDesignScreen(object):
         self.get_index = self.get_index.to_frame()
         self.get_index['notes'] = [ss.notes for ss in self]
         print(f'\n{config.SPACER}\nScreening object initialized with the '
-              f'following samples:\n{self.get_index}\n{config.SPACER}\n')
+              f'following samples:\n{self.get_index.to_string()}\n{config.SPACER}\n')
+
+        if tex:
+            turn_tex('on')
+
+        
     
     def __len__(self):
         return len(self.structure_screens)
@@ -50,40 +57,66 @@ class PDMSDesignScreen(object):
         for ss in self.structure_screens:
             yield ss
 
+                
+    # ==================  VALIDATION  ========================
     # single screens
-    def sss_ID_lifetime(self, symlink_results=False, plot_kwargs={}):
-        print('Plotting ID lifetimes.')
-        dest_dir = f'{self.dir}/ID_lifetimes/'
-        os.makedirs(dest_dir, exist_ok=True)
-
-        turn_tex('on')
-        for i in range(len(self)):
-            fname = plot_axon_IDs_lifetime(self[i], **plot_kwargs)
-            dest_ln_fname = dest_dir+os.path.basename(fname)
-            if symlink_results and not os.path.exists(dest_ln_fname):
-                os.symlink(fname, dest_ln_fname)
-        turn_tex('off')
-            
-    # single screens
-    def sss_target_distance_over_time(self,symlink_results=False, plot_kwargs={}):
-        print('Plotting target distance over time.')
-        turn_tex('on')
+    def sss_validate_masks(self, symlink_results=False, plot_kwargs={}):
+        print('Validating masks of structure screens...', end='', flush=True)
         
-        dest_dir = f'{self.dir}/target_distance_over_time/'
-        os.makedirs(dest_dir, exist_ok=True)
+        if symlink_results:
+            dest_dir = f'{self.dir}/validate_masks/'
+            os.makedirs(dest_dir, exist_ok=True)
+        
+        for ss in self:
+            print(f'{ss.name}', end='...', flush=True)
+            fname = plotting.draw_mask(ss, **plot_kwargs)
+            if symlink_results:
+                dest_ln_fname = dest_dir+os.path.basename(fname)
+                if not os.path.exists(dest_ln_fname):
+                    os.symlink(fname, dest_ln_fname)
+        print('Done.\n')
+    
+    # single screens
+    def sss_validate_IDlifetime(self, symlink_results=False, plot_kwargs={}):
+        print('Validating ID lifetimes...', flush=True, end='')
 
-        for i in range(len(self)):
-            fname = plot_target_distance_over_time(self[i], **plot_kwargs)
-            dest_ln_fname = dest_dir+os.path.basename(fname)
-            if symlink_results and not os.path.exists(dest_ln_fname):
-                os.symlink(fname, dest_ln_fname)
+        if symlink_results:
+            dest_dir = f'{self.dir}/ID_lifetimes/'
+            os.makedirs(dest_dir, exist_ok=True)
 
-        turn_tex('off')
+        for ss in self:
+            print(f'{ss.name}', end='...', flush=True)
+            fname = plotting.plot_axon_IDs_lifetime(ss, **plot_kwargs)
+            if symlink_results:
+                dest_ln_fname = dest_dir+os.path.basename(fname)
+                if not os.path.exists(dest_ln_fname):
+                    os.symlink(fname, dest_ln_fname)
+        print('Done.\n')
             
-    # compare designs
-    def cs_target_distance_over_time(self, speed=False, plot_kwargs={}):
-        turn_tex('on')
+    # single screens
+    def sss_target_distance_timeline(self, symlink_results=False, plot_kwargs={}):
+        print('Plotting target distance over time...', flush=True, end='')
 
+        if symlink_results:
+            dest_dir = f'{self.dir}/target_distance_timeline/'
+            os.makedirs(dest_dir, exist_ok=True)
+
+        for ss in self:
+            print(f'{ss.name}', end='...', flush=True)
+            fname = plotting.plot_target_distance_over_time(ss, **plot_kwargs)
+            if symlink_results:
+                dest_ln_fname = dest_dir+os.path.basename(fname)
+                if not os.path.exists(dest_ln_fname):
+                    os.symlink(fname, dest_ln_fname)
+        print('Done.\n')
+
+    
+    
+
+    # ======== CHECK GENERAL DEVELOPMENT OF SPEED AND DISTANCE TO TARGET ======
+    # compare designs
+    def cs_target_distance_timeline(self, speed=False, plot_kwargs={}):
+        print('Plotting target distance over time for designs...', flush=True, end='')
         all_delta_dists = []
         for ss in self:
             dists = ss.get_distances()
@@ -92,51 +125,38 @@ class PDMSDesignScreen(object):
             else:
                 delta_dists = ss.subtract_initial_dist(dists)
 
-            delta_dists.index = pd.MultiIndex.from_product([*[[iden] for iden in ss.identifier], delta_dists.index], names=['timelapse','design','CLSM_area','axon_id'])
+            names = ['timelapse','design','CLSM_area','axon_id']
+            delta_dists.index = pd.MultiIndex.from_product([*[[iden] for iden in ss.identifier], 
+                                                            delta_dists.index], names=names)
             all_delta_dists.append(delta_dists)
         all_delta_dists = pd.concat(all_delta_dists, axis=0)
-        
         plot_target_distance_over_time_allscreens(all_delta_dists, self.dir, speed=speed, **plot_kwargs)
-        turn_tex('off')
+        print('Done.')
             
     # compare structures 
     def cs_naxons(self, DIV_range=None, plot_kwargs={}):
-        print('Plotting number of axons identified in each structure.')
-        turn_tex('on')
+        print('Plotting number of axons identified in each structure...', end='')
         
         n_axons = [ss.get_distances(DIV_range=DIV_range).shape[0] for ss in self]
         n_axons = pd.Series(n_axons, self.index)
         print(n_axons.to_string())
+        plot_n_axons(n_axons, self.dir, DIV_range, **plot_kwargs)
 
-        fname = plot_n_axons(n_axons, self.dir, DIV_range, **plot_kwargs)
-        turn_tex('off')
-    
-    # def show_masks(self, ):
-    #     for ss in self:
-    #         plt.subplots(figsize=(16,9))
-    #         new_mask = ss.goal_mask.copy()
-    #         new_mask[ss.start_mask.astype(bool)] = 2
-    #         plt.imshow(new_mask)
-    #         plt.title(ss.name)
-    #         plt.savefig(f'{self.dir}/masks/{ss.name}.png')
-    #         # plt.show()
-    
     # compare structures 
-    def cs_axon_growthspeed(self, DIV_range=None, percentile=None, plot_kwargs={}):
+    def cs_axon_growthspeed(self, DIV_range=None, designs_subset=None, plot_kwargs={}):
         # print('Plotting number of axons identified in each structure.')
-        turn_tex('on')
         
         all_growth_speeds = []
         for ss in self:
+                
             dists = ss.get_distances(DIV_range=DIV_range)
             growth_speed = ss.get_growth_speed(dists, average=True, absolute=True).reset_index(drop=True)
-            
             identifier = ss.identifier
+            if designs_subset and identifier[1] not in designs_subset:
+                continue
+                
             identifier = tuple(list(identifier) + ss.design_features)
 
-            if percentile:
-                n = int(growth_speed.shape[0]*percentile)
-                growth_speed = growth_speed.sort_values(ascending=False).iloc[:n]
             all_growth_speeds.append(growth_speed.rename(identifier))
         all_growth_speeds = pd.concat(all_growth_speeds, axis=1).T
         
@@ -146,13 +166,25 @@ class PDMSDesignScreen(object):
 
         fname = plot_axon_growthspeed(all_growth_speeds, self.dir, DIV_range, **plot_kwargs)
 
-        turn_tex('off')
     
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    # ===================== BEST DIRECTIONALITY STRCUTRES ======================
     # compare structures 
     def cs_axon_growth_direction(self, DIV_range=None, counted=False, plot_kwargs={}):
-        # print('Plotting number of axons identified in each structure.')
-        turn_tex('on')
-        
         all_growth_direcs = []
         for ss in self:
             dists = ss.get_distances(DIV_range=DIV_range)
@@ -172,23 +204,64 @@ class PDMSDesignScreen(object):
         else:
             plot_counted_growth_directions(all_growth_direcs, self.dir, **plot_kwargs)
 
-        turn_tex('off')
     # compare structures 
     
-    def cs_axon_destinations(self, DIV_range=None, counted=False, plot_kwargs={}):
-        # print('Plotting number of axons identified in each structure.')
-        turn_tex('on')
-        
+    def cs_axon_destinations(self, DIV_range=None, save_single_plots=False, 
+                             neg_comp_metric='cross_grown', relative_naxons=False,
+                             norm_to_sum=True, 
+                             plot_kwargs={}):
+        print('Plotting axon destinations...', end='')
         destinations = []
         for ss in self:
+            print(ss.name, end='...', flush=True)
+            dists, DIV_mask = ss.get_distances(DIV_range=DIV_range, return_DIV_mask=True)
+            reached_target_axons, crossgrown_axons, stagnating_axons = ss.detect_axons_final_location(dists, DIV_mask=DIV_mask, draw=save_single_plots)
+            directions = ss.growth_direction_start2end(dists)
 
-            dists = ss.get_distances(DIV_range=DIV_range)
-            reached_target_axons, crossgrown_axons = ss.detect_axons_final_location(dists, draw=False)
-            destin = pd.Series((len(reached_target_axons), len(crossgrown_axons)), 
-                                index=['target','cross_growth'], name=ss.identifier)
-            destinations.append(destin)     
+            if neg_comp_metric == 'cross_grown':
+                metrics = np.array([len(reached_target_axons),
+                                    len(crossgrown_axons),
+
+                ], dtype=float)
+            elif neg_comp_metric == 'wrong_dir_100':
+                metrics = np.array([len(reached_target_axons),
+                                    (directions<-100).sum(),
+
+                ], dtype=float)
+            elif neg_comp_metric == 'wrong_dir_200':
+                metrics = np.array([len(reached_target_axons),
+                                    (directions<-200).sum(),
+                ], dtype=float)
+            
+            if norm_to_sum:
+                metrics = np.append(metrics, (metrics[0]+1)/(metrics[1]+1) )
+            else:
+                if metrics.sum() < 3:
+                    metrics = np.array([np.nan, np.nan])
+                metrics = np.append(metrics, metrics[0]/(metrics[0]+(metrics[1])))
+                metrics[2] = metrics[2]*10
+            
+            print(metrics)
+            destin = pd.Series(metrics, index=['pos_metric','neg_metric', 'metric'], 
+                               name=ss.identifier)
+
+            add_design_features = True
+            
+            if add_design_features:
+                identifier = ss.identifier
+                identifier = tuple(list(identifier) + ss.design_features)
+                destinations.append(destin.rename(identifier))
+            else:
+                destinations.append(destin)     
+
+
         destinations = pd.concat(destinations, axis=1).T
-        destinations.index.rename(['timelapse','design','CLSM_area'], inplace=True)
-        
+        index_names = ['timelapse','design','CLSM_area']
+        if add_design_features:
+            index_names.extend(config.DESIGN_FEATURE_NAMES)
+
+        # destinations.fillna(0, inplace=True)
+        destinations.index.rename(index_names, inplace=True)
+        print(destinations)
+        destinations.to_csv(f'{self.dir}/results.csv')
         plot_axon_destinations(destinations, self.dir, **plot_kwargs)
-        turn_tex('off')

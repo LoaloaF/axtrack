@@ -193,8 +193,8 @@ def prepend_prev_run(exp_name, older_run, newer_run, older_run_until_e=None, new
         RUN_DIR = get_run_dir(EXP_DIR, run)
         
         if i == 0:
-            training_file = f'{RUN_DIR}/metrics/loss_all_epochs_prepend.pkl'
-            training_file_metrics = f'{RUN_DIR}/metrics/metrics_all_epochs_prepend.pkl'
+            training_file = f'{RUN_DIR}/metrics/loss_all_epochs.pkl'
+            training_file_metrics = f'{RUN_DIR}/metrics/metrics_all_epochs.pkl'
         else:
             training_file = f'{RUN_DIR}/metrics/loss_all_epochs.pkl'
             training_file_metrics = f'{RUN_DIR}/metrics/metrics_all_epochs.pkl'

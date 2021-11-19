@@ -84,7 +84,7 @@ class Timelapse(Dataset):
             self.target = self._load_bboxes(labels_csv)
 
             # slice to timeinterval
-            self.timepoints_indices, self.sizet, self.target, self.imseq, self.p_motion_seq, self.n_motion_seq = self._slice_timepoints()
+            self.timepoints_indices, self.sizet, self.target, self.imseq, self.mask, self.p_motion_seq, self.n_motion_seq = self._slice_timepoints()
 
 
             # convert scipy.COO (imseq, p_motion & n_motion) to sparse tensor
@@ -174,8 +174,12 @@ class Timelapse(Dataset):
         imseq = img_as_float32(imread(path))
 
         if offset:
+            # offset = np.amin(imseq, (1,2))
             print(f'offsetting by {offset}...', end='', flush=True)
-            imseq -= offset
+            # [print(np.sort(im.flatten())[:10]*2**16, flush=True) for im in imseq]
+            # print(imseq.T.shape)
+            # imseq =  (imseq.T - offset).T
+            imseq -=  offset
             imseq[imseq<0] = 0
         if mask_path:
             print('masking...', end='', flush=True)
@@ -364,11 +368,12 @@ class Timelapse(Dataset):
         timepoints_indices = [tps.index(tp) for tp in self.timepoints]
 
         imseq = [self.imseq[t] for t in tps]
+        mask = [self.mask[t] for t in tps]
         p_motion_seq = [self.p_motion_seq[t] for t in tps]
         n_motion_seq = [self.n_motion_seq[t] for t in tps]
         target = self.target.iloc[tps]
         sizet = len(self.timepoints)
-        return timepoints_indices, sizet, target, imseq, p_motion_seq, n_motion_seq
+        return timepoints_indices, sizet, target, imseq, mask, p_motion_seq, n_motion_seq
     
     def _get_channelsizes(self):
         if self.use_motion_filtered == 'exclude':

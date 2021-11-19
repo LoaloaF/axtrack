@@ -109,7 +109,7 @@ def evaluate_model(exp_name, run, epoch='latest', which_data='test', **kwargs):
     # axon_detections.update_conf_thr_to_best_F1()
     
     os.makedirs(f'{RUN_DIR}/model_out', exist_ok=True)
-    fname = f'{data.name}_E:{epoch}_timepoint---of{data.sizet}'
+    fname = f'{data.name}_E{epoch}_timepoint---of{data.sizet}'
     draw_all(axon_detections, fname, dest_dir=f'{RUN_DIR}/model_out', 
                 notes=params["NOTES"], color_det1_ids=False, **kwargs)
 
@@ -117,10 +117,12 @@ def evaluate_ID_assignment(exp_name, run, epoch='latest', cached_astar_paths='fr
                            which_data='test', do_draw_all_vis=False, do_ID_lifetime_vis=False, 
                            **kwargs):
     RUN_DIR, params = setup_evaluation(exp_name, run)
-    params = to_device_specifc_params(params, get_default_parameters(), from_cache=OUTPUT_DIR)
+    # params = to_device_specifc_params(params, get_default_parameters(), from_cache=OUTPUT_DIR)
     params['LOAD_MODEL'] = [exp_name, run, epoch]
     # params['DEVICE'] = 'cuda:6'
-    params['OFFSET'] = None
+    # params['OFFSET'] = None
+    # params['FROM_CACHE'] = None
+    # params['CACHE'] = OUTPUT_DIR
 
     model, _, _, _ = setup_model(params)
     train_data, test_data = setup_data(params)
@@ -129,10 +131,12 @@ def evaluate_ID_assignment(exp_name, run, epoch='latest', cached_astar_paths='fr
 
     axon_detections = AxonDetections(model, data, params, IDed_dets_dir)
     
-    axon_detections.search_MCF_params(True)
+    # axon_detections.search_MCF_params(show_results=False, dest_dir=None)
+    axon_detections.search_MCF_params(show_results=False, dest_dir=IDed_dets_dir)
     
     axon_detections.assign_ids(cache=cached_astar_paths)
-    fname = f'{data.name}_E:{epoch}_timepoint:---|{data.sizet}'
+
+    fname = f'{data.name}_E{epoch}_timepoint:---of{data.sizet}'
     draw_all(axon_detections, fname, dest_dir=IDed_dets_dir, dt=31,
                 notes=params["NOTES"], use_IDed_dets=True, **kwargs)
 
@@ -156,7 +160,7 @@ def evaluate_precision_recall(exp_run_epoch_ids, show=True, avg_over_t=30):
         metrics_files = [file for file in metrics_files if os.path.exists(file) and not pd.read_pickle(file).empty]
         print()
         print(metrics_files)
-        print()
+        print(lbl)
         metrics[lbl] = metrics_files
     plot_prc_rcl(metrics, dest_dir=dest_dir, show=show)
     print('Done.')
