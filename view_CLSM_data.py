@@ -83,8 +83,20 @@ def process_dir(all_files, inp_dir, outp_dir, notes):
 
 
 
-inp_dir = '/home/loaloa/ETZ_drive/biohybrid-signal-p/20.10_primitives/Exp14_DIV14_prim01_Cycle/'
-outp_dir = '/home/loaloa/ETZ_drive/biohybrid-signal-p/20.10_primitives/exp14_DIV14_processed_1/'
+# name1 = 'Exp14_DIV14_prim01_Cycle'
+name2 = 'Exp14_DIV14_prim02_Cycle'
+# name3 = 'Exp14_DIV14_prim02_real_Cycle'
+# name4 = 'Exp14_DIV14_prim03_Cycle'
+# name5 = 'Exp14_DIV14_prim04_Cycle_01'
+# name6 = 'Exp14_DIV14_rest_Cycle'
+# name7 = 'Exp14overview_Cycle'
+name8 = 'Exp14overview_Cycle_01'
+
+
+path = '/home/loaloa/ETZ_drive/biohybrid-signal-p/20.10_primitives/'
+
+inp_dir = f'{path}/{name2}/'
+outp_dir = f'{path}/exp14_DIV14_processed_2/'
 
 # inp_dir = '/home/loaloa/ETZ_drive/biohybrid-signal-p/20.10_primitives/Exp14_DIV14_prim02_Cycle/'
 # outp_dir = '/home/loaloa/ETZ_drive/biohybrid-signal-p/20.10_primitives/exp14_DIV14_processed_2/'

@@ -41,6 +41,11 @@ class StructureScreen(object):
         self.distances = axon_detections.to_target_dists
         self.all_dets = axon_detections.get_all_IDassiged_dets()
         self.goalmask2target_maxdist = self._compute_goalmask2target_maxdist()
+
+        self.axons_reached_target = None
+        self.axons_crossgrown = None
+        self.stagnating_axons = None
+        self.growth_direction = None
         
         # set to all IDs in the beginning
         self.set_axon_subset(self.distances.index)
@@ -50,7 +55,7 @@ class StructureScreen(object):
         self.trans_det_prominence = 200
         self.trans_det_threshold = 4
         self.trans_det_width = (1,24)
-        self.stagnating_axon_std_thr = 25
+        self.stagnating_axon_std_thr = 12
 
         self.crossgrowth_speed_thr = 600
         self.last_growth_trend_n = 10
@@ -98,9 +103,9 @@ class StructureScreen(object):
     
     # for lazyness - cache screen again to not need this thing below
     def hacky_adhoc_param_setter(self):
-        # self.crossgrowth_speed_thr = 600
-        # self.last_growth_trend_n = 10
-        # self.stagnating_axon_std_thr = 12
+        self.crossgrowth_speed_thr = 600
+        self.last_growth_trend_n = 10
+        self.stagnating_axon_std_thr = 12
 
         old_d = f'D{self.identifier[1]:0>2}'
         design_rename = {
@@ -132,8 +137,15 @@ class StructureScreen(object):
         }
 
         new_d = design_rename[old_d]
+        self.design_features = config.DESIGN_FEATURES[new_d]
         self.identifier = self.identifier[0], new_d, self.identifier[2]
         self.name = self.name.replace(old_d, f'D{new_d:0>2}')
+
+
+        self.axons_reached_target = None
+        self.axons_crossgrown = None
+        self.stagnating_axons = None
+        self.growth_direction = None
 
         # if isinstance(self.mask, list):
         #     self.mask = self.mask[0]
@@ -190,6 +202,18 @@ class StructureScreen(object):
         return metrics
         
 
+    def get_special_axons(self, kwargs):
+        if self.axons_reached_target is None:
+            art, ac, sa = self.detect_axons_final_location(**kwargs)
+            self.axons_reached_target = art
+            self.axons_crossgrown = ac
+            self.stagnating_axons = sa
+        return self.axons_reached_target, self.axons_crossgrown, self.stagnating_axons
+    
+    def get_growth_directions(self, kwargs):
+        if self.growth_direction is None:
+            self.growth_direction = self.growth_direction_start2end(**kwargs)
+        return self.growth_direction
 
     def detect_axons_final_location(self, dists, DIV_mask=None, crossgrowth_params=None, draw=True):
         if draw:

@@ -62,7 +62,7 @@ SMALL_FONTS = 14.5
 FONTS = 18
 
 SMALL_FIGSIZE = (4.5,3.5)
-MEDIUM_FIGSIZE = (8.5,5.5)
+MEDIUM_FIGSIZE = (6.5,4.5)
 LARGE_FIGSIZE = (16,8)
 D21_COLOR = '#54aeb3'
 D22_COLOR = DARK_GRAY
@@ -84,9 +84,6 @@ from cycler import cycler
 plt.rcParams["axes.prop_cycle"] = cycler('color', DEFAULT_COLORS)
 
 
-DESIGN_FEATURE_NAMES = ('n 2-joints', 'n rescue loops', '2-joint placement', 
-                        'channel width', 'rescue loop design', '2-joint design', 
-                        'final lane design', 'use spiky tracks')
 # DESIGN_FEATURES = {
 #     1: [0,       0, 'NA', 8,    'NA', 'NA', 'NA', 'no'], 
 #     2: [0,       0, 'NA', 3,    'NA', 'NA', 'NA', 'no'],
@@ -114,37 +111,41 @@ DESIGN_FEATURE_NAMES = ('n 2-joints', 'n rescue loops', '2-joint placement',
 #    18: [1, 3, 'early', 8, 'angled',   '3um opening',         'normal',   'yes'],
 #    19: [1, 3, 'early', 8, 'angled',   '3um opening',         'wider',    'no'],
 #    20: [1, 3, 'early', 8, 'angled',   '3um opening',         'narrower', 'no'],
-
 # }
+
+MIN_GROWTH_DELTA = 100
+DESIGN_FEATURE_NAMES = ['n 2-joints', 'n rescue loops', '2-joint placement', 
+                        'channel width', 'rescue loop design', '2-joint design', 
+                        'final lane design', 'use spiky tracks']
 
 # after renaming for presentation puposes, structures_screen.identifier and ss.name 
 # have a new numbers. This is reflected by the table below
 DESIGN_FEATURES = {
-    2: [0,       0, 'NA', 8,    'NA', 'NA', 'NA', 'no'], 
-    3: [0,       0, 'NA', 3,    'NA', 'NA', 'NA', 'no'],
-    4: [0,       0, 'NA', 1.5,  'NA', 'NA', 'NA', 'no'],
-   
-    0: ['NA', 'NA', 'NA', 'NA', 'NA', 'NA', 'NA', 'no'],
-    1: [0,       0, 'NA', 8,    'NA', 'NA', 'neg. control', 'no'], 
+    0: ['NA', 'NA', 'NA', 'NA',      'NA', 'NA',     'NA',           'no'],
     
-    5: [1, 0, 'late',  8, 'NA', '3um opening', 'normal', 'no'],
-    6: [3, 0, 'late',  8, 'NA', '3um opening', 'normal', 'no'],
-    7: [1, 0, 'early', 8, 'NA', '3um opening', 'normal', 'no'],
-    8: [3, 0, 'early', 8, 'NA', '3um opening', 'normal', 'no'],
-    
-    9: [0, 1, 'NA',    8, 'angled', 'NA',          'normal', 'no'],
-   11: [0, 3, 'NA',    8, 'angled', 'NA',          'normal', 'no'],
-   10: [1, 1, 'early', 8, 'angled', '3um opening', 'normal', 'no'],
-   12: [1, 3, 'early', 8, 'angled', '3um opening', 'normal', 'no'],
+    1: [0,       0, 'NA', 8,         'NA', 'NA',     'neg.Ctrl',     'no'], 
+    2: [0,       0, 'NA', 8,         'NA', 'NA',     '3',            'no'], 
+    3: [0,       0, 'NA', 3,         'NA', 'NA',     '3',            'no'],
+    4: [0,       0, 'NA', 1.5,       'NA', 'NA',     '3',            'no'],
    
-   14: [1, 3, 'early', 8, 'angled',   '5um opening',          'normal', 'no'],
-   16: [1, 3, 'early', 8, 'angled',   '1.5um opening',        'normal', 'no'],
-   15: [1, 3, 'early', 8, 'angled',   '3um opening, tangent', 'normal', 'no'],
-   17: [1, 3, 'early', 8, 'straight', '3um opening',          'normal', 'no'],
+    5: [1, 0, 'late',  8, 'NA',      '3',            '3',            'no'],
+    6: [3, 0, 'late',  8, 'NA',      '3',            '3',            'no'],
+    7: [1, 0, 'early', 8, 'NA',      '3',            '3',            'no'],
+    8: [3, 0, 'early', 8, 'NA',      '3',            '3',            'no'],
+    
+    9: [0, 1, 'NA',    8, 'angled',   'NA',          '3',            'no'],
+   11: [0, 3, 'NA',    8, 'angled',   'NA',          '3',            'no'],
+   10: [1, 1, 'early', 8, 'angled',   '3',           '3',            'no'],
+   12: [1, 3, 'early', 8, 'angled',   '3',           '3',            'no'],
+   
+   14: [1, 3, 'early', 8, 'angled',   '5',           '3',            'no'],
+   16: [1, 3, 'early', 8, 'angled',   '1.5',         '3',            'no'],
+   15: [1, 3, 'early', 8, 'angled',   '3, tang.',  '3',            'no'],
+   17: [1, 3, 'early', 8, 'straight', '3',           '3',            'no'],
 
-   13: [1, 3, 'early', 8, 'angled',   '3um opening, insert', 'normal',   'no'],
-   20: [1, 3, 'early', 8, 'angled',   '3um opening',         'normal',   'yes'],
-   18: [1, 3, 'early', 8, 'angled',   '3um opening',         'wider',    'no'],
-   19: [1, 3, 'early', 8, 'angled',   '3um opening',         'wider, 1.5um opening', 'no'],
+   13: [1, 3, 'early', 8, 'angled',   '3, inlay',    '3',            'no'],
+   20: [1, 3, 'early', 8, 'angled',   '3',           '3',            'yes'],
+   18: [1, 3, 'early', 8, 'angled',   '3',           '3, wide',    'no'],
+   19: [1, 3, 'early', 8, 'angled',   '3',           '1.5, wide',  'no'],
 
 }

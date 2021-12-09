@@ -17,8 +17,8 @@ from plotting import (
     plot_n_axons,
     plot_axon_growthspeed,
     plot_axon_destinations,
-    plot_growth_directions,
-    plot_counted_growth_directions,
+    # plot_growth_directions,
+    # plot_counted_growth_directions,
     plot_target_distance_over_time_allscreens,
 )
 
@@ -99,6 +99,7 @@ class PDMSDesignScreen(object):
 
         if symlink_results:
             dest_dir = f'{self.dir}/target_distance_timeline/'
+            print(dest_dir)
             os.makedirs(dest_dir, exist_ok=True)
 
         for ss in self:
@@ -143,18 +144,20 @@ class PDMSDesignScreen(object):
         plot_n_axons(n_axons, self.dir, DIV_range, **plot_kwargs)
 
     # compare structures 
-    def cs_axon_growthspeed(self, DIV_range=None, designs_subset=None, plot_kwargs={}):
+    def cs_axon_growthspeed(self, DIV_range=None, plot_kwargs={}):
         # print('Plotting number of axons identified in each structure.')
+
+        if DIV_range is not None:
+            if 'fname_postfix' not in plot_kwargs:
+                plot_kwargs['fname_postfix'] = ''
+            plot_kwargs['fname_postfix'] += f'_DIV{DIV_range}'
+
         
         all_growth_speeds = []
         for ss in self:
-                
             dists = ss.get_distances(DIV_range=DIV_range)
             growth_speed = ss.get_growth_speed(dists, average=True, absolute=True).reset_index(drop=True)
             identifier = ss.identifier
-            if designs_subset and identifier[1] not in designs_subset:
-                continue
-                
             identifier = tuple(list(identifier) + ss.design_features)
 
             all_growth_speeds.append(growth_speed.rename(identifier))
@@ -164,7 +167,7 @@ class PDMSDesignScreen(object):
         index_names.extend(config.DESIGN_FEATURE_NAMES)
         all_growth_speeds.index.rename(index_names, inplace=True)
 
-        fname = plot_axon_growthspeed(all_growth_speeds, self.dir, DIV_range, **plot_kwargs)
+        fname = plotting.plot_axon_distribution(all_growth_speeds, self.dir, **plot_kwargs)
 
     
 
@@ -207,25 +210,27 @@ class PDMSDesignScreen(object):
     # compare structures 
     
     def cs_axon_destinations(self, DIV_range=None, save_single_plots=False, 
-                             neg_comp_metric='cross_grown', relative_naxons=False,
-                             norm_to_sum=True, 
+                             neg_comp_metric='directions', relative_naxons=False,
+                             norm_to_sum=True,
                              plot_kwargs={}):
-        print('Plotting axon destinations...', end='')
+        print('\nPlotting axon destinations...', end='')
         destinations = []
         for ss in self:
             print(ss.name, end='...', flush=True)
             dists, DIV_mask = ss.get_distances(DIV_range=DIV_range, return_DIV_mask=True)
-            reached_target_axons, crossgrown_axons, stagnating_axons = ss.detect_axons_final_location(dists, DIV_mask=DIV_mask, draw=save_single_plots)
-            directions = ss.growth_direction_start2end(dists)
+            
+            kwargs = {'dists':dists, 'DIV_mask':DIV_mask, 'draw':save_single_plots}
+            reached_target_axons, crossgrown_axons, stagnating_axons = ss.get_special_axons(kwargs)
+            directions = ss.get_growth_directions({'dists':dists})
 
             if neg_comp_metric == 'cross_grown':
                 metrics = np.array([len(reached_target_axons),
                                     len(crossgrown_axons),
 
                 ], dtype=float)
-            elif neg_comp_metric == 'wrong_dir_100':
-                metrics = np.array([len(reached_target_axons),
-                                    (directions<-100).sum(),
+            elif neg_comp_metric == 'directions':
+                metrics = np.array([(directions<-config.MIN_GROWTH_DELTA).sum(),
+                                    (directions>config.MIN_GROWTH_DELTA).sum(),
 
                 ], dtype=float)
             elif neg_comp_metric == 'wrong_dir_200':
@@ -241,7 +246,6 @@ class PDMSDesignScreen(object):
                 metrics = np.append(metrics, metrics[0]/(metrics[0]+(metrics[1])))
                 metrics[2] = metrics[2]*10
             
-            print(metrics)
             destin = pd.Series(metrics, index=['pos_metric','neg_metric', 'metric'], 
                                name=ss.identifier)
 
@@ -260,8 +264,6 @@ class PDMSDesignScreen(object):
         if add_design_features:
             index_names.extend(config.DESIGN_FEATURE_NAMES)
 
-        # destinations.fillna(0, inplace=True)
         destinations.index.rename(index_names, inplace=True)
-        print(destinations)
         destinations.to_csv(f'{self.dir}/results.csv')
-        plot_axon_destinations(destinations, self.dir, **plot_kwargs)
+        plot_axon_destinations(destinations, self.dir, neg_comp_metric, **plot_kwargs)

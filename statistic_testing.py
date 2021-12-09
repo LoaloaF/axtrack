@@ -83,13 +83,13 @@ def test_all(data, dest_dir=None, show=True, subset=None):
 
 
 if __name__ == '__main__':
-    show = True
+    show = False
     path = '/home/loaloa/ETZ_drive/biohybrid-signal-p/PDMS_structure_screen_v2/all_results_v4/results.csv'
-    dest_dir = '/home/loaloa/ETZ_drive/biohybrid-signal-p/PDMS_structure_screen_v2/all_results_v4/significance/'
+    dest_dir = '/home/loaloa/ETZ_drive/biohybrid-signal-p/PDMS_structure_screen_v2/all_results_v5/significance/'
     subset = None
     
     
-    dest_dir = '/home/loaloa/ETZ_drive/biohybrid-signal-p/PDMS_structure_screen_v2/all_results_v4/significance_designsubset/'
+    dest_dir = '/home/loaloa/ETZ_drive/biohybrid-signal-p/PDMS_structure_screen_v2/all_results_v5/significance_designsubset/'
     subset = {
         'channel width': (2,3,4),
         'n 2-joints': (9,10,11,12,5,8,6,7),
@@ -100,8 +100,6 @@ if __name__ == '__main__':
         'final lane design': (1, 12,18,19),
         '2-joint design': (12,13,14,15,16),
     }
-
-
 
     os.makedirs(dest_dir, exist_ok=True)
 
