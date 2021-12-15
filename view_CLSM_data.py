@@ -90,13 +90,13 @@ name2 = 'Exp14_DIV14_prim02_Cycle'
 # name5 = 'Exp14_DIV14_prim04_Cycle_01'
 # name6 = 'Exp14_DIV14_rest_Cycle'
 # name7 = 'Exp14overview_Cycle'
-name8 = 'Exp14overview_Cycle_01'
+name8 = 'main_Cycle_01'
 
 
-path = '/home/loaloa/ETZ_drive/biohybrid-signal-p/20.10_primitives/'
+path = '/run/media/loaloa/lbb_ssd/primitives_13.10/exp12_DIV14/'
 
-inp_dir = f'{path}/{name2}/'
-outp_dir = f'{path}/exp14_DIV14_processed_2/'
+inp_dir = f'{path}/{name8}/'
+outp_dir = f'{path}/exp12_DIV14_processed_nostitch/'
 
 # inp_dir = '/home/loaloa/ETZ_drive/biohybrid-signal-p/20.10_primitives/Exp14_DIV14_prim02_Cycle/'
 # outp_dir = '/home/loaloa/ETZ_drive/biohybrid-signal-p/20.10_primitives/exp14_DIV14_processed_2/'
@@ -119,7 +119,7 @@ outp_dir = f'{path}/exp14_DIV14_processed_2/'
 
 notes = 'DIV14, Exp14, GFP RGC, RFP RGC, faint green=thalamus+GCamp'
 
-all_files = sorted(glob(inp_dir+'/Stitch*_G0*.oir'))
+all_files = sorted(glob(inp_dir+'/main*_G02*.oir'))
 print_files = '\n\t'.join([f for f in all_files])
 print(f'Found {len(all_files)} areas: \n\t{print_files}')
 

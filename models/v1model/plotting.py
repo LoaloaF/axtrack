@@ -792,7 +792,7 @@ def _draw_designcolorbar(colorbar_axes):
     cbar.set_ticklabels(ticklabels)
     cbar.ax.tick_params(labelsize=config.FONTS)
 
-def _get_barplot(n_bars, draw_colorbar=True):
+def _get_barplot(n_bars, draw_colorbar=True, larger_bottom=False):
     # define the size of plot elements in inches
     lr_pad = [1, .6]
     # bars, white space between bars, space on left and right
@@ -809,8 +809,10 @@ def _get_barplot(n_bars, draw_colorbar=True):
     fig, ax = plt.subplots(figsize=(width, config.BARPLOT_HEIGHT))
     # calculate proportional valuesby dividing through overall figure width
     lr_pad_prop = lr_pad[0]/width, 1-lr_pad[1]/width
+    
     # make plot
-    fig.subplots_adjust(left=lr_pad_prop[0], right=lr_pad_prop[1], top=.9, bottom=.2)
+    btm = .2 if not larger_bottom else .35
+    fig.subplots_adjust(left=lr_pad_prop[0], right=lr_pad_prop[1], top=.9, bottom=btm)
 
     if draw_colorbar:
         bottom, left = .2, (lr_pad[0]+ax_width+cbar_width*2/3) /width

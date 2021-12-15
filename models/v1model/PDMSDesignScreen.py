@@ -233,10 +233,10 @@ class PDMSDesignScreen(object):
                                     (directions>config.MIN_GROWTH_DELTA).sum(),
 
                 ], dtype=float)
-            elif neg_comp_metric == 'wrong_dir_200':
-                metrics = np.array([len(reached_target_axons),
-                                    (directions<-200).sum(),
-                ], dtype=float)
+            # elif neg_comp_metric == 'wrong_dir_200':
+            #     metrics = np.array([len(reached_target_axons),
+            #                         (directions<-200).sum(),
+            #     ], dtype=float)
             
             if norm_to_sum:
                 metrics = np.append(metrics, (metrics[0]+1)/(metrics[1]+1) )

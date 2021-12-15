@@ -69,6 +69,7 @@ D22_COLOR = DARK_GRAY
 DEFAULT_COLORS = ['#729C27', '#A85C2A', '#1B6C5C', '#892259', '#273673', '#A0F40A', '#08C6A1', '#FF6B0B', '#E20A7C', '#2042CD']
 
 BARPLOT_HEIGHT = 4.2
+BAR_WIDTH = .6
 
 um_h = r'[$\frac{\mathrm{\upmu}\mathrm{m}}{\mathrm{h}}$]'
 um = r'[$\upmu$m]'
