@@ -1,0 +1,1565 @@
+
+% Default to the notebook output style
+
+    
+
+
+% Inherit from the specified cell style.
+
+
+
+
+    
+\documentclass[11pt]{article}
+
+    
+    
+    \usepackage[T1]{fontenc}
+    % Nicer default font (+ math font) than Computer Modern for most use cases
+    \usepackage{mathpazo}
+
+    % Basic figure setup, for now with no caption control since it's done
+    % automatically by Pandoc (which extracts ![](path) syntax from Markdown).
+    \usepackage{graphicx}
+    % We will generate all images so they have a width \maxwidth. This means
+    % that they will get their normal width if they fit onto the page, but
+    % are scaled down if they would overflow the margins.
+    \makeatletter
+    \def\maxwidth{\ifdim\Gin@nat@width>\linewidth\linewidth
+    \else\Gin@nat@width\fi}
+    \makeatother
+    \let\Oldincludegraphics\includegraphics
+    % Set max figure width to be 80% of text width, for now hardcoded.
+    \renewcommand{\includegraphics}[1]{\Oldincludegraphics[width=.8\maxwidth]{#1}}
+    % Ensure that by default, figures have no caption (until we provide a
+    % proper Figure object with a Caption API and a way to capture that
+    % in the conversion process - todo).
+    \usepackage{caption}
+    \DeclareCaptionLabelFormat{nolabel}{}
+    \captionsetup{labelformat=nolabel}
+
+    \usepackage{adjustbox} % Used to constrain images to a maximum size 
+    \usepackage{xcolor} % Allow colors to be defined
+    \usepackage{enumerate} % Needed for markdown enumerations to work
+    \usepackage{geometry} % Used to adjust the document margins
+    \usepackage{amsmath} % Equations
+    \usepackage{amssymb} % Equations
+    \usepackage{textcomp} % defines textquotesingle
+    % Hack from http://tex.stackexchange.com/a/47451/13684:
+    \AtBeginDocument{%
+        \def\PYZsq{\textquotesingle}% Upright quotes in Pygmentized code
+    }
+    \usepackage{upquote} % Upright quotes for verbatim code
+    \usepackage{eurosym} % defines \euro
+    \usepackage[mathletters]{ucs} % Extended unicode (utf-8) support
+    \usepackage[utf8x]{inputenc} % Allow utf-8 characters in the tex document
+    \usepackage{fancyvrb} % verbatim replacement that allows latex
+    \usepackage{grffile} % extends the file name processing of package graphics 
+                         % to support a larger range 
+    % The hyperref package gives us a pdf with properly built
+    % internal navigation ('pdf bookmarks' for the table of contents,
+    % internal cross-reference links, web links for URLs, etc.)
+    \usepackage{hyperref}
+    \usepackage{longtable} % longtable support required by pandoc >1.10
+    \usepackage{booktabs}  % table support for pandoc > 1.12.2
+    \usepackage[inline]{enumitem} % IRkernel/repr support (it uses the enumerate* environment)
+    \usepackage[normalem]{ulem} % ulem is needed to support strikethroughs (\sout)
+                                % normalem makes italics be italics, not underlines
+    \usepackage{mathrsfs}
+    
+
+    
+    
+    % Colors for the hyperref package
+    \definecolor{urlcolor}{rgb}{0,.145,.698}
+    \definecolor{linkcolor}{rgb}{.71,0.21,0.01}
+    \definecolor{citecolor}{rgb}{.12,.54,.11}
+
+    % ANSI colors
+    \definecolor{ansi-black}{HTML}{3E424D}
+    \definecolor{ansi-black-intense}{HTML}{282C36}
+    \definecolor{ansi-red}{HTML}{E75C58}
+    \definecolor{ansi-red-intense}{HTML}{B22B31}
+    \definecolor{ansi-green}{HTML}{00A250}
+    \definecolor{ansi-green-intense}{HTML}{007427}
+    \definecolor{ansi-yellow}{HTML}{DDB62B}
+    \definecolor{ansi-yellow-intense}{HTML}{B27D12}
+    \definecolor{ansi-blue}{HTML}{208FFB}
+    \definecolor{ansi-blue-intense}{HTML}{0065CA}
+    \definecolor{ansi-magenta}{HTML}{D160C4}
+    \definecolor{ansi-magenta-intense}{HTML}{A03196}
+    \definecolor{ansi-cyan}{HTML}{60C6C8}
+    \definecolor{ansi-cyan-intense}{HTML}{258F8F}
+    \definecolor{ansi-white}{HTML}{C5C1B4}
+    \definecolor{ansi-white-intense}{HTML}{A1A6B2}
+    \definecolor{ansi-default-inverse-fg}{HTML}{FFFFFF}
+    \definecolor{ansi-default-inverse-bg}{HTML}{000000}
+
+    % commands and environments needed by pandoc snippets
+    % extracted from the output of `pandoc -s`
+    \providecommand{\tightlist}{%
+      \setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}}
+    \DefineVerbatimEnvironment{Highlighting}{Verbatim}{commandchars=\\\{\}}
+    % Add ',fontsize=\small' for more characters per line
+    \newenvironment{Shaded}{}{}
+    \newcommand{\KeywordTok}[1]{\textcolor[rgb]{0.00,0.44,0.13}{\textbf{{#1}}}}
+    \newcommand{\DataTypeTok}[1]{\textcolor[rgb]{0.56,0.13,0.00}{{#1}}}
+    \newcommand{\DecValTok}[1]{\textcolor[rgb]{0.25,0.63,0.44}{{#1}}}
+    \newcommand{\BaseNTok}[1]{\textcolor[rgb]{0.25,0.63,0.44}{{#1}}}
+    \newcommand{\FloatTok}[1]{\textcolor[rgb]{0.25,0.63,0.44}{{#1}}}
+    \newcommand{\CharTok}[1]{\textcolor[rgb]{0.25,0.44,0.63}{{#1}}}
+    \newcommand{\StringTok}[1]{\textcolor[rgb]{0.25,0.44,0.63}{{#1}}}
+    \newcommand{\CommentTok}[1]{\textcolor[rgb]{0.38,0.63,0.69}{\textit{{#1}}}}
+    \newcommand{\OtherTok}[1]{\textcolor[rgb]{0.00,0.44,0.13}{{#1}}}
+    \newcommand{\AlertTok}[1]{\textcolor[rgb]{1.00,0.00,0.00}{\textbf{{#1}}}}
+    \newcommand{\FunctionTok}[1]{\textcolor[rgb]{0.02,0.16,0.49}{{#1}}}
+    \newcommand{\RegionMarkerTok}[1]{{#1}}
+    \newcommand{\ErrorTok}[1]{\textcolor[rgb]{1.00,0.00,0.00}{\textbf{{#1}}}}
+    \newcommand{\NormalTok}[1]{{#1}}
+    
+    % Additional commands for more recent versions of Pandoc
+    \newcommand{\ConstantTok}[1]{\textcolor[rgb]{0.53,0.00,0.00}{{#1}}}
+    \newcommand{\SpecialCharTok}[1]{\textcolor[rgb]{0.25,0.44,0.63}{{#1}}}
+    \newcommand{\VerbatimStringTok}[1]{\textcolor[rgb]{0.25,0.44,0.63}{{#1}}}
+    \newcommand{\SpecialStringTok}[1]{\textcolor[rgb]{0.73,0.40,0.53}{{#1}}}
+    \newcommand{\ImportTok}[1]{{#1}}
+    \newcommand{\DocumentationTok}[1]{\textcolor[rgb]{0.73,0.13,0.13}{\textit{{#1}}}}
+    \newcommand{\AnnotationTok}[1]{\textcolor[rgb]{0.38,0.63,0.69}{\textbf{\textit{{#1}}}}}
+    \newcommand{\CommentVarTok}[1]{\textcolor[rgb]{0.38,0.63,0.69}{\textbf{\textit{{#1}}}}}
+    \newcommand{\VariableTok}[1]{\textcolor[rgb]{0.10,0.09,0.49}{{#1}}}
+    \newcommand{\ControlFlowTok}[1]{\textcolor[rgb]{0.00,0.44,0.13}{\textbf{{#1}}}}
+    \newcommand{\OperatorTok}[1]{\textcolor[rgb]{0.40,0.40,0.40}{{#1}}}
+    \newcommand{\BuiltInTok}[1]{{#1}}
+    \newcommand{\ExtensionTok}[1]{{#1}}
+    \newcommand{\PreprocessorTok}[1]{\textcolor[rgb]{0.74,0.48,0.00}{{#1}}}
+    \newcommand{\AttributeTok}[1]{\textcolor[rgb]{0.49,0.56,0.16}{{#1}}}
+    \newcommand{\InformationTok}[1]{\textcolor[rgb]{0.38,0.63,0.69}{\textbf{\textit{{#1}}}}}
+    \newcommand{\WarningTok}[1]{\textcolor[rgb]{0.38,0.63,0.69}{\textbf{\textit{{#1}}}}}
+    
+    
+    % Define a nice break command that doesn't care if a line doesn't already
+    % exist.
+    \def\br{\hspace*{\fill} \\* }
+    % Math Jax compatibility definitions
+    \def\gt{>}
+    \def\lt{<}
+    \let\Oldtex\TeX
+    \let\Oldlatex\LaTeX
+    \renewcommand{\TeX}{\textrm{\Oldtex}}
+    \renewcommand{\LaTeX}{\textrm{\Oldlatex}}
+    % Document parameters
+    % Document title
+    \title{Biohybrid\_analysis-Final}
+    
+    
+    
+    
+    
+
+    % Pygments definitions
+    
+\makeatletter
+\def\PY@reset{\let\PY@it=\relax \let\PY@bf=\relax%
+    \let\PY@ul=\relax \let\PY@tc=\relax%
+    \let\PY@bc=\relax \let\PY@ff=\relax}
+\def\PY@tok#1{\csname PY@tok@#1\endcsname}
+\def\PY@toks#1+{\ifx\relax#1\empty\else%
+    \PY@tok{#1}\expandafter\PY@toks\fi}
+\def\PY@do#1{\PY@bc{\PY@tc{\PY@ul{%
+    \PY@it{\PY@bf{\PY@ff{#1}}}}}}}
+\def\PY#1#2{\PY@reset\PY@toks#1+\relax+\PY@do{#2}}
+
+\expandafter\def\csname PY@tok@w\endcsname{\def\PY@tc##1{\textcolor[rgb]{0.73,0.73,0.73}{##1}}}
+\expandafter\def\csname PY@tok@c\endcsname{\let\PY@it=\textit\def\PY@tc##1{\textcolor[rgb]{0.25,0.50,0.50}{##1}}}
+\expandafter\def\csname PY@tok@cp\endcsname{\def\PY@tc##1{\textcolor[rgb]{0.74,0.48,0.00}{##1}}}
+\expandafter\def\csname PY@tok@k\endcsname{\let\PY@bf=\textbf\def\PY@tc##1{\textcolor[rgb]{0.00,0.50,0.00}{##1}}}
+\expandafter\def\csname PY@tok@kp\endcsname{\def\PY@tc##1{\textcolor[rgb]{0.00,0.50,0.00}{##1}}}
+\expandafter\def\csname PY@tok@kt\endcsname{\def\PY@tc##1{\textcolor[rgb]{0.69,0.00,0.25}{##1}}}
+\expandafter\def\csname PY@tok@o\endcsname{\def\PY@tc##1{\textcolor[rgb]{0.40,0.40,0.40}{##1}}}
+\expandafter\def\csname PY@tok@ow\endcsname{\let\PY@bf=\textbf\def\PY@tc##1{\textcolor[rgb]{0.67,0.13,1.00}{##1}}}
+\expandafter\def\csname PY@tok@nb\endcsname{\def\PY@tc##1{\textcolor[rgb]{0.00,0.50,0.00}{##1}}}
+\expandafter\def\csname PY@tok@nf\endcsname{\def\PY@tc##1{\textcolor[rgb]{0.00,0.00,1.00}{##1}}}
+\expandafter\def\csname PY@tok@nc\endcsname{\let\PY@bf=\textbf\def\PY@tc##1{\textcolor[rgb]{0.00,0.00,1.00}{##1}}}
+\expandafter\def\csname PY@tok@nn\endcsname{\let\PY@bf=\textbf\def\PY@tc##1{\textcolor[rgb]{0.00,0.00,1.00}{##1}}}
+\expandafter\def\csname PY@tok@ne\endcsname{\let\PY@bf=\textbf\def\PY@tc##1{\textcolor[rgb]{0.82,0.25,0.23}{##1}}}
+\expandafter\def\csname PY@tok@nv\endcsname{\def\PY@tc##1{\textcolor[rgb]{0.10,0.09,0.49}{##1}}}
+\expandafter\def\csname PY@tok@no\endcsname{\def\PY@tc##1{\textcolor[rgb]{0.53,0.00,0.00}{##1}}}
+\expandafter\def\csname PY@tok@nl\endcsname{\def\PY@tc##1{\textcolor[rgb]{0.63,0.63,0.00}{##1}}}
+\expandafter\def\csname PY@tok@ni\endcsname{\let\PY@bf=\textbf\def\PY@tc##1{\textcolor[rgb]{0.60,0.60,0.60}{##1}}}
+\expandafter\def\csname PY@tok@na\endcsname{\def\PY@tc##1{\textcolor[rgb]{0.49,0.56,0.16}{##1}}}
+\expandafter\def\csname PY@tok@nt\endcsname{\let\PY@bf=\textbf\def\PY@tc##1{\textcolor[rgb]{0.00,0.50,0.00}{##1}}}
+\expandafter\def\csname PY@tok@nd\endcsname{\def\PY@tc##1{\textcolor[rgb]{0.67,0.13,1.00}{##1}}}
+\expandafter\def\csname PY@tok@s\endcsname{\def\PY@tc##1{\textcolor[rgb]{0.73,0.13,0.13}{##1}}}
+\expandafter\def\csname PY@tok@sd\endcsname{\let\PY@it=\textit\def\PY@tc##1{\textcolor[rgb]{0.73,0.13,0.13}{##1}}}
+\expandafter\def\csname PY@tok@si\endcsname{\let\PY@bf=\textbf\def\PY@tc##1{\textcolor[rgb]{0.73,0.40,0.53}{##1}}}
+\expandafter\def\csname PY@tok@se\endcsname{\let\PY@bf=\textbf\def\PY@tc##1{\textcolor[rgb]{0.73,0.40,0.13}{##1}}}
+\expandafter\def\csname PY@tok@sr\endcsname{\def\PY@tc##1{\textcolor[rgb]{0.73,0.40,0.53}{##1}}}
+\expandafter\def\csname PY@tok@ss\endcsname{\def\PY@tc##1{\textcolor[rgb]{0.10,0.09,0.49}{##1}}}
+\expandafter\def\csname PY@tok@sx\endcsname{\def\PY@tc##1{\textcolor[rgb]{0.00,0.50,0.00}{##1}}}
+\expandafter\def\csname PY@tok@m\endcsname{\def\PY@tc##1{\textcolor[rgb]{0.40,0.40,0.40}{##1}}}
+\expandafter\def\csname PY@tok@gh\endcsname{\let\PY@bf=\textbf\def\PY@tc##1{\textcolor[rgb]{0.00,0.00,0.50}{##1}}}
+\expandafter\def\csname PY@tok@gu\endcsname{\let\PY@bf=\textbf\def\PY@tc##1{\textcolor[rgb]{0.50,0.00,0.50}{##1}}}
+\expandafter\def\csname PY@tok@gd\endcsname{\def\PY@tc##1{\textcolor[rgb]{0.63,0.00,0.00}{##1}}}
+\expandafter\def\csname PY@tok@gi\endcsname{\def\PY@tc##1{\textcolor[rgb]{0.00,0.63,0.00}{##1}}}
+\expandafter\def\csname PY@tok@gr\endcsname{\def\PY@tc##1{\textcolor[rgb]{1.00,0.00,0.00}{##1}}}
+\expandafter\def\csname PY@tok@ge\endcsname{\let\PY@it=\textit}
+\expandafter\def\csname PY@tok@gs\endcsname{\let\PY@bf=\textbf}
+\expandafter\def\csname PY@tok@gp\endcsname{\let\PY@bf=\textbf\def\PY@tc##1{\textcolor[rgb]{0.00,0.00,0.50}{##1}}}
+\expandafter\def\csname PY@tok@go\endcsname{\def\PY@tc##1{\textcolor[rgb]{0.53,0.53,0.53}{##1}}}
+\expandafter\def\csname PY@tok@gt\endcsname{\def\PY@tc##1{\textcolor[rgb]{0.00,0.27,0.87}{##1}}}
+\expandafter\def\csname PY@tok@err\endcsname{\def\PY@bc##1{\setlength{\fboxsep}{0pt}\fcolorbox[rgb]{1.00,0.00,0.00}{1,1,1}{\strut ##1}}}
+\expandafter\def\csname PY@tok@kc\endcsname{\let\PY@bf=\textbf\def\PY@tc##1{\textcolor[rgb]{0.00,0.50,0.00}{##1}}}
+\expandafter\def\csname PY@tok@kd\endcsname{\let\PY@bf=\textbf\def\PY@tc##1{\textcolor[rgb]{0.00,0.50,0.00}{##1}}}
+\expandafter\def\csname PY@tok@kn\endcsname{\let\PY@bf=\textbf\def\PY@tc##1{\textcolor[rgb]{0.00,0.50,0.00}{##1}}}
+\expandafter\def\csname PY@tok@kr\endcsname{\let\PY@bf=\textbf\def\PY@tc##1{\textcolor[rgb]{0.00,0.50,0.00}{##1}}}
+\expandafter\def\csname PY@tok@bp\endcsname{\def\PY@tc##1{\textcolor[rgb]{0.00,0.50,0.00}{##1}}}
+\expandafter\def\csname PY@tok@fm\endcsname{\def\PY@tc##1{\textcolor[rgb]{0.00,0.00,1.00}{##1}}}
+\expandafter\def\csname PY@tok@vc\endcsname{\def\PY@tc##1{\textcolor[rgb]{0.10,0.09,0.49}{##1}}}
+\expandafter\def\csname PY@tok@vg\endcsname{\def\PY@tc##1{\textcolor[rgb]{0.10,0.09,0.49}{##1}}}
+\expandafter\def\csname PY@tok@vi\endcsname{\def\PY@tc##1{\textcolor[rgb]{0.10,0.09,0.49}{##1}}}
+\expandafter\def\csname PY@tok@vm\endcsname{\def\PY@tc##1{\textcolor[rgb]{0.10,0.09,0.49}{##1}}}
+\expandafter\def\csname PY@tok@sa\endcsname{\def\PY@tc##1{\textcolor[rgb]{0.73,0.13,0.13}{##1}}}
+\expandafter\def\csname PY@tok@sb\endcsname{\def\PY@tc##1{\textcolor[rgb]{0.73,0.13,0.13}{##1}}}
+\expandafter\def\csname PY@tok@sc\endcsname{\def\PY@tc##1{\textcolor[rgb]{0.73,0.13,0.13}{##1}}}
+\expandafter\def\csname PY@tok@dl\endcsname{\def\PY@tc##1{\textcolor[rgb]{0.73,0.13,0.13}{##1}}}
+\expandafter\def\csname PY@tok@s2\endcsname{\def\PY@tc##1{\textcolor[rgb]{0.73,0.13,0.13}{##1}}}
+\expandafter\def\csname PY@tok@sh\endcsname{\def\PY@tc##1{\textcolor[rgb]{0.73,0.13,0.13}{##1}}}
+\expandafter\def\csname PY@tok@s1\endcsname{\def\PY@tc##1{\textcolor[rgb]{0.73,0.13,0.13}{##1}}}
+\expandafter\def\csname PY@tok@mb\endcsname{\def\PY@tc##1{\textcolor[rgb]{0.40,0.40,0.40}{##1}}}
+\expandafter\def\csname PY@tok@mf\endcsname{\def\PY@tc##1{\textcolor[rgb]{0.40,0.40,0.40}{##1}}}
+\expandafter\def\csname PY@tok@mh\endcsname{\def\PY@tc##1{\textcolor[rgb]{0.40,0.40,0.40}{##1}}}
+\expandafter\def\csname PY@tok@mi\endcsname{\def\PY@tc##1{\textcolor[rgb]{0.40,0.40,0.40}{##1}}}
+\expandafter\def\csname PY@tok@il\endcsname{\def\PY@tc##1{\textcolor[rgb]{0.40,0.40,0.40}{##1}}}
+\expandafter\def\csname PY@tok@mo\endcsname{\def\PY@tc##1{\textcolor[rgb]{0.40,0.40,0.40}{##1}}}
+\expandafter\def\csname PY@tok@ch\endcsname{\let\PY@it=\textit\def\PY@tc##1{\textcolor[rgb]{0.25,0.50,0.50}{##1}}}
+\expandafter\def\csname PY@tok@cm\endcsname{\let\PY@it=\textit\def\PY@tc##1{\textcolor[rgb]{0.25,0.50,0.50}{##1}}}
+\expandafter\def\csname PY@tok@cpf\endcsname{\let\PY@it=\textit\def\PY@tc##1{\textcolor[rgb]{0.25,0.50,0.50}{##1}}}
+\expandafter\def\csname PY@tok@c1\endcsname{\let\PY@it=\textit\def\PY@tc##1{\textcolor[rgb]{0.25,0.50,0.50}{##1}}}
+\expandafter\def\csname PY@tok@cs\endcsname{\let\PY@it=\textit\def\PY@tc##1{\textcolor[rgb]{0.25,0.50,0.50}{##1}}}
+
+\def\PYZbs{\char`\\}
+\def\PYZus{\char`\_}
+\def\PYZob{\char`\{}
+\def\PYZcb{\char`\}}
+\def\PYZca{\char`\^}
+\def\PYZam{\char`\&}
+\def\PYZlt{\char`\<}
+\def\PYZgt{\char`\>}
+\def\PYZsh{\char`\#}
+\def\PYZpc{\char`\%}
+\def\PYZdl{\char`\$}
+\def\PYZhy{\char`\-}
+\def\PYZsq{\char`\'}
+\def\PYZdq{\char`\"}
+\def\PYZti{\char`\~}
+% for compatibility with earlier versions
+\def\PYZat{@}
+\def\PYZlb{[}
+\def\PYZrb{]}
+\makeatother
+
+
+    % Exact colors from NB
+    \definecolor{incolor}{rgb}{0.0, 0.0, 0.5}
+    \definecolor{outcolor}{rgb}{0.545, 0.0, 0.0}
+
+
+
+    
+    % Prevent overflowing lines due to hard-to-break entities
+    \sloppy 
+    % Setup hyperref package
+    \hypersetup{
+      breaklinks=true,  % so long urls are correctly broken across lines
+      colorlinks=true,
+      urlcolor=urlcolor,
+      linkcolor=linkcolor,
+      citecolor=citecolor,
+      }
+    % Slightly bigger margins than the latex defaults
+    
+    \geometry{verbose,tmargin=1in,bmargin=1in,lmargin=1in,rmargin=1in}
+    
+    
+
+    \begin{document}
+    
+    
+    \maketitle
+    
+    
+
+    
+    \hypertarget{biohybrid-mea-image-analysis}{%
+\section{Biohybrid MEA Image
+Analysis}\label{biohybrid-mea-image-analysis}}
+
+    Import all required libraries
+
+    \begin{Verbatim}[commandchars=\\\{\}]
+{\color{incolor}In [{\color{incolor}1}]:} \PY{k+kn}{import} \PY{n+nn}{numpy} \PY{k}{as} \PY{n+nn}{np} 
+        \PY{k+kn}{import} \PY{n+nn}{imageio}
+        \PY{k+kn}{import} \PY{n+nn}{matplotlib}\PY{n+nn}{.}\PY{n+nn}{pyplot} \PY{k}{as} \PY{n+nn}{plt}
+        \PY{k+kn}{from} \PY{n+nn}{PIL} \PY{k}{import} \PY{n}{Image}
+        \PY{c+c1}{\PYZsh{}from skimage.io import imread}
+        \PY{k+kn}{import} \PY{n+nn}{skimage}\PY{n+nn}{.}\PY{n+nn}{io}
+        \PY{k+kn}{import} \PY{n+nn}{cv2}
+        \PY{k+kn}{import} \PY{n+nn}{scipy}
+        \PY{k+kn}{import} \PY{n+nn}{scipy}\PY{n+nn}{.}\PY{n+nn}{misc}
+        \PY{k+kn}{from} \PY{n+nn}{scipy} \PY{k}{import} \PY{n}{ndimage}
+        \PY{c+c1}{\PYZsh{}Thresholding and Morphological Operations}
+        \PY{k+kn}{from} \PY{n+nn}{skimage}\PY{n+nn}{.}\PY{n+nn}{filters} \PY{k}{import} \PY{n}{threshold\PYZus{}otsu}
+        \PY{k+kn}{from} \PY{n+nn}{skimage}\PY{n+nn}{.}\PY{n+nn}{morphology} \PY{k}{import} \PY{n}{opening}\PY{p}{,} \PY{n}{closing}\PY{p}{,} \PY{n}{dilation}\PY{p}{,} \PY{n}{erosion}\PY{p}{,} \PY{n}{disk}
+        \PY{c+c1}{\PYZsh{}Angle Correction}
+        \PY{k+kn}{from} \PY{n+nn}{PIL} \PY{k}{import} \PY{n}{Image} \PY{k}{as} \PY{n}{im}
+        \PY{k+kn}{from} \PY{n+nn}{scipy}\PY{n+nn}{.}\PY{n+nn}{ndimage} \PY{k}{import} \PY{n}{interpolation} \PY{k}{as} \PY{n}{inter}
+        \PY{k+kn}{from} \PY{n+nn}{scipy} \PY{k}{import} \PY{n}{ndimage}\PY{p}{,} \PY{n}{misc}
+        \PY{c+c1}{\PYZsh{}Intensity Profile Analysis}
+        \PY{k+kn}{from} \PY{n+nn}{skimage}\PY{n+nn}{.}\PY{n+nn}{measure} \PY{k}{import} \PY{n}{profile\PYZus{}line}
+        \PY{k+kn}{from} \PY{n+nn}{skimage} \PY{k}{import} \PY{n}{io}
+        \PY{k+kn}{from} \PY{n+nn}{scipy}\PY{n+nn}{.}\PY{n+nn}{signal} \PY{k}{import} \PY{n}{find\PYZus{}peaks}
+        \PY{k+kn}{from} \PY{n+nn}{skimage}\PY{n+nn}{.}\PY{n+nn}{feature} \PY{k}{import} \PY{n}{peak\PYZus{}local\PYZus{}max}
+        
+        
+        \PY{c+c1}{\PYZsh{}Gaussian fitting}
+        \PY{k+kn}{from} \PY{n+nn}{scipy}\PY{n+nn}{.}\PY{n+nn}{optimize} \PY{k}{import} \PY{n}{curve\PYZus{}fit}
+        \PY{k+kn}{from} \PY{n+nn}{scipy} \PY{k}{import} \PY{n}{asarray} \PY{k}{as} \PY{n}{ar}\PY{p}{,}\PY{n}{exp}
+\end{Verbatim}
+
+    \begin{Verbatim}[commandchars=\\\{\}]
+/Users/eylulceylan/anaconda3/lib/python3.7/site-packages/dask/config.py:168: YAMLLoadWarning: calling yaml.load() without Loader={\ldots} is deprecated, as the default Loader is unsafe. Please read https://msg.pyyaml.org/load for full details.
+  data = yaml.load(f.read()) or \{\}
+
+    \end{Verbatim}
+
+    \begin{Verbatim}[commandchars=\\\{\}]
+{\color{incolor}In [{\color{incolor}46}]:} \PY{k+kn}{from} \PY{n+nn}{sys} \PY{k}{import} \PY{n}{executable}\PY{p}{,} \PY{n}{argv}
+         \PY{k+kn}{from} \PY{n+nn}{subprocess} \PY{k}{import} \PY{n}{check\PYZus{}output}
+         \PY{k+kn}{from} \PY{n+nn}{PyQt5}\PY{n+nn}{.}\PY{n+nn}{QtWidgets} \PY{k}{import} \PY{n}{QFileDialog}\PY{p}{,} \PY{n}{QApplication}
+         \PY{k}{def} \PY{n+nf}{gui\PYZus{}fname}\PY{p}{(}\PY{n}{directory}\PY{o}{=}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{./}\PY{l+s+s1}{\PYZsq{}}\PY{p}{)}\PY{p}{:}
+             \PY{l+s+sd}{\PYZdq{}\PYZdq{}\PYZdq{}Open a file dialog, starting in the given directory, and return}
+         \PY{l+s+sd}{    the chosen filename\PYZdq{}\PYZdq{}\PYZdq{}}
+             \PY{c+c1}{\PYZsh{} run this exact file in a separate process, and grab the result}
+             \PY{n}{file} \PY{o}{=} \PY{n}{check\PYZus{}output}\PY{p}{(}\PY{p}{[}\PY{n}{executable}\PY{p}{,} \PY{n+nv+vm}{\PYZus{}\PYZus{}file\PYZus{}\PYZus{}}\PY{p}{,} \PY{n}{directory}\PY{p}{]}\PY{p}{)}
+             \PY{k}{return} \PY{n}{file}\PY{o}{.}\PY{n}{strip}\PY{p}{(}\PY{p}{)}
+         
+         \PY{k}{if} \PY{n+nv+vm}{\PYZus{}\PYZus{}name\PYZus{}\PYZus{}} \PY{o}{==} \PY{l+s+s2}{\PYZdq{}}\PY{l+s+s2}{\PYZus{}\PYZus{}main\PYZus{}\PYZus{}}\PY{l+s+s2}{\PYZdq{}}\PY{p}{:}
+             \PY{n}{directory} \PY{o}{=} \PY{n}{argv}\PY{p}{[}\PY{l+m+mi}{1}\PY{p}{]}
+             \PY{n}{app} \PY{o}{=} \PY{n}{QApplication}\PY{p}{(}\PY{p}{[}\PY{n}{directory}\PY{p}{]}\PY{p}{)}
+             \PY{n}{fname} \PY{o}{=} \PY{n}{QFileDialog}\PY{o}{.}\PY{n}{getOpenFileName}\PY{p}{(}\PY{k+kc}{None}\PY{p}{,} \PY{l+s+s2}{\PYZdq{}}\PY{l+s+s2}{Select a file...}\PY{l+s+s2}{\PYZdq{}}\PY{p}{,} 
+                     \PY{n}{directory}\PY{p}{,} \PY{n+nb}{filter}\PY{o}{=}\PY{l+s+s2}{\PYZdq{}}\PY{l+s+s2}{All files (*)}\PY{l+s+s2}{\PYZdq{}}\PY{p}{)}
+             \PY{n+nb}{print}\PY{p}{(}\PY{n}{fname}\PY{p}{[}\PY{l+m+mi}{0}\PY{p}{]}\PY{p}{)}
+\end{Verbatim}
+
+    \begin{Verbatim}[commandchars=\\\{\}]
+/Users/eylulceylan/Desktop/Biohybrid Implants/Data/10) 19:04:2021-23:04:2021/Exp16\_Day4\_pythonTrial/Exp16\_Day22/Groups/Group2/S1/Group2\_S1\_red.tif
+
+    \end{Verbatim}
+
+    \hypertarget{upload-images}{%
+\subsection{1) Upload Images}\label{upload-images}}
+
+\begin{itemize}
+\tightlist
+\item
+  Read image, convert to grayscale and median filter to get rid of salt
+  and pepper noise
+\end{itemize}
+
+    \begin{Verbatim}[commandchars=\\\{\}]
+{\color{incolor}In [{\color{incolor}3}]:} \PY{c+c1}{\PYZsh{}Read the original image}
+        
+        
+        \PY{c+c1}{\PYZsh{}np.uint8(im) uncomment if there is an error regarding the data type compatibility}
+        
+           
+        \PY{c+c1}{\PYZsh{}extract red channel}
+        \PY{n}{im\PYZus{}name} \PY{o}{=} \PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{Group6\PYZus{}2minPlasma+PDL/Group6\PYZus{}red\PYZhy{}1.tif}\PY{l+s+s1}{\PYZsq{}}
+        \PY{c+c1}{\PYZsh{}im\PYZus{}name = \PYZsq{}Exp16\PYZus{}Day30/Group6/S3.tif\PYZsq{}}
+        \PY{c+c1}{\PYZsh{}im\PYZus{}name = \PYZsq{}Exp16\PYZus{}re\PYZus{}Group3/Day30/S1.tif\PYZsq{}}
+        \PY{n}{im\PYZus{}c} \PY{o}{=} \PY{n}{cv2}\PY{o}{.}\PY{n}{imread}\PY{p}{(}\PY{n}{im\PYZus{}name}\PY{p}{)}
+        \PY{n}{im} \PY{o}{=} \PY{n}{im\PYZus{}c}\PY{p}{[}\PY{p}{:}\PY{p}{,}\PY{p}{:}\PY{p}{,}\PY{l+m+mi}{2}\PY{p}{]}
+        \PY{c+c1}{\PYZsh{}im = gray\PYZus{}img}
+        
+        \PY{c+c1}{\PYZsh{}Convert to gray scale}
+        \PY{n}{gray\PYZus{}img}\PY{o}{=}\PY{n}{cv2}\PY{o}{.}\PY{n}{cvtColor}\PY{p}{(}\PY{n}{im\PYZus{}c}\PY{p}{,}\PY{n}{cv2}\PY{o}{.}\PY{n}{COLOR\PYZus{}BGR2GRAY}\PY{p}{)}
+        \PY{c+c1}{\PYZsh{}gray\PYZus{}img = cv2.imread(\PYZsq{}Group4\PYZus{}S1\PYZus{}red\PYZus{}RGB.tif\PYZsq{},0)}
+        \PY{c+c1}{\PYZsh{}im = np.array(im, dtype=np.uint8)}
+        
+        \PY{c+c1}{\PYZsh{}Median filtering (3x3) to get rid of the background salt and pepper noise}
+        \PY{n}{med\PYZus{}denoised} \PY{o}{=} \PY{n}{ndimage}\PY{o}{.}\PY{n}{median\PYZus{}filter}\PY{p}{(}\PY{n}{gray\PYZus{}img}\PY{p}{,} \PY{l+m+mi}{4}\PY{p}{)}
+        \PY{n}{plt}\PY{o}{.}\PY{n}{figure}\PY{p}{(}\PY{n}{figsize} \PY{o}{=} \PY{p}{(}\PY{l+m+mi}{50}\PY{p}{,}\PY{l+m+mi}{20}\PY{p}{)}\PY{p}{)}
+        \PY{c+c1}{\PYZsh{}Original Image}
+        \PY{n}{plt}\PY{o}{.}\PY{n}{subplot}\PY{p}{(}\PY{l+m+mi}{131}\PY{p}{)}\PY{p}{;}\PY{n}{plt}\PY{o}{.}\PY{n}{title}\PY{p}{(}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{Original Image}\PY{l+s+s1}{\PYZsq{}}\PY{p}{,}\PY{n}{fontsize}\PY{o}{=}\PY{l+m+mi}{25}\PY{p}{)}\PY{p}{;}\PY{n}{plt}\PY{o}{.}\PY{n}{imshow}\PY{p}{(}\PY{n}{im}\PY{p}{,} \PY{n}{cmap}\PY{o}{=}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{jet}\PY{l+s+s1}{\PYZsq{}}\PY{p}{)}\PY{p}{;}\PY{n}{cb} \PY{o}{=} \PY{n}{plt}\PY{o}{.}\PY{n}{colorbar}\PY{p}{(}\PY{p}{)}
+        \PY{n}{plt}\PY{o}{.}\PY{n}{subplot}\PY{p}{(}\PY{l+m+mi}{132}\PY{p}{)}\PY{p}{;}\PY{n}{plt}\PY{o}{.}\PY{n}{title}\PY{p}{(}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{Grayscale Image}\PY{l+s+s1}{\PYZsq{}}\PY{p}{,}\PY{n}{fontsize}\PY{o}{=}\PY{l+m+mi}{25}\PY{p}{)}\PY{p}{;}\PY{n}{plt}\PY{o}{.}\PY{n}{imshow}\PY{p}{(}\PY{n}{gray\PYZus{}img}\PY{p}{,} \PY{n}{cmap}\PY{o}{=}\PY{n}{plt}\PY{o}{.}\PY{n}{cm}\PY{o}{.}\PY{n}{gray}\PY{p}{)}\PY{p}{;}\PY{n}{cb} \PY{o}{=} \PY{n}{plt}\PY{o}{.}\PY{n}{colorbar}\PY{p}{(}\PY{p}{)}
+        \PY{n}{plt}\PY{o}{.}\PY{n}{subplot}\PY{p}{(}\PY{l+m+mi}{133}\PY{p}{)}\PY{p}{;}\PY{n}{plt}\PY{o}{.}\PY{n}{title}\PY{p}{(}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{Median (3x3) Filtered Image}\PY{l+s+s1}{\PYZsq{}}\PY{p}{,}\PY{n}{fontsize}\PY{o}{=}\PY{l+m+mi}{25}\PY{p}{)}\PY{p}{;}\PY{n}{plt}\PY{o}{.}\PY{n}{imshow}\PY{p}{(}\PY{n}{med\PYZus{}denoised}\PY{p}{,} \PY{n}{cmap}\PY{o}{=}\PY{n}{plt}\PY{o}{.}\PY{n}{cm}\PY{o}{.}\PY{n}{gray}\PY{p}{)}\PY{p}{;}\PY{n}{cb} \PY{o}{=} \PY{n}{plt}\PY{o}{.}\PY{n}{colorbar}\PY{p}{(}\PY{p}{)}
+\end{Verbatim}
+
+    \begin{center}
+    \adjustimage{max size={0.9\linewidth}{0.9\paperheight}}{output_5_0.png}
+    \end{center}
+    { \hspace*{\fill} \\}
+    
+    \hypertarget{convert-the-image-to-binary-using-otsu}{%
+\subsection{2) Convert the image to binary using
+Otsu}\label{convert-the-image-to-binary-using-otsu}}
+
+    \begin{Verbatim}[commandchars=\\\{\}]
+{\color{incolor}In [{\color{incolor}4}]:} \PY{c+c1}{\PYZsh{}Find the otsu threshold and binarise the image}
+        \PY{c+c1}{\PYZsh{}Otsu thresholding (automatic global thresholding algorithm) concept: }
+        \PY{c+c1}{\PYZsh{}1)Process the input image}
+        \PY{c+c1}{\PYZsh{}2)Obtain the image histogram (distribution of pixels)}
+        \PY{c+c1}{\PYZsh{}3)Threshold is then defined as a result of minimisation of the weighted variance of two peaks/clusters in the histogram}
+        \PY{c+c1}{\PYZsh{}source: https://learnopencv.com/otsu\PYZhy{}thresholding\PYZhy{}with\PYZhy{}opencv/}
+        \PY{c+c1}{\PYZsh{}Note: usually works the best for bimodal images (two distinct peaks)}
+        \PY{n}{image} \PY{o}{=} \PY{n}{med\PYZus{}denoised}
+        \PY{n}{thresh} \PY{o}{=} \PY{n}{threshold\PYZus{}otsu}\PY{p}{(}\PY{n}{image}\PY{p}{)}
+        \PY{n}{binary} \PY{o}{=} \PY{n}{image} \PY{o}{\PYZgt{}} \PY{n}{thresh}
+        
+        \PY{c+c1}{\PYZsh{}create and define the axis of subplots}
+        \PY{n}{fig}\PY{p}{,} \PY{n}{axes} \PY{o}{=} \PY{n}{plt}\PY{o}{.}\PY{n}{subplots}\PY{p}{(}\PY{n}{ncols}\PY{o}{=}\PY{l+m+mi}{2}\PY{p}{,} \PY{n}{figsize}\PY{o}{=}\PY{p}{(}\PY{l+m+mi}{50}\PY{p}{,} \PY{l+m+mi}{20}\PY{p}{)}\PY{p}{)}
+        \PY{n}{ax} \PY{o}{=} \PY{n}{axes}\PY{o}{.}\PY{n}{ravel}\PY{p}{(}\PY{p}{)}\PY{p}{;}\PY{n}{ax}\PY{p}{[}\PY{l+m+mi}{0}\PY{p}{]} \PY{o}{=} \PY{n}{plt}\PY{o}{.}\PY{n}{subplot}\PY{p}{(}\PY{l+m+mi}{1}\PY{p}{,} \PY{l+m+mi}{3}\PY{p}{,} \PY{l+m+mi}{1}\PY{p}{)}\PY{p}{;} \PY{n}{ax}\PY{p}{[}\PY{l+m+mi}{1}\PY{p}{]} \PY{o}{=} \PY{n}{plt}\PY{o}{.}\PY{n}{subplot}\PY{p}{(}\PY{l+m+mi}{1}\PY{p}{,} \PY{l+m+mi}{3}\PY{p}{,} \PY{l+m+mi}{2}\PY{p}{)} 
+        
+        \PY{n}{ax}\PY{p}{[}\PY{l+m+mi}{0}\PY{p}{]}\PY{o}{.}\PY{n}{imshow}\PY{p}{(}\PY{n}{image}\PY{p}{)} \PY{c+c1}{\PYZsh{}, cmap=plt.cm.gray)}
+        \PY{n}{ax}\PY{p}{[}\PY{l+m+mi}{0}\PY{p}{]}\PY{o}{.}\PY{n}{set\PYZus{}title}\PY{p}{(}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{Original}\PY{l+s+s1}{\PYZsq{}}\PY{p}{,}\PY{n}{fontsize} \PY{o}{=} \PY{l+m+mi}{25}\PY{p}{)}
+        \PY{n}{ax}\PY{p}{[}\PY{l+m+mi}{0}\PY{p}{]}\PY{o}{.}\PY{n}{axis}\PY{p}{(}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{off}\PY{l+s+s1}{\PYZsq{}}\PY{p}{)}
+        
+        \PY{n}{ax}\PY{p}{[}\PY{l+m+mi}{1}\PY{p}{]}\PY{o}{.}\PY{n}{imshow}\PY{p}{(}\PY{n}{binary}\PY{p}{,} \PY{n}{cmap}\PY{o}{=}\PY{n}{plt}\PY{o}{.}\PY{n}{cm}\PY{o}{.}\PY{n}{gray}\PY{p}{)}
+        \PY{n}{ax}\PY{p}{[}\PY{l+m+mi}{1}\PY{p}{]}\PY{o}{.}\PY{n}{set\PYZus{}title}\PY{p}{(}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{Otsu Thresholded}\PY{l+s+s1}{\PYZsq{}}\PY{p}{,} \PY{n}{fontsize} \PY{o}{=} \PY{l+m+mi}{25}\PY{p}{)}
+        \PY{n}{ax}\PY{p}{[}\PY{l+m+mi}{1}\PY{p}{]}\PY{o}{.}\PY{n}{axis}\PY{p}{(}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{off}\PY{l+s+s1}{\PYZsq{}}\PY{p}{)}
+        
+        \PY{n}{plt}\PY{o}{.}\PY{n}{show}\PY{p}{(}\PY{p}{)}
+\end{Verbatim}
+
+    \begin{center}
+    \adjustimage{max size={0.9\linewidth}{0.9\paperheight}}{output_7_0.png}
+    \end{center}
+    { \hspace*{\fill} \\}
+    
+    \hypertarget{morphological-operations}{%
+\subsection{3) Morphological
+Operations}\label{morphological-operations}}
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi})}
+\tightlist
+\item
+  Closing to improve connectivity of the pixels in the microchannels
+\item
+  Get rid of the microchannels by using erosion with a rectangular
+  kernel
+\item
+  Dilation to get the explant area
+\end{enumerate}
+
+    \begin{Verbatim}[commandchars=\\\{\}]
+{\color{incolor}In [{\color{incolor}6}]:} \PY{c+c1}{\PYZsh{}Experiment with opening (erosion and dilation) and closing (dilation and erosion)}
+        \PY{n}{selem} \PY{o}{=}\PY{n}{disk}\PY{p}{(}\PY{l+m+mi}{4}\PY{p}{)} \PY{c+c1}{\PYZsh{}to get rid of the gaps without over\PYZhy{}... the pixels}
+        \PY{c+c1}{\PYZsh{}closing}
+        \PY{n}{plt}\PY{o}{.}\PY{n}{figure}\PY{p}{(}\PY{n}{figsize} \PY{o}{=} \PY{p}{(}\PY{l+m+mi}{50}\PY{p}{,}\PY{l+m+mi}{20}\PY{p}{)}\PY{p}{)}
+        \PY{n}{closed} \PY{o}{=} \PY{n}{closing}\PY{p}{(}\PY{n}{binary}\PY{p}{,} \PY{n}{selem}\PY{p}{)}
+        \PY{n}{compare} \PY{o}{=} \PY{n}{np}\PY{o}{.}\PY{n}{concatenate}\PY{p}{(}\PY{p}{(}\PY{n}{binary}\PY{p}{,} \PY{n}{closed}\PY{p}{)}\PY{p}{,} \PY{n}{axis}\PY{o}{=}\PY{l+m+mi}{1}\PY{p}{)}
+        \PY{n}{plt}\PY{o}{.}\PY{n}{imshow}\PY{p}{(}\PY{n}{compare}\PY{p}{)}
+\end{Verbatim}
+
+\begin{Verbatim}[commandchars=\\\{\}]
+{\color{outcolor}Out[{\color{outcolor}6}]:} <matplotlib.image.AxesImage at 0x1c2d54b1d0>
+\end{Verbatim}
+            
+    \begin{center}
+    \adjustimage{max size={0.9\linewidth}{0.9\paperheight}}{output_9_1.png}
+    \end{center}
+    { \hspace*{\fill} \\}
+    
+    \begin{Verbatim}[commandchars=\\\{\}]
+{\color{incolor}In [{\color{incolor}8}]:} \PY{c+c1}{\PYZsh{}Getting rid of vertical microchannels channels:}
+        \PY{n}{closed} \PY{o}{=} \PY{n}{np}\PY{o}{.}\PY{n}{uint8}\PY{p}{(}\PY{n}{closed}\PY{p}{)}
+        \PY{c+c1}{\PYZsh{}Create structure element for getting rid of vertical lines (microchannels) through morphology operations}
+        \PY{n}{verticalStructure} \PY{o}{=} \PY{n}{cv2}\PY{o}{.}\PY{n}{getStructuringElement}\PY{p}{(}\PY{n}{cv2}\PY{o}{.}\PY{n}{MORPH\PYZus{}RECT}\PY{p}{,} \PY{p}{(}\PY{l+m+mi}{13}\PY{p}{,}\PY{l+m+mi}{1}\PY{p}{)}\PY{p}{)}
+        \PY{n}{horizontalStructure} \PY{o}{=} \PY{n}{cv2}\PY{o}{.}\PY{n}{getStructuringElement}\PY{p}{(}\PY{n}{cv2}\PY{o}{.}\PY{n}{MORPH\PYZus{}RECT}\PY{p}{,} \PY{p}{(}\PY{l+m+mi}{1}\PY{p}{,}\PY{l+m+mi}{13}\PY{p}{)}\PY{p}{)}
+        
+        \PY{c+c1}{\PYZsh{}Apply morphology operations}
+        \PY{n}{img} \PY{o}{=} \PY{n}{cv2}\PY{o}{.}\PY{n}{erode}\PY{p}{(}\PY{n}{closed}\PY{p}{,} \PY{n}{verticalStructure}\PY{p}{)}
+        \PY{n}{img2} \PY{o}{=} \PY{n}{cv2}\PY{o}{.}\PY{n}{erode}\PY{p}{(}\PY{n}{img}\PY{p}{,} \PY{n}{horizontalStructure}\PY{p}{)}
+        \PY{c+c1}{\PYZsh{}, Point(\PYZhy{}1, \PYZhy{}1));}
+        \PY{c+c1}{\PYZsh{}cv2.dilate(closed, verticalStructure) \PYZsh{}, Point(\PYZhy{}1, \PYZhy{}1));}
+        \PY{c+c1}{\PYZsh{}Show extracted vertical lines}
+        \PY{n}{plt}\PY{o}{.}\PY{n}{figure}\PY{p}{(}\PY{n}{figsize} \PY{o}{=} \PY{p}{(}\PY{l+m+mi}{50}\PY{p}{,}\PY{l+m+mi}{20}\PY{p}{)}\PY{p}{)}
+        \PY{n}{compare} \PY{o}{=} \PY{n}{np}\PY{o}{.}\PY{n}{concatenate}\PY{p}{(}\PY{p}{(}\PY{n}{binary}\PY{p}{,} \PY{n}{img}\PY{p}{,} \PY{n}{img2}\PY{p}{)}\PY{p}{,} \PY{n}{axis}\PY{o}{=}\PY{l+m+mi}{1}\PY{p}{)}
+        \PY{n}{plt}\PY{o}{.}\PY{n}{imshow}\PY{p}{(}\PY{n}{compare}\PY{p}{)}
+        
+        \PY{c+c1}{\PYZsh{}print(verticalStructure)}
+        
+        \PY{c+c1}{\PYZsh{}ideas =\PYZgt{}do it after angle correction to make sure angle doesn\PYZsq{}t affect anything (i.e. might be easier to get rid of the dots)}
+        
+        \PY{c+c1}{\PYZsh{}next step: create contours around the explants to create a mask =\PYZgt{} use it to measure the }
+\end{Verbatim}
+
+\begin{Verbatim}[commandchars=\\\{\}]
+{\color{outcolor}Out[{\color{outcolor}8}]:} <matplotlib.image.AxesImage at 0x1c2f6f8b00>
+\end{Verbatim}
+            
+    \begin{center}
+    \adjustimage{max size={0.9\linewidth}{0.9\paperheight}}{output_10_1.png}
+    \end{center}
+    { \hspace*{\fill} \\}
+    
+    \begin{Verbatim}[commandchars=\\\{\}]
+{\color{incolor}In [{\color{incolor}29}]:} \PY{c+c1}{\PYZsh{}kernel = np.ones((10, 1))}
+         \PY{n}{verticalStructure} \PY{o}{=} \PY{n}{cv2}\PY{o}{.}\PY{n}{getStructuringElement}\PY{p}{(}\PY{n}{cv2}\PY{o}{.}\PY{n}{MORPH\PYZus{}RECT}\PY{p}{,} \PY{p}{(}\PY{l+m+mi}{13}\PY{p}{,}\PY{l+m+mi}{1}\PY{p}{)}\PY{p}{)}
+         \PY{n}{check} \PY{o}{=} \PY{n}{cv2}\PY{o}{.}\PY{n}{dilate}\PY{p}{(}\PY{n}{img}\PY{p}{,} \PY{n}{verticalStructure}\PY{p}{)}
+         \PY{n}{plt}\PY{o}{.}\PY{n}{figure}\PY{p}{(}\PY{n}{figsize} \PY{o}{=} \PY{p}{(}\PY{l+m+mi}{50}\PY{p}{,}\PY{l+m+mi}{20}\PY{p}{)}\PY{p}{)}
+         \PY{n}{plt}\PY{o}{.}\PY{n}{imshow}\PY{p}{(}\PY{n}{check}\PY{p}{)}
+\end{Verbatim}
+
+\begin{Verbatim}[commandchars=\\\{\}]
+{\color{outcolor}Out[{\color{outcolor}29}]:} <matplotlib.image.AxesImage at 0x1c3ca33400>
+\end{Verbatim}
+            
+    \begin{center}
+    \adjustimage{max size={0.9\linewidth}{0.9\paperheight}}{output_11_1.png}
+    \end{center}
+    { \hspace*{\fill} \\}
+    
+    \hypertarget{contour-detection-to-get-the-explant-area}{%
+\subsection{4) Contour detection to get the explant
+area}\label{contour-detection-to-get-the-explant-area}}
+
+    \begin{Verbatim}[commandchars=\\\{\}]
+{\color{incolor}In [{\color{incolor}32}]:} \PY{c+c1}{\PYZsh{} find the contours from the thresholded image}
+         \PY{c+c1}{\PYZsh{}contours, hierarchy = cv2.findContours(closed, cv2.RETR\PYZus{}TREE, cv2.CHAIN\PYZus{}APPROX\PYZus{}SIMPLE)}
+         \PY{c+c1}{\PYZsh{} draw all contours}
+         \PY{c+c1}{\PYZsh{}image = cv2.drawContours(image, contours, \PYZhy{}1, (0, 255, 0), 2)}
+         \PY{c+c1}{\PYZsh{}plt.imshow(image)}
+         
+         \PY{n}{im} \PY{o}{=} \PY{n}{cv2}\PY{o}{.}\PY{n}{imread}\PY{p}{(}\PY{n}{im\PYZus{}name}\PY{p}{)} \PY{c+c1}{\PYZsh{} DON\PYZsq{}t Forget to change!!}
+         \PY{c+c1}{\PYZsh{}contours3, hierarchy3 = cv2.findContours(img2, cv2.RETR\PYZus{}LIST, cv2.CHAIN\PYZus{}APPROX\PYZus{}SIMPLE)}
+         \PY{c+c1}{\PYZsh{}\PYZus{}, contours, \PYZus{}= cv2.findContours(binary, cv2.RETR\PYZus{}EXTERNAL, cv2.CHAIN\PYZus{}APPROX\PYZus{}SIMPLE) }
+         \PY{c+c1}{\PYZsh{} Mask input image with binary mask}
+         \PY{c+c1}{\PYZsh{}result = cv2.bitwise\PYZus{}and(gray\PYZus{}img, check)}
+         \PY{c+c1}{\PYZsh{}threshold = 100}
+         \PY{c+c1}{\PYZsh{}canny\PYZus{}output = cv2.Canny(result, threshold, threshold * 2)}
+         
+         \PY{n}{check}\PY{p}{[}\PY{l+m+mi}{500}\PY{p}{:}\PY{l+m+mi}{5030}\PY{p}{,}\PY{p}{:}\PY{p}{]}\PY{o}{=}\PY{l+m+mi}{0}
+         \PY{n}{check}\PY{p}{[}\PY{p}{:}\PY{p}{,}\PY{l+m+mi}{1600}\PY{p}{:}\PY{l+m+mi}{2000}\PY{p}{]}\PY{o}{=}\PY{l+m+mi}{0}
+         \PY{n}{check}\PY{p}{[}\PY{p}{:}\PY{p}{,}\PY{l+m+mi}{750}\PY{p}{:}\PY{l+m+mi}{1000}\PY{p}{]}\PY{o}{=}\PY{l+m+mi}{0}
+         \PY{n}{check}\PY{p}{[}\PY{p}{:}\PY{p}{,}\PY{l+m+mi}{0}\PY{p}{:}\PY{l+m+mi}{250}\PY{p}{]}\PY{o}{=}\PY{l+m+mi}{0}
+         \PY{n}{check}\PY{p}{[}\PY{p}{:}\PY{p}{,}\PY{l+m+mi}{2500}\PY{p}{:}\PY{l+m+mi}{3000}\PY{p}{]}\PY{o}{=}\PY{l+m+mi}{0}
+         \PY{n}{check}\PY{p}{[}\PY{p}{:}\PY{p}{,}\PY{l+m+mi}{2000}\PY{p}{:}\PY{l+m+mi}{2160}\PY{p}{]}\PY{o}{=}\PY{l+m+mi}{0}
+         \PY{n}{check}\PY{p}{[}\PY{p}{:}\PY{p}{,}\PY{l+m+mi}{1000}\PY{p}{:}\PY{l+m+mi}{1150}\PY{p}{]}\PY{o}{=}\PY{l+m+mi}{0}
+         \PY{n}{check}\PY{p}{[}\PY{p}{:}\PY{p}{,}\PY{l+m+mi}{0}\PY{p}{:}\PY{l+m+mi}{1000}\PY{p}{]}\PY{o}{=}\PY{l+m+mi}{0}
+         
+         \PY{c+c1}{\PYZsh{}check[:,0:230]=0}
+         \PY{c+c1}{\PYZsh{}check[:,2000:2150]=0}
+         \PY{c+c1}{\PYZsh{}img[2000:5100,:]=0 \PYZsh{}to get rid of all the other channels}
+         \PY{c+c1}{\PYZsh{}im=cannyoutput}
+         \PY{n}{\PYZus{}}\PY{p}{,} \PY{n}{contours}\PY{p}{,} \PY{n}{\PYZus{}}\PY{o}{=} \PY{n}{cv2}\PY{o}{.}\PY{n}{findContours}\PY{p}{(}\PY{n}{check}\PY{p}{,} \PY{n}{cv2}\PY{o}{.}\PY{n}{RETR\PYZus{}TREE}\PY{p}{,} \PY{n}{cv2}\PY{o}{.}\PY{n}{CHAIN\PYZus{}APPROX\PYZus{}SIMPLE}\PY{p}{)}
+         \PY{c+c1}{\PYZsh{}cv2.RETR\PYZus{}EXTERNAL =\PYZgt{} takes one well entirely}
+         
+         \PY{c+c1}{\PYZsh{}ALSO WORKS (to fix too many variables to pack)}
+         \PY{c+c1}{\PYZsh{}contours, hierarchy = cv2.findContours(img2, cv2.RETR\PYZus{}EXTERNAL, cv2.CHAIN\PYZus{}APPROX\PYZus{}SIMPLE)[\PYZhy{}2:]}
+         \PY{c+c1}{\PYZsh{}contours = cv2.findContours(img2, cv2.RETR\PYZus{}EXTERNAL, cv2.CHAIN\PYZus{}APPROX\PYZus{}NONE)[1]}
+         \PY{c+c1}{\PYZsh{} draw all contours}
+         \PY{c+c1}{\PYZsh{}image = cv2.drawContours(im, contours, \PYZhy{}1, (0, 255, 0), 2)}
+         \PY{c+c1}{\PYZsh{}im = np.asarray(im)}
+         \PY{n}{img\PYZus{}contours} \PY{o}{=} \PY{n}{cv2}\PY{o}{.}\PY{n}{drawContours}\PY{p}{(}\PY{n}{im}\PY{p}{,} \PY{n}{contours}\PY{p}{,} \PY{o}{\PYZhy{}}\PY{l+m+mi}{1}\PY{p}{,} \PY{p}{(}\PY{l+m+mi}{0}\PY{p}{,}\PY{l+m+mi}{255}\PY{p}{,}\PY{l+m+mi}{0}\PY{p}{)}\PY{p}{,} \PY{o}{\PYZhy{}}\PY{l+m+mi}{1}\PY{p}{)} \PY{c+c1}{\PYZsh{}to draw all contour pass \PYZhy{}1, \PYZhy{}1 (last parameter )}
+         \PY{c+c1}{\PYZsh{}image = np.asarray(image)}
+         \PY{n}{plt}\PY{o}{.}\PY{n}{figure}\PY{p}{(}\PY{n}{figsize} \PY{o}{=} \PY{p}{(}\PY{l+m+mi}{50}\PY{p}{,}\PY{l+m+mi}{20}\PY{p}{)}\PY{p}{)}
+         \PY{n}{plt}\PY{o}{.}\PY{n}{imshow}\PY{p}{(}\PY{n}{img\PYZus{}contours}\PY{p}{)}
+         
+         \PY{c+c1}{\PYZsh{}calculate the contour area}
+         \PY{n}{ar} \PY{o}{=} \PY{l+m+mi}{0}
+         \PY{n}{length} \PY{o}{=} \PY{n+nb}{len}\PY{p}{(}\PY{n}{contours}\PY{p}{)}
+         \PY{k}{for} \PY{n}{i} \PY{o+ow}{in} \PY{n+nb}{range}\PY{p}{(}\PY{n}{length}\PY{p}{)}\PY{p}{:}
+             \PY{n}{area} \PY{o}{=} \PY{n}{cv2}\PY{o}{.}\PY{n}{contourArea}\PY{p}{(}\PY{n}{contours}\PY{p}{[}\PY{n}{i}\PY{p}{]}\PY{p}{)}
+             \PY{n}{ar} \PY{o}{=} \PY{n}{ar} \PY{o}{+} \PY{n}{area}
+         
+         \PY{n}{tot} \PY{o}{=} \PY{n}{ar} \PY{o}{*} \PY{l+m+mf}{1.24}    \PY{c+c1}{\PYZsh{}!}
+         \PY{n+nb}{print}\PY{p}{(}\PY{n}{ar}\PY{p}{)}
+         \PY{n+nb}{print}\PY{p}{(}\PY{n}{tot}\PY{p}{)}
+         \PY{n+nb}{print}\PY{p}{(}\PY{n}{length}\PY{p}{)}
+         \PY{c+c1}{\PYZsh{}sources:}
+         \PY{c+c1}{\PYZsh{}https://learnopencv.com/contour\PYZhy{}detection\PYZhy{}using\PYZhy{}opencv\PYZhy{}python\PYZhy{}c/}
+         \PY{c+c1}{\PYZsh{}https://docs.opencv.org/master/d3/dc0/group\PYZus{}\PYZus{}imgproc\PYZus{}\PYZus{}shape.html\PYZsh{}ga819779b9857cc2f8601e6526a3a5bc71}
+         \PY{c+c1}{\PYZsh{}https://people.eecs.berkeley.edu/\PYZti{}malik/papers/MalikBLS.pdf}
+\end{Verbatim}
+
+    \begin{Verbatim}[commandchars=\\\{\}]
+219639.0
+272352.36
+31
+
+    \end{Verbatim}
+
+    \begin{center}
+    \adjustimage{max size={0.9\linewidth}{0.9\paperheight}}{output_13_1.png}
+    \end{center}
+    { \hspace*{\fill} \\}
+    
+    \hypertarget{angle-correction}{%
+\subsection{5) Angle Correction}\label{angle-correction}}
+
+    \begin{Verbatim}[commandchars=\\\{\}]
+{\color{incolor}In [{\color{incolor}33}]:} \PY{c+c1}{\PYZsh{}binary \PYZhy{} closed?}
+         
+         \PY{k}{def} \PY{n+nf}{find\PYZus{}score}\PY{p}{(}\PY{n}{arr}\PY{p}{,} \PY{n}{angle}\PY{p}{)}\PY{p}{:}
+             \PY{n}{data} \PY{o}{=} \PY{n}{inter}\PY{o}{.}\PY{n}{rotate}\PY{p}{(}\PY{n}{arr}\PY{p}{,} \PY{n}{angle}\PY{p}{,} \PY{n}{reshape}\PY{o}{=}\PY{k+kc}{False}\PY{p}{,} \PY{n}{order}\PY{o}{=}\PY{l+m+mi}{0}\PY{p}{)}
+             \PY{n}{hist} \PY{o}{=} \PY{n}{np}\PY{o}{.}\PY{n}{sum}\PY{p}{(}\PY{n}{data}\PY{p}{,} \PY{n}{axis}\PY{o}{=}\PY{l+m+mi}{1}\PY{p}{)}
+             \PY{n}{score} \PY{o}{=} \PY{n}{np}\PY{o}{.}\PY{n}{sum}\PY{p}{(}\PY{p}{(}\PY{n}{hist}\PY{p}{[}\PY{l+m+mi}{1}\PY{p}{:}\PY{p}{]} \PY{o}{\PYZhy{}} \PY{n}{hist}\PY{p}{[}\PY{p}{:}\PY{o}{\PYZhy{}}\PY{l+m+mi}{1}\PY{p}{]}\PY{p}{)} \PY{o}{*}\PY{o}{*} \PY{l+m+mi}{2}\PY{p}{)}
+             \PY{k}{return} \PY{n}{hist}\PY{p}{,} \PY{n}{score}
+         
+         \PY{n}{delta} \PY{o}{=} \PY{l+m+mf}{0.1}
+         \PY{n}{limit} \PY{o}{=} \PY{l+m+mi}{5} \PY{c+c1}{\PYZsh{}3}
+         \PY{n}{angles} \PY{o}{=} \PY{n}{np}\PY{o}{.}\PY{n}{arange}\PY{p}{(}\PY{o}{\PYZhy{}}\PY{n}{limit}\PY{p}{,} \PY{n}{limit}\PY{o}{+}\PY{n}{delta}\PY{p}{,} \PY{n}{delta}\PY{p}{)}
+         \PY{n}{scores} \PY{o}{=} \PY{p}{[}\PY{p}{]}
+         \PY{k}{for} \PY{n}{angle} \PY{o+ow}{in} \PY{n}{angles}\PY{p}{:}
+             \PY{n}{hist}\PY{p}{,} \PY{n}{score} \PY{o}{=} \PY{n}{find\PYZus{}score}\PY{p}{(}\PY{n}{binary}\PY{p}{,} \PY{n}{angle}\PY{p}{)}
+             \PY{n}{scores}\PY{o}{.}\PY{n}{append}\PY{p}{(}\PY{n}{score}\PY{p}{)}
+         
+         \PY{n}{best\PYZus{}score} \PY{o}{=} \PY{n+nb}{max}\PY{p}{(}\PY{n}{scores}\PY{p}{)}
+         \PY{n}{best\PYZus{}angle} \PY{o}{=} \PY{n}{angles}\PY{p}{[}\PY{n}{scores}\PY{o}{.}\PY{n}{index}\PY{p}{(}\PY{n}{best\PYZus{}score}\PY{p}{)}\PY{p}{]}
+         \PY{c+c1}{\PYZsh{}print(\PYZsq{}Best angle: \PYZob{}\PYZcb{}\PYZsq{}.formate(best\PYZus{}angle))}
+         
+         \PY{c+c1}{\PYZsh{} correct skew}
+         \PY{n}{corrected} \PY{o}{=} \PY{n}{inter}\PY{o}{.}\PY{n}{rotate}\PY{p}{(}\PY{n}{gray\PYZus{}img}\PY{p}{,} \PY{n}{best\PYZus{}angle}\PY{p}{,} \PY{n}{reshape}\PY{o}{=}\PY{k+kc}{False}\PY{p}{,} \PY{n}{order}\PY{o}{=}\PY{l+m+mi}{0}\PY{p}{)}
+         \PY{c+c1}{\PYZsh{}corrected = ndimage.rotate(corrected, 2, reshape=False)}
+         \PY{c+c1}{\PYZsh{}img = im.fromarray((255 * data).astype(\PYZdq{}uint8\PYZdq{})).convert(\PYZdq{}RGB\PYZdq{})}
+         \PY{c+c1}{\PYZsh{}plt.figure(figsize = (50,20))}
+         \PY{n}{plt}\PY{o}{.}\PY{n}{imshow}\PY{p}{(}\PY{n}{corrected}\PY{p}{[}\PY{l+m+mi}{4500}\PY{p}{:}\PY{l+m+mi}{5400}\PY{p}{,} \PY{p}{:}\PY{p}{]}\PY{p}{)}
+         \PY{n+nb}{print}\PY{p}{(}\PY{n}{corrected}\PY{p}{[}\PY{l+m+mi}{510}\PY{p}{:}\PY{l+m+mi}{200}\PY{p}{,}\PY{p}{:}\PY{p}{]}\PY{p}{)}
+         \PY{c+c1}{\PYZsh{}img.save(\PYZsq{}skew\PYZus{}corrected.png\PYZsq{})}
+\end{Verbatim}
+
+    \begin{Verbatim}[commandchars=\\\{\}]
+[]
+
+    \end{Verbatim}
+
+    \begin{center}
+    \adjustimage{max size={0.9\linewidth}{0.9\paperheight}}{output_15_1.png}
+    \end{center}
+    { \hspace*{\fill} \\}
+    
+    \hypertarget{intensity-profile-analysis-to-check-how-filled-the-microchannels-are}{%
+\subsection{6) Intensity Profile Analysis to check how filled the
+microchannels
+are}\label{intensity-profile-analysis-to-check-how-filled-the-microchannels-are}}
+
+    \begin{Verbatim}[commandchars=\\\{\}]
+{\color{incolor}In [{\color{incolor}35}]:} \PY{c+c1}{\PYZsh{}intensity profile analysis to check open channels}
+         
+         \PY{n}{I} \PY{o}{=} \PY{n}{corrected}\PY{p}{[}\PY{l+m+mi}{4500}\PY{p}{:}\PY{l+m+mi}{5400}\PY{p}{,} \PY{p}{:}\PY{p}{]}
+         \PY{c+c1}{\PYZsh{}I = gray\PYZus{}img[4700:5700, :]}
+         \PY{c+c1}{\PYZsh{}I\PYZus{}slice = I[270:370,:]}
+         \PY{c+c1}{\PYZsh{}I\PYZus{}slice = I[290:390,:]}
+         \PY{c+c1}{\PYZsh{}I\PYZus{}slice = I[310:410,:]}
+         \PY{n}{I\PYZus{}slice} \PY{o}{=} \PY{n}{I}\PY{p}{[}\PY{l+m+mi}{150}\PY{p}{:}\PY{l+m+mi}{250}\PY{p}{,} \PY{p}{:}\PY{p}{]} 
+         \PY{c+c1}{\PYZsh{}I\PYZus{}slice = I[400:500, :]  }
+         \PY{n+nb}{print}\PY{p}{(}\PY{n}{I\PYZus{}slice}\PY{o}{.}\PY{n}{shape}\PY{p}{)}
+         \PY{n}{intensity} \PY{o}{=} \PY{n}{I\PYZus{}slice}\PY{o}{.}\PY{n}{mean}\PY{p}{(}\PY{n}{axis}\PY{o}{=}\PY{l+m+mi}{0}\PY{p}{)}
+         \PY{n+nb}{print}\PY{p}{(}\PY{n}{intensity}\PY{o}{.}\PY{n}{shape}\PY{p}{)}
+         
+         \PY{o}{\PYZpc{}}\PY{k}{matplotlib} inline
+         \PY{c+c1}{\PYZsh{} Extract intensity values along some profile line}
+         \PY{c+c1}{\PYZsh{}p = profile\PYZus{}line(I, (0, 1100), (150, 150),linewidth = 10)}
+         \PY{n}{p} \PY{o}{=} \PY{n}{profile\PYZus{}line}\PY{p}{(}\PY{n}{I}\PY{p}{,} \PY{p}{(}\PY{l+m+mi}{0}\PY{p}{,} \PY{l+m+mi}{1100}\PY{p}{)}\PY{p}{,} \PY{p}{(}\PY{l+m+mi}{150}\PY{p}{,} \PY{l+m+mi}{150}\PY{p}{)}\PY{p}{,}\PY{n}{linewidth} \PY{o}{=} \PY{l+m+mi}{300}\PY{p}{)}
+         \PY{c+c1}{\PYZsh{} Extract values from image directly for comparison}
+         \PY{n}{i} \PY{o}{=} \PY{n}{I}\PY{p}{[}\PY{l+m+mi}{0}\PY{p}{:}\PY{l+m+mi}{1101}\PY{p}{,} \PY{l+m+mi}{10}\PY{p}{]}
+         
+         
+         \PY{c+c1}{\PYZsh{}next find\PYZus{}peaks and define a threshold for open/ closed channels}
+         \PY{n}{peaks}\PY{p}{,} \PY{n}{\PYZus{}} \PY{o}{=} \PY{n}{find\PYZus{}peaks}\PY{p}{(}\PY{n}{intensity}\PY{p}{,} \PY{n}{prominence} \PY{o}{=}\PY{l+m+mf}{4.5}\PY{p}{,} \PY{n}{threshold} \PY{o}{=} \PY{l+m+mf}{0.01}\PY{p}{,} \PY{n}{height} \PY{o}{=} \PY{l+m+mi}{6}\PY{p}{)} \PY{c+c1}{\PYZsh{}prominance is a more important parameter for max peak detection, few channels were still not detected properly so lowered the threshold to 0.01 (from 0.1)}
+         \PY{c+c1}{\PYZsh{}peaks = peak\PYZus{}local\PYZus{}max(intensity, threshold =10)}
+         
+         \PY{n}{plt}\PY{o}{.}\PY{n}{figure}\PY{p}{(}\PY{n}{figsize} \PY{o}{=} \PY{p}{(}\PY{l+m+mi}{100}\PY{p}{,}\PY{l+m+mi}{20}\PY{p}{)}\PY{p}{)}
+         \PY{n}{plt}\PY{o}{.}\PY{n}{plot}\PY{p}{(}\PY{n}{intensity}\PY{p}{)}
+         \PY{c+c1}{\PYZsh{}set a threshold for finding the right peaks!}
+         \PY{n}{plt}\PY{o}{.}\PY{n}{plot}\PY{p}{(}\PY{n}{peaks}\PY{p}{,} \PY{n}{intensity}\PY{p}{[}\PY{n}{peaks}\PY{p}{]}\PY{p}{,} \PY{l+s+s2}{\PYZdq{}}\PY{l+s+s2}{.}\PY{l+s+s2}{\PYZdq{}}\PY{p}{,} \PY{n}{markersize}\PY{o}{=}\PY{l+m+mi}{50}\PY{p}{)}
+         
+         \PY{c+c1}{\PYZsh{}plt.tick\PYZus{}params(axis=\PYZsq{}x\PYZsq{}, labelsize=14)}
+         \PY{n}{plt}\PY{o}{.}\PY{n}{ylabel}\PY{p}{(}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{Intensity}\PY{l+s+s1}{\PYZsq{}}\PY{p}{,}\PY{n}{fontsize}\PY{o}{=}\PY{l+m+mi}{60}\PY{p}{)}\PY{p}{;}\PY{n}{plt}\PY{o}{.}\PY{n}{xlabel}\PY{p}{(}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{Line path}\PY{l+s+s1}{\PYZsq{}}\PY{p}{,}\PY{n}{fontsize}\PY{o}{=}\PY{l+m+mi}{60}\PY{p}{)}
+         \PY{n}{plt}\PY{o}{.}\PY{n}{tick\PYZus{}params}\PY{p}{(}\PY{n}{axis}\PY{o}{=}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{both}\PY{l+s+s1}{\PYZsq{}}\PY{p}{,} \PY{n}{which}\PY{o}{=}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{major}\PY{l+s+s1}{\PYZsq{}}\PY{p}{,} \PY{n}{labelsize}\PY{o}{=}\PY{l+m+mi}{60}\PY{p}{)}
+         \PY{n}{plt}\PY{o}{.}\PY{n}{gca}\PY{p}{(}\PY{p}{)}\PY{o}{.}\PY{n}{set\PYZus{}xlim}\PY{p}{(}\PY{p}{(}\PY{l+m+mi}{0}\PY{p}{,} \PY{n+nb}{len}\PY{p}{(}\PY{n}{intensity}\PY{p}{)}\PY{p}{)}\PY{p}{)}
+         \PY{n}{plt}\PY{o}{.}\PY{n}{show}\PY{p}{(}\PY{p}{)}
+         
+         \PY{n}{plt}\PY{o}{.}\PY{n}{figure}\PY{p}{(}\PY{n}{figsize} \PY{o}{=} \PY{p}{(}\PY{l+m+mi}{100}\PY{p}{,}\PY{l+m+mi}{20}\PY{p}{)}\PY{p}{)}
+         \PY{n}{plt}\PY{o}{.}\PY{n}{imshow}\PY{p}{(}\PY{n}{I}\PY{p}{)}
+         \PY{n}{plt}\PY{o}{.}\PY{n}{plot}\PY{p}{(}\PY{p}{(}\PY{l+m+mi}{0}\PY{p}{,} \PY{n+nb}{len}\PY{p}{(}\PY{n}{intensity}\PY{p}{)}\PY{p}{)}\PY{p}{,} \PY{p}{(}\PY{l+m+mi}{400}\PY{o}{+}\PY{l+m+mi}{15}\PY{p}{,} \PY{l+m+mi}{400}\PY{o}{+}\PY{l+m+mi}{15}\PY{p}{)}\PY{p}{,}\PY{n}{linewidth}\PY{o}{=}\PY{l+m+mi}{140}\PY{p}{,} \PY{n}{alpha}\PY{o}{=}\PY{o}{.}\PY{l+m+mi}{4}\PY{p}{)}
+         \PY{c+c1}{\PYZsh{}plt.plot((0, 200), (1100, 200))}
+         \PY{c+c1}{\PYZsh{}plt.xlabel(\PYZsq{}Line path\PYZsq{},fontsize=60)}
+         \PY{n}{plt}\PY{o}{.}\PY{n}{tick\PYZus{}params}\PY{p}{(}\PY{n}{axis}\PY{o}{=}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{both}\PY{l+s+s1}{\PYZsq{}}\PY{p}{,} \PY{n}{which}\PY{o}{=}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{major}\PY{l+s+s1}{\PYZsq{}}\PY{p}{,} \PY{n}{labelsize}\PY{o}{=}\PY{l+m+mi}{60}\PY{p}{)}
+         \PY{n}{plt}\PY{o}{.}\PY{n}{show}\PY{p}{(}\PY{p}{)}
+         \PY{n+nb}{print}\PY{p}{(}\PY{n+nb}{len}\PY{p}{(}\PY{n}{peaks}\PY{p}{)}\PY{p}{)}
+         
+         \PY{c+c1}{\PYZsh{}NOTE: check if the slice and the plotted rectangle are actually the same!!!!}
+         
+         \PY{c+c1}{\PYZsh{}evaluate the \PYZpc{}open channels (i.e 50 out of 60 channels filled)}
+         \PY{n}{filled} \PY{o}{=} \PY{p}{(}\PY{n+nb}{len}\PY{p}{(}\PY{n}{peaks}\PY{p}{)}\PY{o}{/}\PY{l+m+mi}{60}\PY{p}{)}\PY{o}{*}\PY{l+m+mi}{100}
+         \PY{n+nb}{print}\PY{p}{(}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{Percent filled channels (}\PY{l+s+s1}{\PYZpc{}}\PY{l+s+s1}{):}\PY{l+s+s1}{\PYZsq{}}\PY{p}{,} \PY{n}{filled}\PY{p}{)}
+         
+         \PY{c+c1}{\PYZsh{}add a correction/normalisation for lost explants}
+         
+         \PY{c+c1}{\PYZsh{}add mean intensity}
+         
+         \PY{c+c1}{\PYZsh{}source: https://docs.scipy.org/doc/scipy/reference/generated/scipy.signal.find\PYZus{}peaks.html}
+\end{Verbatim}
+
+    \begin{Verbatim}[commandchars=\\\{\}]
+(100, 2920)
+(2920,)
+
+    \end{Verbatim}
+
+    \begin{center}
+    \adjustimage{max size={0.9\linewidth}{0.9\paperheight}}{output_17_1.png}
+    \end{center}
+    { \hspace*{\fill} \\}
+    
+    \begin{center}
+    \adjustimage{max size={0.9\linewidth}{0.9\paperheight}}{output_17_2.png}
+    \end{center}
+    { \hspace*{\fill} \\}
+    
+    \begin{Verbatim}[commandchars=\\\{\}]
+23
+Percent filled channels (\%): 38.333333333333336
+
+    \end{Verbatim}
+
+    \begin{Verbatim}[commandchars=\\\{\}]
+{\color{incolor}In [{\color{incolor}22}]:} \PY{n}{plt}\PY{o}{.}\PY{n}{figure}\PY{p}{(}\PY{n}{figsize} \PY{o}{=} \PY{p}{(}\PY{l+m+mi}{100}\PY{p}{,}\PY{l+m+mi}{20}\PY{p}{)}\PY{p}{)}
+         
+         \PY{n}{plt}\PY{o}{.}\PY{n}{imshow}\PY{p}{(}\PY{n}{I\PYZus{}slice}\PY{p}{)}
+\end{Verbatim}
+
+\begin{Verbatim}[commandchars=\\\{\}]
+{\color{outcolor}Out[{\color{outcolor}22}]:} <matplotlib.image.AxesImage at 0x1c23e28630>
+\end{Verbatim}
+            
+    \begin{center}
+    \adjustimage{max size={0.9\linewidth}{0.9\paperheight}}{output_18_1.png}
+    \end{center}
+    { \hspace*{\fill} \\}
+    
+    \begin{Verbatim}[commandchars=\\\{\}]
+{\color{incolor}In [{\color{incolor}298}]:} \PY{c+c1}{\PYZsh{} print(peaks)}
+          \PY{n+nb}{print}\PY{p}{(}\PY{n}{intensity}\PY{p}{[}\PY{n}{peaks}\PY{p}{]}\PY{p}{)}
+          \PY{n}{mean\PYZus{}intensity} \PY{o}{=} \PY{n}{np}\PY{o}{.}\PY{n}{mean}\PY{p}{(}\PY{n}{intensity}\PY{p}{[}\PY{n}{peaks}\PY{p}{]}\PY{p}{)}
+          \PY{n}{std\PYZus{}intensity} \PY{o}{=} \PY{n}{np}\PY{o}{.}\PY{n}{std}\PY{p}{(}\PY{n}{intensity}\PY{p}{[}\PY{n}{peaks}\PY{p}{]}\PY{p}{)}
+          \PY{n+nb}{print}\PY{p}{(}\PY{n}{mean\PYZus{}intensity}\PY{p}{)}
+          \PY{n+nb}{print}\PY{p}{(}\PY{n}{std\PYZus{}intensity}\PY{p}{)}
+\end{Verbatim}
+
+    \begin{Verbatim}[commandchars=\\\{\}]
+[23.11  6.31  6.58  6.74  6.51  6.03  6.98]
+8.894285714285715
+5.810278717541027
+
+    \end{Verbatim}
+
+    \hypertarget{intensity-profile-anlaysis-to-see-how-far-the-axons-travel-in-the-output-channel}{%
+\subsection{7) Intensity Profile Anlaysis to see how far the axons
+travel in the output
+channel}\label{intensity-profile-anlaysis-to-see-how-far-the-axons-travel-in-the-output-channel}}
+
+    \begin{Verbatim}[commandchars=\\\{\}]
+{\color{incolor}In [{\color{incolor}43}]:} \PY{n}{I} \PY{o}{=} \PY{n}{corrected}\PY{p}{[}\PY{l+m+mi}{900}\PY{p}{:}\PY{l+m+mi}{4850}\PY{p}{,} \PY{l+m+mi}{1250}\PY{p}{:}\PY{l+m+mi}{1650}\PY{p}{]}
+         
+         \PY{c+c1}{\PYZsh{}I = gray\PYZus{}img[1000:4950, 1250:1650]}
+         \PY{n}{I\PYZus{}slice} \PY{o}{=} \PY{n}{I}\PY{p}{[}\PY{l+m+mi}{0}\PY{p}{:}\PY{l+m+mi}{3700}\PY{p}{,} \PY{l+m+mi}{100}\PY{p}{:}\PY{l+m+mi}{300}\PY{p}{]}
+         
+         \PY{c+c1}{\PYZsh{}plt.imshow(I)}
+         \PY{n+nb}{print}\PY{p}{(}\PY{n}{I\PYZus{}slice}\PY{o}{.}\PY{n}{shape}\PY{p}{)}
+         \PY{n}{intensity} \PY{o}{=} \PY{n}{I\PYZus{}slice}\PY{o}{.}\PY{n}{mean}\PY{p}{(}\PY{n}{axis}\PY{o}{=}\PY{l+m+mi}{1}\PY{p}{)}
+         \PY{n+nb}{print}\PY{p}{(}\PY{n}{intensity}\PY{o}{.}\PY{n}{shape}\PY{p}{)}
+         
+         \PY{n}{peaks}\PY{p}{,} \PY{n}{\PYZus{}} \PY{o}{=} \PY{n}{find\PYZus{}peaks}\PY{p}{(}\PY{n}{intensity}\PY{p}{,} \PY{n}{prominence} \PY{o}{=}\PY{l+m+mf}{0.5}\PY{p}{,} \PY{n}{threshold} \PY{o}{=} \PY{l+m+mf}{0.2}\PY{p}{)} \PY{c+c1}{\PYZsh{}prominance is a more important parameter for max peak detection}
+         \PY{c+c1}{\PYZsh{}peaks = peak\PYZus{}local\PYZus{}max(intensity, threshold =10)}
+         
+         
+         \PY{n}{plt}\PY{o}{.}\PY{n}{figure}\PY{p}{(}\PY{n}{figsize} \PY{o}{=} \PY{p}{(}\PY{l+m+mi}{100}\PY{p}{,}\PY{l+m+mi}{20}\PY{p}{)}\PY{p}{)}
+         \PY{n}{plt}\PY{o}{.}\PY{n}{plot}\PY{p}{(}\PY{n}{intensity}\PY{p}{,}\PY{l+s+s2}{\PYZdq{}}\PY{l+s+s2}{.}\PY{l+s+s2}{\PYZdq{}}\PY{p}{,} \PY{n}{markersize}\PY{o}{=}\PY{l+m+mi}{50}\PY{p}{)}
+         \PY{c+c1}{\PYZsh{}set a threshold for finding the right peaks!}
+         \PY{c+c1}{\PYZsh{}plt.plot(peaks, intensity[peaks], \PYZdq{}.\PYZdq{}, markersize=50)}
+         
+         
+         \PY{c+c1}{\PYZsh{}plt.tick\PYZus{}params(axis=\PYZsq{}x\PYZsq{}, labelsize=14)}
+         \PY{n}{plt}\PY{o}{.}\PY{n}{ylabel}\PY{p}{(}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{Intensity}\PY{l+s+s1}{\PYZsq{}}\PY{p}{,}\PY{n}{fontsize}\PY{o}{=}\PY{l+m+mi}{60}\PY{p}{)}
+         \PY{n}{plt}\PY{o}{.}\PY{n}{xlabel}\PY{p}{(}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{Line path}\PY{l+s+s1}{\PYZsq{}}\PY{p}{,}\PY{n}{fontsize}\PY{o}{=}\PY{l+m+mi}{60}\PY{p}{)}
+         \PY{n}{plt}\PY{o}{.}\PY{n}{gca}\PY{p}{(}\PY{p}{)}\PY{o}{.}\PY{n}{set\PYZus{}xlim}\PY{p}{(}\PY{p}{(}\PY{l+m+mi}{0}\PY{p}{,} \PY{n+nb}{len}\PY{p}{(}\PY{n}{intensity}\PY{p}{)}\PY{p}{)}\PY{p}{)}
+         \PY{n}{plt}\PY{o}{.}\PY{n}{tick\PYZus{}params}\PY{p}{(}\PY{n}{axis}\PY{o}{=}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{both}\PY{l+s+s1}{\PYZsq{}}\PY{p}{,} \PY{n}{which}\PY{o}{=}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{major}\PY{l+s+s1}{\PYZsq{}}\PY{p}{,} \PY{n}{labelsize}\PY{o}{=}\PY{l+m+mi}{60}\PY{p}{)}
+         
+         \PY{n}{plt}\PY{o}{.}\PY{n}{show}\PY{p}{(}\PY{p}{)}
+         
+         \PY{n}{plt}\PY{o}{.}\PY{n}{figure}\PY{p}{(}\PY{n}{figsize} \PY{o}{=} \PY{p}{(}\PY{l+m+mi}{100}\PY{p}{,}\PY{l+m+mi}{20}\PY{p}{)}\PY{p}{)}
+         \PY{n}{im} \PY{o}{=} \PY{n}{Image}\PY{o}{.}\PY{n}{fromarray}\PY{p}{(}\PY{n}{I}\PY{p}{)}
+         \PY{n}{plt}\PY{o}{.}\PY{n}{ylabel}\PY{p}{(}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{Line Path Y}\PY{l+s+s1}{\PYZsq{}}\PY{p}{,}\PY{n}{fontsize}\PY{o}{=}\PY{l+m+mi}{60}\PY{p}{)}
+         \PY{n}{plt}\PY{o}{.}\PY{n}{xlabel}\PY{p}{(}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{Line path X}\PY{l+s+s1}{\PYZsq{}}\PY{p}{,}\PY{n}{fontsize}\PY{o}{=}\PY{l+m+mi}{60}\PY{p}{)}
+         \PY{n}{im\PYZus{}rot}  \PY{o}{=} \PY{n}{im}\PY{o}{.}\PY{n}{transpose}\PY{p}{(}\PY{n}{Image}\PY{o}{.}\PY{n}{ROTATE\PYZus{}90}\PY{p}{)}
+         \PY{n}{plt}\PY{o}{.}\PY{n}{imshow}\PY{p}{(}\PY{n}{im\PYZus{}rot}\PY{p}{)}
+         \PY{n}{plt}\PY{o}{.}\PY{n}{plot}\PY{p}{(}\PY{p}{(}\PY{l+m+mi}{0}\PY{p}{,} \PY{n+nb}{len}\PY{p}{(}\PY{n}{intensity}\PY{p}{)}\PY{p}{)}\PY{p}{,} \PY{p}{(}\PY{l+m+mi}{390}\PY{o}{+}\PY{l+m+mi}{60}\PY{p}{,} \PY{l+m+mi}{390}\PY{o}{+}\PY{l+m+mi}{60}\PY{p}{)}\PY{p}{,}\PY{n}{linewidth}\PY{o}{=}\PY{l+m+mi}{140}\PY{p}{,} \PY{n}{alpha}\PY{o}{=}\PY{o}{.}\PY{l+m+mi}{4}\PY{p}{)}
+         \PY{c+c1}{\PYZsh{}plt.xlabel(\PYZsq{}Line Path\PYZsq{})}
+         \PY{n}{plt}\PY{o}{.}\PY{n}{tick\PYZus{}params}\PY{p}{(}\PY{n}{axis}\PY{o}{=}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{both}\PY{l+s+s1}{\PYZsq{}}\PY{p}{,} \PY{n}{which}\PY{o}{=}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{major}\PY{l+s+s1}{\PYZsq{}}\PY{p}{,} \PY{n}{labelsize}\PY{o}{=}\PY{l+m+mi}{60}\PY{p}{)}
+         \PY{n}{plt}\PY{o}{.}\PY{n}{show}\PY{p}{(}\PY{p}{)}
+         \PY{n+nb}{print}\PY{p}{(}\PY{n+nb}{len}\PY{p}{(}\PY{n}{peaks}\PY{p}{)}\PY{p}{)}
+         
+         
+         \PY{c+c1}{\PYZsh{}plt.figure(figsize = (100,20))}
+         \PY{c+c1}{\PYZsh{}plt.imshow(I\PYZus{}slice)}
+         \PY{c+c1}{\PYZsh{}Identify the min and max point and then evaluate the distance travelled}
+         
+         \PY{c+c1}{\PYZsh{}print(pixel\PYZus{}values)}
+         
+         \PY{c+c1}{\PYZsh{}Try checking the intensity profile within specified increments}
+         
+         \PY{c+c1}{\PYZsh{}min\PYZus{}id = intensity[np.min(intensity)]}
+         \PY{c+c1}{\PYZsh{}max\PYZus{}id = intensity[np.max(intensity)]}
+         \PY{c+c1}{\PYZsh{}print(\PYZsq{}Min: \PYZsq{},min\PYZus{}id)}
+         \PY{c+c1}{\PYZsh{}print(\PYZsq{}Max: \PYZsq{},max\PYZus{}id)}
+         \PY{n}{plt}\PY{o}{.}\PY{n}{figure}\PY{p}{(}\PY{n}{figsize} \PY{o}{=} \PY{p}{(}\PY{l+m+mi}{100}\PY{p}{,}\PY{l+m+mi}{20}\PY{p}{)}\PY{p}{)}
+         \PY{n}{length} \PY{o}{=} \PY{n}{np}\PY{o}{.}\PY{n}{arange}\PY{p}{(}\PY{l+m+mi}{0}\PY{p}{,}\PY{l+m+mi}{3696}\PY{p}{,}\PY{l+m+mi}{1}\PY{p}{)}
+         \PY{n}{plt}\PY{o}{.}\PY{n}{plot}\PY{p}{(}\PY{n}{length}\PY{p}{,} \PY{n}{np}\PY{o}{.}\PY{n}{convolve}\PY{p}{(}\PY{n}{intensity}\PY{p}{,} \PY{n}{np}\PY{o}{.}\PY{n}{ones}\PY{p}{(}\PY{l+m+mi}{5}\PY{p}{)}\PY{o}{/}\PY{l+m+mi}{5}\PY{p}{,} \PY{n}{mode}\PY{o}{=}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{valid}\PY{l+s+s1}{\PYZsq{}}\PY{p}{)}\PY{p}{)}
+         \PY{n}{plt}\PY{o}{.}\PY{n}{xlabel}\PY{p}{(}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{Line path X}\PY{l+s+s1}{\PYZsq{}}\PY{p}{,}\PY{n}{fontsize}\PY{o}{=}\PY{l+m+mi}{60}\PY{p}{)}
+         
+         \PY{n+nb}{print}\PY{p}{(}\PY{n+nb}{len}\PY{p}{(}\PY{n}{intensity}\PY{p}{)}\PY{p}{)}
+\end{Verbatim}
+
+    \begin{Verbatim}[commandchars=\\\{\}]
+(3700, 200)
+(3700,)
+
+    \end{Verbatim}
+
+    \begin{center}
+    \adjustimage{max size={0.9\linewidth}{0.9\paperheight}}{output_21_1.png}
+    \end{center}
+    { \hspace*{\fill} \\}
+    
+    \begin{center}
+    \adjustimage{max size={0.9\linewidth}{0.9\paperheight}}{output_21_2.png}
+    \end{center}
+    { \hspace*{\fill} \\}
+    
+    \begin{Verbatim}[commandchars=\\\{\}]
+87
+3700
+
+    \end{Verbatim}
+
+    \begin{center}
+    \adjustimage{max size={0.9\linewidth}{0.9\paperheight}}{output_21_4.png}
+    \end{center}
+    { \hspace*{\fill} \\}
+    
+    \begin{Verbatim}[commandchars=\\\{\}]
+{\color{incolor}In [{\color{incolor}38}]:} \PY{c+c1}{\PYZsh{}Try low pass filtering}
+         \PY{n}{length} \PY{o}{=} \PY{n}{np}\PY{o}{.}\PY{n}{arange}\PY{p}{(}\PY{l+m+mi}{0}\PY{p}{,}\PY{l+m+mi}{3696}\PY{p}{,}\PY{l+m+mi}{1}\PY{p}{)}
+         \PY{n}{filtered} \PY{o}{=} \PY{n}{np}\PY{o}{.}\PY{n}{convolve}\PY{p}{(}\PY{n}{intensity}\PY{p}{,} \PY{n}{np}\PY{o}{.}\PY{n}{ones}\PY{p}{(}\PY{l+m+mi}{5}\PY{p}{)}\PY{o}{/}\PY{l+m+mi}{5}\PY{p}{,} \PY{n}{mode}\PY{o}{=}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{valid}\PY{l+s+s1}{\PYZsq{}}\PY{p}{)}
+         \PY{n}{plt}\PY{o}{.}\PY{n}{plot}\PY{p}{(}\PY{n}{length}\PY{p}{,} \PY{n}{filtered}\PY{p}{)}
+         
+         \PY{n}{max\PYZus{}intensity}\PY{o}{=}\PY{n}{np}\PY{o}{.}\PY{n}{max}\PY{p}{(}\PY{n}{filtered}\PY{p}{)}
+         \PY{n}{min\PYZus{}intensity} \PY{o}{=} \PY{n}{np}\PY{o}{.}\PY{n}{min}\PY{p}{(}\PY{n}{filtered}\PY{p}{)}
+         \PY{n}{idx\PYZus{}start} \PY{o}{=} \PY{n}{np}\PY{o}{.}\PY{n}{where}\PY{p}{(}\PY{n}{intensity} \PY{o}{==} \PY{n}{max\PYZus{}intensity}\PY{p}{)}
+         \PY{n}{idx\PYZus{}end} \PY{o}{=} \PY{n}{np}\PY{o}{.}\PY{n}{where}\PY{p}{(}\PY{n}{intensity} \PY{o}{==} \PY{n}{min\PYZus{}intensity}\PY{p}{)}
+         \PY{n+nb}{print}\PY{p}{(}\PY{n}{idx\PYZus{}start}\PY{p}{)}
+         \PY{n+nb}{print}\PY{p}{(}\PY{n}{idx\PYZus{}end}\PY{p}{)}
+         
+         \PY{c+c1}{\PYZsh{}dist = (idx\PYZus{}end\PYZhy{}idx\PYZus{}end) *1.24}
+         \PY{n}{dist} \PY{o}{=} \PY{l+m+mi}{10}
+\end{Verbatim}
+
+    \begin{Verbatim}[commandchars=\\\{\}]
+(array([], dtype=int64),)
+(array([   1,    2,    3, {\ldots}, 2649, 2656, 2657]),)
+
+    \end{Verbatim}
+
+    \begin{center}
+    \adjustimage{max size={0.9\linewidth}{0.9\paperheight}}{output_22_1.png}
+    \end{center}
+    { \hspace*{\fill} \\}
+    
+    \begin{Verbatim}[commandchars=\\\{\}]
+{\color{incolor}In [{\color{incolor}41}]:} \PY{n}{max\PYZus{}intensity}\PY{o}{=}\PY{n}{np}\PY{o}{.}\PY{n}{max}\PY{p}{(}\PY{n}{intensity}\PY{p}{[}\PY{l+m+mi}{3400}\PY{p}{:}\PY{l+m+mi}{3500}\PY{p}{]}\PY{p}{)}
+         \PY{n}{min\PYZus{}intensity} \PY{o}{=} \PY{n}{np}\PY{o}{.}\PY{n}{min}\PY{p}{(}\PY{n}{intensity}\PY{p}{[}\PY{l+m+mi}{1000}\PY{p}{:}\PY{l+m+mi}{3600}\PY{p}{]}\PY{p}{)}
+         \PY{n}{idx\PYZus{}start} \PY{o}{=} \PY{n}{np}\PY{o}{.}\PY{n}{where}\PY{p}{(}\PY{n}{intensity} \PY{o}{==} \PY{n}{max\PYZus{}intensity}\PY{p}{)}
+         \PY{n}{idx\PYZus{}end} \PY{o}{=} \PY{n}{np}\PY{o}{.}\PY{n}{where}\PY{p}{(}\PY{n}{intensity} \PY{o}{==} \PY{n}{min\PYZus{}intensity}\PY{p}{)}
+         \PY{n+nb}{print}\PY{p}{(}\PY{n}{idx\PYZus{}start}\PY{p}{)}
+         \PY{n+nb}{print}\PY{p}{(}\PY{n}{idx\PYZus{}end}\PY{p}{)}
+\end{Verbatim}
+
+    \begin{Verbatim}[commandchars=\\\{\}]
+(array([3402]),)
+(array([   1,    2,    3, {\ldots}, 2649, 2656, 2657]),)
+
+    \end{Verbatim}
+
+    \begin{Verbatim}[commandchars=\\\{\}]
+{\color{incolor}In [{\color{incolor}547}]:} \PY{c+c1}{\PYZsh{}min\PYZus{}intensity1 = np.min(intensity[2500:3100])}
+          \PY{n}{max\PYZus{}intensity1} \PY{o}{=} \PY{n}{np}\PY{o}{.}\PY{n}{max}\PY{p}{(}\PY{n}{intensity}\PY{p}{[}\PY{l+m+mi}{2800}\PY{p}{:}\PY{l+m+mi}{3600}\PY{p}{]}\PY{p}{)}
+          \PY{n}{idx\PYZus{}end} \PY{o}{=} \PY{n}{np}\PY{o}{.}\PY{n}{where}\PY{p}{(}\PY{n}{intensity} \PY{o}{==} \PY{n}{max\PYZus{}intensity1}\PY{p}{)}
+          \PY{n+nb}{print}\PY{p}{(}\PY{n}{idx\PYZus{}end}\PY{p}{)}
+\end{Verbatim}
+
+    \begin{Verbatim}[commandchars=\\\{\}]
+(array([3477]),)
+
+    \end{Verbatim}
+
+    \begin{Verbatim}[commandchars=\\\{\}]
+{\color{incolor}In [{\color{incolor}194}]:} \PY{k+kn}{from} \PY{n+nn}{\PYZus{}\PYZus{}future\PYZus{}\PYZus{}} \PY{k}{import} \PY{n}{print\PYZus{}function}
+          
+          \PY{k+kn}{import} \PY{n+nn}{numpy} \PY{k}{as} \PY{n+nn}{np}
+          \PY{k+kn}{from} \PY{n+nn}{scipy}\PY{n+nn}{.}\PY{n+nn}{integrate} \PY{k}{import} \PY{n}{simps}
+          \PY{k+kn}{from} \PY{n+nn}{numpy} \PY{k}{import} \PY{n}{trapz}
+          
+          \PY{c+c1}{\PYZsh{} Compute the area using the composite trapezoidal rule.}
+          \PY{n}{area} \PY{o}{=} \PY{n}{trapz}\PY{p}{(}\PY{n}{intensity}\PY{p}{,} \PY{n}{dx}\PY{o}{=}\PY{l+m+mi}{5}\PY{p}{)}
+          \PY{n+nb}{print}\PY{p}{(}\PY{l+s+s2}{\PYZdq{}}\PY{l+s+s2}{area =}\PY{l+s+s2}{\PYZdq{}}\PY{p}{,} \PY{n}{area}\PY{p}{)}
+          
+          \PY{c+c1}{\PYZsh{} Compute the area using the composite Simpson\PYZsq{}s rule.}
+          \PY{n}{area} \PY{o}{=} \PY{n}{simps}\PY{p}{(}\PY{n}{intensity}\PY{p}{,} \PY{n}{dx}\PY{o}{=}\PY{l+m+mi}{5}\PY{p}{)}
+          \PY{n+nb}{print}\PY{p}{(}\PY{l+s+s2}{\PYZdq{}}\PY{l+s+s2}{area =}\PY{l+s+s2}{\PYZdq{}}\PY{p}{,} \PY{n}{area}\PY{p}{)}
+          
+          \PY{c+c1}{\PYZsh{}source: https://stackoverflow.com/questions/13320262/calculating\PYZhy{}the\PYZhy{}area\PYZhy{}under\PYZhy{}a\PYZhy{}curve\PYZhy{}given\PYZhy{}a\PYZhy{}set\PYZhy{}of\PYZhy{}coordinates\PYZhy{}without\PYZhy{}knowing\PYZhy{}t}
+\end{Verbatim}
+
+    \begin{Verbatim}[commandchars=\\\{\}]
+area = 160604.4375
+area = 160604.34375
+
+    \end{Verbatim}
+
+    \hypertarget{intensity-profile-analysis-to-quantify-axon-growth-inside-the-output-channels-check-for-bundling}{%
+\subsection{8) Intensity Profile Analysis to quantify axon growth inside
+the output channels (check for
+bundling)}\label{intensity-profile-analysis-to-quantify-axon-growth-inside-the-output-channels-check-for-bundling}}
+
+    \begin{Verbatim}[commandchars=\\\{\}]
+{\color{incolor}In [{\color{incolor}231}]:} \PY{c+c1}{\PYZsh{}\PYZsh{}WORKS!!}
+          
+          \PY{k}{def} \PY{n+nf}{fit\PYZus{}gaussian}\PY{p}{(}\PY{n}{x}\PY{p}{,} \PY{n}{y}\PY{p}{)}\PY{p}{:}
+              \PY{n}{mean} \PY{o}{=} \PY{n+nb}{sum}\PY{p}{(}\PY{n}{x} \PY{o}{*} \PY{n}{y}\PY{p}{)} \PY{o}{/} \PY{n+nb}{sum}\PY{p}{(}\PY{n}{y}\PY{p}{)}
+              \PY{n}{sigma} \PY{o}{=} \PY{n}{np}\PY{o}{.}\PY{n}{sqrt}\PY{p}{(}\PY{n+nb}{sum}\PY{p}{(}\PY{n}{y} \PY{o}{*} \PY{p}{(}\PY{n}{x} \PY{o}{\PYZhy{}} \PY{n}{mean}\PY{p}{)} \PY{o}{*}\PY{o}{*} \PY{l+m+mi}{2}\PY{p}{)} \PY{o}{/} \PY{n+nb}{sum}\PY{p}{(}\PY{n}{y}\PY{p}{)}\PY{p}{)}
+              \PY{n}{opt}\PY{p}{,} \PY{n}{cov} \PY{o}{=} \PY{n}{curve\PYZus{}fit}\PY{p}{(}\PY{n}{gauss\PYZus{}fnc}\PY{p}{,} \PY{n}{x}\PY{p}{,} \PY{n}{y}\PY{p}{,} \PY{n}{p0}\PY{o}{=}\PY{p}{[}\PY{n+nb}{max}\PY{p}{(}\PY{n}{y}\PY{p}{)}\PY{p}{,} \PY{n}{mean}\PY{p}{,} \PY{n}{sigma}\PY{p}{]}\PY{p}{)}
+              \PY{n}{values} \PY{o}{=} \PY{n}{gauss\PYZus{}fnc}\PY{p}{(}\PY{n}{x}\PY{p}{,} \PY{o}{*}\PY{n}{opt}\PY{p}{)}
+              \PY{k}{return} \PY{n}{values}\PY{p}{,} \PY{n}{sigma}\PY{p}{,} \PY{n}{opt}\PY{p}{,} \PY{n}{cov}
+          
+          \PY{k}{def} \PY{n+nf}{gauss\PYZus{}fnc}\PY{p}{(}\PY{n}{x}\PY{p}{,} \PY{n}{amp}\PY{p}{,} \PY{n}{cen}\PY{p}{,} \PY{n}{sigma}\PY{p}{)}\PY{p}{:}
+              \PY{k}{return} \PY{n}{amp} \PY{o}{*} \PY{n}{np}\PY{o}{.}\PY{n}{exp}\PY{p}{(}\PY{o}{\PYZhy{}}\PY{p}{(}\PY{n}{x} \PY{o}{\PYZhy{}} \PY{n}{cen}\PY{p}{)} \PY{o}{*}\PY{o}{*} \PY{l+m+mi}{2} \PY{o}{/} \PY{p}{(}\PY{l+m+mi}{2} \PY{o}{*} \PY{n}{sigma} \PY{o}{*}\PY{o}{*} \PY{l+m+mi}{2}\PY{p}{)}\PY{p}{)}
+          
+          \PY{n}{x} \PY{o}{=} \PY{n}{xdata}
+          \PY{n}{y} \PY{o}{=} \PY{n}{intensity10}
+          \PY{n}{mean} \PY{o}{=} \PY{n+nb}{sum}\PY{p}{(}\PY{n}{x} \PY{o}{*} \PY{n}{y}\PY{p}{)} \PY{o}{/} \PY{n+nb}{sum}\PY{p}{(}\PY{n}{y}\PY{p}{)}
+          \PY{n}{sigma} \PY{o}{=} \PY{n}{np}\PY{o}{.}\PY{n}{sqrt}\PY{p}{(}\PY{n+nb}{sum}\PY{p}{(}\PY{n}{y} \PY{o}{*} \PY{p}{(}\PY{n}{x} \PY{o}{\PYZhy{}} \PY{n}{mean}\PY{p}{)} \PY{o}{*}\PY{o}{*} \PY{l+m+mi}{2}\PY{p}{)} \PY{o}{/} \PY{n+nb}{sum}\PY{p}{(}\PY{n}{y}\PY{p}{)}\PY{p}{)}
+          \PY{n}{opt}\PY{p}{,} \PY{n}{cov} \PY{o}{=} \PY{n}{curve\PYZus{}fit}\PY{p}{(}\PY{n}{gauss\PYZus{}fnc}\PY{p}{,} \PY{n}{x}\PY{p}{,} \PY{n}{y}\PY{p}{,} \PY{n}{p0}\PY{o}{=}\PY{p}{[}\PY{n+nb}{max}\PY{p}{(}\PY{n}{y}\PY{p}{)}\PY{p}{,} \PY{n}{mean}\PY{p}{,} \PY{n}{sigma}\PY{p}{]}\PY{p}{)}
+          \PY{c+c1}{\PYZsh{}values = gauss\PYZus{}fnc(x, *opt)}
+          \PY{n}{plt}\PY{o}{.}\PY{n}{plot}\PY{p}{(}\PY{n}{x}\PY{p}{,}\PY{n}{y}\PY{p}{,}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{b+:}\PY{l+s+s1}{\PYZsq{}}\PY{p}{,}\PY{n}{label}\PY{o}{=}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{data}\PY{l+s+s1}{\PYZsq{}}\PY{p}{)}
+          \PY{n}{plt}\PY{o}{.}\PY{n}{plot}\PY{p}{(}\PY{n}{x}\PY{p}{,}\PY{n}{gauss\PYZus{}fnc}\PY{p}{(}\PY{n}{x}\PY{p}{,}\PY{o}{*}\PY{n}{opt}\PY{p}{)}\PY{p}{,}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{ro:}\PY{l+s+s1}{\PYZsq{}}\PY{p}{,}\PY{n}{label}\PY{o}{=}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{fit}\PY{l+s+s1}{\PYZsq{}}\PY{p}{)}
+          
+          \PY{n+nb}{print}\PY{p}{(}\PY{n}{opt}\PY{p}{)}
+\end{Verbatim}
+
+    \begin{Verbatim}[commandchars=\\\{\}]
+[ 44.13732126 104.49458937  28.52541093]
+
+    \end{Verbatim}
+
+    \begin{center}
+    \adjustimage{max size={0.9\linewidth}{0.9\paperheight}}{output_27_1.png}
+    \end{center}
+    { \hspace*{\fill} \\}
+    
+    \begin{Verbatim}[commandchars=\\\{\}]
+{\color{incolor}In [{\color{incolor}440}]:} \PY{c+c1}{\PYZsh{}\PYZsh{}\PYZsh{} from scipy.optimize import curve\PYZus{}fit}
+          \PY{c+c1}{\PYZsh{}intensity = I\PYZus{}slice.mean(axis=0)}
+          \PY{n}{xdata} \PY{o}{=} \PY{n}{np}\PY{o}{.}\PY{n}{arange}\PY{p}{(}\PY{l+m+mi}{1}\PY{p}{,}\PY{l+m+mi}{201}\PY{p}{,}\PY{l+m+mi}{1}\PY{p}{)}
+          \PY{n}{x} \PY{o}{=} \PY{n}{xdata}
+          \PY{c+c1}{\PYZsh{}def gauss(xdata,mu,x,sigma):}
+          \PY{k}{def} \PY{n+nf}{gauss\PYZus{}fnc}\PY{p}{(}\PY{n}{x}\PY{p}{,} \PY{n}{amp}\PY{p}{,} \PY{n}{cen}\PY{p}{,} \PY{n}{sigma}\PY{p}{)}\PY{p}{:}
+              \PY{k}{return} \PY{n}{amp} \PY{o}{*} \PY{n}{np}\PY{o}{.}\PY{n}{exp}\PY{p}{(}\PY{o}{\PYZhy{}}\PY{p}{(}\PY{n}{x} \PY{o}{\PYZhy{}} \PY{n}{cen}\PY{p}{)} \PY{o}{*}\PY{o}{*} \PY{l+m+mi}{2} \PY{o}{/} \PY{p}{(}\PY{l+m+mi}{2} \PY{o}{*} \PY{n}{sigma} \PY{o}{*}\PY{o}{*} \PY{l+m+mi}{2}\PY{p}{)}\PY{p}{)}
+          
+          \PY{n}{I\PYZus{}slice} \PY{o}{=} \PY{n}{I}\PY{p}{[}\PY{l+m+mi}{0}\PY{p}{:}\PY{l+m+mi}{3700}\PY{p}{,} \PY{l+m+mi}{110}\PY{p}{:}\PY{l+m+mi}{310}\PY{p}{]}
+          \PY{c+c1}{\PYZsh{}I\PYZus{}slice = I[0:3700, 50:250]}
+          
+          \PY{c+c1}{\PYZsh{}was here}
+          
+          \PY{c+c1}{\PYZsh{}make this a for loop}
+          \PY{n}{segment1} \PY{o}{=} \PY{n}{I\PYZus{}slice}\PY{p}{[}\PY{l+m+mi}{0}\PY{p}{:}\PY{l+m+mi}{280}\PY{p}{,}\PY{p}{:}\PY{p}{]}
+          \PY{n}{segment2} \PY{o}{=} \PY{n}{I\PYZus{}slice}\PY{p}{[}\PY{l+m+mi}{380}\PY{p}{:}\PY{l+m+mi}{660}\PY{p}{,}\PY{p}{:}\PY{p}{]}
+          \PY{n}{segment3} \PY{o}{=} \PY{n}{I\PYZus{}slice}\PY{p}{[}\PY{l+m+mi}{760}\PY{p}{:}\PY{l+m+mi}{1040}\PY{p}{,}\PY{p}{:}\PY{p}{]}
+          \PY{n}{segment4} \PY{o}{=} \PY{n}{I\PYZus{}slice}\PY{p}{[}\PY{l+m+mi}{1140}\PY{p}{:}\PY{l+m+mi}{1420}\PY{p}{,}\PY{p}{:}\PY{p}{]}
+          \PY{n}{segment5} \PY{o}{=} \PY{n}{I\PYZus{}slice}\PY{p}{[}\PY{l+m+mi}{1520}\PY{p}{:}\PY{l+m+mi}{1800}\PY{p}{,}\PY{p}{:}\PY{p}{]}
+          \PY{n}{segment6} \PY{o}{=} \PY{n}{I\PYZus{}slice}\PY{p}{[}\PY{l+m+mi}{1900}\PY{p}{:}\PY{l+m+mi}{2180}\PY{p}{,}\PY{p}{:}\PY{p}{]}
+          \PY{n}{segment7} \PY{o}{=} \PY{n}{I\PYZus{}slice}\PY{p}{[}\PY{l+m+mi}{2280}\PY{p}{:}\PY{l+m+mi}{2560}\PY{p}{,}\PY{p}{:}\PY{p}{]}
+          \PY{n}{segment8} \PY{o}{=} \PY{n}{I\PYZus{}slice}\PY{p}{[}\PY{l+m+mi}{2660}\PY{p}{:}\PY{l+m+mi}{2940}\PY{p}{,}\PY{p}{:}\PY{p}{]}
+          \PY{n}{segment9} \PY{o}{=} \PY{n}{I\PYZus{}slice}\PY{p}{[}\PY{l+m+mi}{3040}\PY{p}{:}\PY{l+m+mi}{3320}\PY{p}{,}\PY{p}{:}\PY{p}{]}
+          \PY{n}{segment10} \PY{o}{=} \PY{n}{I\PYZus{}slice}\PY{p}{[}\PY{l+m+mi}{3420}\PY{p}{:}\PY{l+m+mi}{3700}\PY{p}{,}\PY{p}{:}\PY{p}{]}
+          \PY{n}{segments} \PY{o}{=} \PY{p}{[}\PY{n}{segment1}\PY{p}{,}\PY{n}{segment2}\PY{p}{,} \PY{n}{segment3}\PY{p}{,} \PY{n}{segment4}\PY{p}{,} \PY{n}{segment5}\PY{p}{,} \PY{n}{segment6}\PY{p}{,} \PY{n}{segment7}\PY{p}{,} \PY{n}{segment8}\PY{p}{,} \PY{n}{segment9}\PY{p}{,} \PY{n}{segment10}\PY{p}{]}
+          
+          \PY{n}{intensity1} \PY{o}{=} \PY{n}{segment1}\PY{o}{.}\PY{n}{mean}\PY{p}{(}\PY{n}{axis}\PY{o}{=}\PY{l+m+mi}{0}\PY{p}{)}
+          \PY{n}{intensity2} \PY{o}{=} \PY{n}{segment2}\PY{o}{.}\PY{n}{mean}\PY{p}{(}\PY{n}{axis}\PY{o}{=}\PY{l+m+mi}{0}\PY{p}{)}
+          \PY{n}{intensity3} \PY{o}{=} \PY{n}{segment3}\PY{o}{.}\PY{n}{mean}\PY{p}{(}\PY{n}{axis}\PY{o}{=}\PY{l+m+mi}{0}\PY{p}{)}
+          \PY{n}{intensity4} \PY{o}{=} \PY{n}{segment4}\PY{o}{.}\PY{n}{mean}\PY{p}{(}\PY{n}{axis}\PY{o}{=}\PY{l+m+mi}{0}\PY{p}{)}
+          \PY{n}{intensity5} \PY{o}{=} \PY{n}{segment5}\PY{o}{.}\PY{n}{mean}\PY{p}{(}\PY{n}{axis}\PY{o}{=}\PY{l+m+mi}{0}\PY{p}{)}
+          \PY{n}{intensity6} \PY{o}{=} \PY{n}{segment6}\PY{o}{.}\PY{n}{mean}\PY{p}{(}\PY{n}{axis}\PY{o}{=}\PY{l+m+mi}{0}\PY{p}{)}
+          \PY{n}{intensity7} \PY{o}{=} \PY{n}{segment7}\PY{o}{.}\PY{n}{mean}\PY{p}{(}\PY{n}{axis}\PY{o}{=}\PY{l+m+mi}{0}\PY{p}{)}
+          \PY{n}{intensity8} \PY{o}{=} \PY{n}{segment8}\PY{o}{.}\PY{n}{mean}\PY{p}{(}\PY{n}{axis}\PY{o}{=}\PY{l+m+mi}{0}\PY{p}{)}
+          \PY{n}{intensity9} \PY{o}{=} \PY{n}{segment9}\PY{o}{.}\PY{n}{mean}\PY{p}{(}\PY{n}{axis}\PY{o}{=}\PY{l+m+mi}{0}\PY{p}{)}
+          \PY{n}{intensity10} \PY{o}{=} \PY{n}{segment10}\PY{o}{.}\PY{n}{mean}\PY{p}{(}\PY{n}{axis}\PY{o}{=}\PY{l+m+mi}{0}\PY{p}{)}
+          \PY{n}{intensities} \PY{o}{=} \PY{p}{[}\PY{n}{intensity1}\PY{p}{,}\PY{n}{intensity2}\PY{p}{,} \PY{n}{intensity3}\PY{p}{,} \PY{n}{intensity4}\PY{p}{,} \PY{n}{intensity5}\PY{p}{,} \PY{n}{intensity6}\PY{p}{,} \PY{n}{intensity7}\PY{p}{,} \PY{n}{intensity8}\PY{p}{,} \PY{n}{intensity9}\PY{p}{,} \PY{n}{intensity10}\PY{p}{]}
+          
+          \PY{n}{matrix} \PY{o}{=} \PY{p}{[}\PY{p}{]}
+          \PY{c+c1}{\PYZsh{}matrix3 = np.empty([3,10])}
+          \PY{n}{sub\PYZus{}counter} \PY{o}{=} \PY{l+m+mi}{1}
+          \PY{n}{fig} \PY{o}{=} \PY{n}{plt}\PY{o}{.}\PY{n}{figure}\PY{p}{(}\PY{n}{figsize} \PY{o}{=} \PY{p}{(}\PY{l+m+mi}{10}\PY{p}{,}\PY{l+m+mi}{50}\PY{p}{)}\PY{p}{)}
+          \PY{k}{for} \PY{n}{i} \PY{o+ow}{in} \PY{n+nb}{range}\PY{p}{(}\PY{n+nb}{len}\PY{p}{(}\PY{n}{segments}\PY{p}{)}\PY{p}{)}\PY{p}{:}
+          \PY{c+c1}{\PYZsh{}for ax, i in zip(axs.ravel(),(len(segments))}
+              \PY{n}{plt}\PY{o}{.}\PY{n}{subplot}\PY{p}{(}\PY{l+m+mi}{10}\PY{p}{,}\PY{l+m+mi}{2}\PY{p}{,}\PY{n}{sub\PYZus{}counter}\PY{p}{)}
+              \PY{c+c1}{\PYZsh{}plt.title(\PYZsq{}subplot:\PYZsq{})}
+              \PY{n}{plt}\PY{o}{.}\PY{n}{title}\PY{p}{(}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+si}{\PYZob{}\PYZcb{}}\PY{l+s+s1}{, subplot: }\PY{l+s+si}{\PYZob{}\PYZcb{}}\PY{l+s+si}{\PYZob{}\PYZcb{}}\PY{l+s+si}{\PYZob{}\PYZcb{}}\PY{l+s+s1}{\PYZsq{}}\PY{o}{.}\PY{n}{format}\PY{p}{(}\PY{n}{i}\PY{o}{+}\PY{l+m+mi}{1}\PY{p}{,} \PY{l+m+mi}{10}\PY{p}{,} \PY{l+m+mi}{2}\PY{p}{,} \PY{n}{sub\PYZus{}counter}\PY{p}{)}\PY{p}{)}
+              \PY{n}{plt}\PY{o}{.}\PY{n}{imshow}\PY{p}{(}\PY{n}{segments}\PY{p}{[}\PY{n}{i}\PY{p}{]}\PY{p}{)}
+              \PY{n}{sub\PYZus{}counter} \PY{o}{=} \PY{n}{sub\PYZus{}counter}\PY{o}{+}\PY{l+m+mi}{1}
+              \PY{n}{mean} \PY{o}{=} \PY{n+nb}{sum}\PY{p}{(}\PY{n}{x} \PY{o}{*} \PY{n}{intensities}\PY{p}{[}\PY{n}{i}\PY{p}{]}\PY{p}{)} \PY{o}{/} \PY{n+nb}{sum}\PY{p}{(}\PY{n}{intensities}\PY{p}{[}\PY{n}{i}\PY{p}{]}\PY{p}{)}
+              \PY{n}{sigma} \PY{o}{=} \PY{n}{np}\PY{o}{.}\PY{n}{sqrt}\PY{p}{(}\PY{n+nb}{sum}\PY{p}{(}\PY{n}{intensities}\PY{p}{[}\PY{n}{i}\PY{p}{]} \PY{o}{*} \PY{p}{(}\PY{n}{x} \PY{o}{\PYZhy{}} \PY{n}{mean}\PY{p}{)} \PY{o}{*}\PY{o}{*} \PY{l+m+mi}{2}\PY{p}{)} \PY{o}{/} \PY{n+nb}{sum}\PY{p}{(}\PY{n}{intensities}\PY{p}{[}\PY{n}{i}\PY{p}{]}\PY{p}{)}\PY{p}{)}
+              \PY{n}{popt}\PY{p}{,}\PY{n}{pcov} \PY{o}{=} \PY{n}{curve\PYZus{}fit}\PY{p}{(}\PY{n}{gauss\PYZus{}fnc}\PY{p}{,}\PY{n}{x}\PY{p}{,}\PY{n}{intensities}\PY{p}{[}\PY{n}{i}\PY{p}{]}\PY{p}{,}\PY{n}{p0}\PY{o}{=}\PY{p}{[}\PY{n+nb}{max}\PY{p}{(}\PY{n}{intensities}\PY{p}{[}\PY{n}{i}\PY{p}{]}\PY{p}{)}\PY{p}{,} \PY{n}{mean}\PY{p}{,} \PY{n}{sigma}\PY{p}{]}\PY{p}{,}\PY{n}{maxfev} \PY{o}{=} \PY{l+m+mi}{100000000}\PY{p}{)}
+              \PY{c+c1}{\PYZsh{}add = np.array(popt)}
+              \PY{n}{matrix} \PY{o}{=} \PY{n}{np}\PY{o}{.}\PY{n}{append}\PY{p}{(}\PY{n}{matrix}\PY{p}{,}\PY{n}{popt}\PY{p}{)}
+              \PY{n}{plt}\PY{o}{.}\PY{n}{subplot}\PY{p}{(}\PY{l+m+mi}{10}\PY{p}{,}\PY{l+m+mi}{2}\PY{p}{,}\PY{n}{sub\PYZus{}counter}\PY{p}{)}
+              \PY{n}{plt}\PY{o}{.}\PY{n}{title}\PY{p}{(}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+si}{\PYZob{}\PYZcb{}}\PY{l+s+s1}{, subplot: }\PY{l+s+si}{\PYZob{}\PYZcb{}}\PY{l+s+si}{\PYZob{}\PYZcb{}}\PY{l+s+si}{\PYZob{}\PYZcb{}}\PY{l+s+s1}{\PYZsq{}}\PY{o}{.}\PY{n}{format}\PY{p}{(}\PY{n}{i}\PY{o}{+}\PY{l+m+mi}{2}\PY{p}{,} \PY{l+m+mi}{10}\PY{p}{,} \PY{l+m+mi}{2}\PY{p}{,} \PY{n}{sub\PYZus{}counter}\PY{p}{)}\PY{p}{)}
+              \PY{n}{plt}\PY{o}{.}\PY{n}{plot}\PY{p}{(}\PY{n}{x}\PY{p}{,}\PY{n}{intensities}\PY{p}{[}\PY{n}{i}\PY{p}{]}\PY{p}{,}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{b+:}\PY{l+s+s1}{\PYZsq{}}\PY{p}{,}\PY{n}{label}\PY{o}{=}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{data}\PY{l+s+s1}{\PYZsq{}}\PY{p}{)}\PY{p}{;}\PY{n}{plt}\PY{o}{.}\PY{n}{plot}\PY{p}{(}\PY{n}{x}\PY{p}{,}\PY{n}{gauss\PYZus{}fnc}\PY{p}{(}\PY{n}{x}\PY{p}{,}\PY{o}{*}\PY{n}{popt}\PY{p}{)}\PY{p}{,}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{ro:}\PY{l+s+s1}{\PYZsq{}}\PY{p}{,}\PY{n}{label}\PY{o}{=}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{fit}\PY{l+s+s1}{\PYZsq{}}\PY{p}{)}
+              \PY{n}{plt}\PY{o}{.}\PY{n}{legend}\PY{p}{(}\PY{p}{)}
+              \PY{n+nb}{print}\PY{p}{(}\PY{p}{(}\PY{n}{popt}\PY{p}{)}\PY{p}{)}
+              \PY{n}{sub\PYZus{}counter} \PY{o}{=} \PY{n}{sub\PYZus{}counter}\PY{o}{+}\PY{l+m+mi}{1}
+              
+          \PY{n}{matrix} \PY{o}{=} \PY{n}{matrix}\PY{o}{.}\PY{n}{reshape}\PY{p}{(}\PY{l+m+mi}{10}\PY{p}{,} \PY{l+m+mi}{3}\PY{p}{)}
+          \PY{n}{amp} \PY{o}{=} \PY{n}{matrix}\PY{p}{[}\PY{p}{:}\PY{p}{,}\PY{l+m+mi}{0}\PY{p}{]}
+          \PY{n}{width} \PY{o}{=} \PY{n}{matrix}\PY{p}{[}\PY{p}{:}\PY{p}{,}\PY{l+m+mi}{2}\PY{p}{]}
+          \PY{n}{bundling\PYZus{}ratio} \PY{o}{=} \PY{n}{amp}\PY{o}{/}\PY{n}{width}
+          \PY{n+nb}{print}\PY{p}{(}\PY{n}{bundling\PYZus{}ratio}\PY{p}{)}
+          \PY{n}{fig}\PY{o}{.}\PY{n}{savefig}\PY{p}{(}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{bundling.png}\PY{l+s+s1}{\PYZsq{}}\PY{p}{)}
+\end{Verbatim}
+
+    \begin{Verbatim}[commandchars=\\\{\}]
+[  5.53395255 115.68109949 249.55409796]
+[  5.62359275 118.996248   254.33816505]
+[  5.65906191 120.05360108 248.90917485]
+[  5.89033961 106.21839741 199.70123155]
+[2084887.54606424   34275.05366361    6749.99954771]
+[  5.9652047  227.11909624 467.91297602]
+[  6.64693112 187.2033902  313.23953159]
+[  9.77321512 114.8402767  173.26675909]
+[ 13.20868518 143.05211069 144.15076519]
+[ 25.82387324 105.1115367   67.35335222]
+[2.21753624e-02 2.21106917e-02 2.27354493e-02 2.94957601e-02
+ 3.08872250e+02 1.27485345e-02 2.12199625e-02 5.64055978e-02
+ 9.16310445e-02 3.83408879e-01]
+
+    \end{Verbatim}
+
+    \begin{center}
+    \adjustimage{max size={0.9\linewidth}{0.9\paperheight}}{output_28_1.png}
+    \end{center}
+    { \hspace*{\fill} \\}
+    
+    \begin{Verbatim}[commandchars=\\\{\}]
+{\color{incolor}In [{\color{incolor}24}]:} \PY{c+c1}{\PYZsh{}total\PYZus{}area= (735225+(226383*2)+(2537311*3)+23414)\PYZhy{}(2890+2890+562)}
+         \PY{n}{total\PYZus{}area} \PY{o}{=} \PY{p}{(}\PY{l+m+mi}{735225}\PY{o}{+}\PY{p}{(}\PY{l+m+mi}{226383}\PY{o}{*}\PY{l+m+mi}{2}\PY{p}{)}\PY{o}{+}\PY{l+m+mi}{23414}\PY{p}{)}\PY{o}{\PYZhy{}}\PY{p}{(}\PY{l+m+mi}{2890}\PY{o}{+}\PY{l+m+mi}{2890}\PY{o}{+}\PY{l+m+mi}{562}\PY{p}{)}
+         \PY{n}{plt}\PY{o}{.}\PY{n}{imshow}\PY{p}{(}\PY{n}{closed}\PY{p}{)}
+         \PY{n}{bright\PYZus{}count} \PY{o}{=} \PY{n}{np}\PY{o}{.}\PY{n}{sum}\PY{p}{(}\PY{n}{np}\PY{o}{.}\PY{n}{array}\PY{p}{(}\PY{n}{closed}\PY{p}{)} \PY{o}{==} \PY{l+m+mi}{1}\PY{p}{)} \PY{c+c1}{\PYZsh{}maybe dilate the image first?}
+         \PY{n}{area} \PY{o}{=} \PY{p}{(}\PY{n}{bright\PYZus{}count}\PY{o}{*}\PY{p}{(}\PY{l+m+mf}{1.24}\PY{o}{*}\PY{o}{*}\PY{l+m+mi}{2}\PY{p}{)}\PY{p}{)}\PY{o}{\PYZhy{}} \PY{n}{tot}
+         \PY{n+nb}{print}\PY{p}{(}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{Total area:}\PY{l+s+s1}{\PYZsq{}}\PY{p}{,} \PY{n}{total\PYZus{}area}\PY{p}{)}
+         \PY{n+nb}{print}\PY{p}{(}\PY{l+s+s2}{\PYZdq{}}\PY{l+s+s2}{Area covered by the axons in um\PYZca{}2: }\PY{l+s+s2}{\PYZdq{}}\PY{p}{,}\PY{n}{area}\PY{p}{)}
+         \PY{n}{area\PYZus{}per} \PY{o}{=} \PY{p}{(}\PY{n}{area}\PY{o}{/}\PY{n}{total\PYZus{}area}\PY{p}{)}\PY{o}{*}\PY{l+m+mi}{100}
+         \PY{n+nb}{print}\PY{p}{(}\PY{l+s+s2}{\PYZdq{}}\PY{l+s+s2}{Percentage area covered (}\PY{l+s+s2}{\PYZpc{}}\PY{l+s+s2}{): }\PY{l+s+s2}{\PYZdq{}}\PY{p}{,} \PY{n}{area\PYZus{}per}\PY{p}{)}
+\end{Verbatim}
+
+    \begin{Verbatim}[commandchars=\\\{\}]
+Total area: 1205063
+Area covered by the axons in um\^{}2:  62173.02960000001
+Percentage area covered (\%):  5.159317778406606
+
+    \end{Verbatim}
+
+    \begin{center}
+    \adjustimage{max size={0.9\linewidth}{0.9\paperheight}}{output_29_1.png}
+    \end{center}
+    { \hspace*{\fill} \\}
+    
+    \begin{Verbatim}[commandchars=\\\{\}]
+{\color{incolor}In [{\color{incolor}46}]:} \PY{c+c1}{\PYZsh{}total\PYZus{}area= (735225+(226383*2)+(2537311*3)+23414)\PYZhy{}(2890+2890+562)}
+         \PY{n}{total\PYZus{}area} \PY{o}{=} \PY{p}{(}\PY{l+m+mi}{735225}\PY{o}{+}\PY{p}{(}\PY{l+m+mi}{226383}\PY{o}{*}\PY{l+m+mi}{2}\PY{p}{)}\PY{o}{+}\PY{l+m+mi}{23414}\PY{p}{)}\PY{o}{\PYZhy{}}\PY{p}{(}\PY{l+m+mi}{2890}\PY{o}{+}\PY{l+m+mi}{2890}\PY{o}{+}\PY{l+m+mi}{562}\PY{p}{)}
+         \PY{n}{plt}\PY{o}{.}\PY{n}{imshow}\PY{p}{(}\PY{n}{closed}\PY{p}{)}
+         \PY{n}{bright\PYZus{}count} \PY{o}{=} \PY{n}{np}\PY{o}{.}\PY{n}{sum}\PY{p}{(}\PY{n}{np}\PY{o}{.}\PY{n}{array}\PY{p}{(}\PY{n}{closed}\PY{p}{)} \PY{o}{==} \PY{l+m+mi}{1}\PY{p}{)} \PY{c+c1}{\PYZsh{}maybe dilate the image first?}
+         \PY{n}{area1} \PY{o}{=} \PY{p}{(}\PY{n}{bright\PYZus{}count}\PY{o}{*}\PY{p}{(}\PY{l+m+mf}{1.24}\PY{o}{*}\PY{o}{*}\PY{l+m+mi}{2}\PY{p}{)}\PY{p}{)}
+         \PY{n}{area} \PY{o}{=} \PY{n}{area1}\PY{o}{\PYZhy{}}\PY{n}{tot}
+         \PY{n+nb}{print}\PY{p}{(}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{Area1:}\PY{l+s+s1}{\PYZsq{}}\PY{p}{,} \PY{n}{area1}\PY{p}{)}
+         \PY{n+nb}{print}\PY{p}{(}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{Explant Area:}\PY{l+s+s1}{\PYZsq{}}\PY{p}{,} \PY{n}{tot}\PY{p}{)}
+         \PY{n+nb}{print}\PY{p}{(}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{Total area:}\PY{l+s+s1}{\PYZsq{}}\PY{p}{,} \PY{n}{total\PYZus{}area}\PY{p}{)}
+         \PY{n+nb}{print}\PY{p}{(}\PY{l+s+s2}{\PYZdq{}}\PY{l+s+s2}{Area covered by the axons in um\PYZca{}2: }\PY{l+s+s2}{\PYZdq{}}\PY{p}{,}\PY{n}{area}\PY{p}{)}
+         \PY{n}{area\PYZus{}per} \PY{o}{=} \PY{p}{(}\PY{n}{area}\PY{o}{/}\PY{n}{total\PYZus{}area}\PY{p}{)}\PY{o}{*}\PY{l+m+mi}{100}
+         \PY{n+nb}{print}\PY{p}{(}\PY{l+s+s2}{\PYZdq{}}\PY{l+s+s2}{Percentage area covered (}\PY{l+s+s2}{\PYZpc{}}\PY{l+s+s2}{): }\PY{l+s+s2}{\PYZdq{}}\PY{p}{,} \PY{n}{area\PYZus{}per}\PY{p}{)}
+\end{Verbatim}
+
+    \begin{Verbatim}[commandchars=\\\{\}]
+Area1: 696967.9408
+Explant Area: 577469.86
+Total area: 1205063
+Area covered by the axons in um\^{}2:  119498.0808
+Percentage area covered (\%):  9.916334731047256
+
+    \end{Verbatim}
+
+    \begin{center}
+    \adjustimage{max size={0.9\linewidth}{0.9\paperheight}}{output_30_1.png}
+    \end{center}
+    { \hspace*{\fill} \\}
+    
+    \begin{Verbatim}[commandchars=\\\{\}]
+{\color{incolor}In [{\color{incolor}31}]:} \PY{c+c1}{\PYZsh{}Store data on excel: create the file and structure before starting to append (create a new sheet for each day!)}
+         
+         \PY{k+kn}{import} \PY{n+nn}{pandas} \PY{k}{as} \PY{n+nn}{pd}
+         \PY{c+c1}{\PYZsh{}create the file}
+         \PY{n}{writer} \PY{o}{=} \PY{n}{pd}\PY{o}{.}\PY{n}{ExcelWriter}\PY{p}{(}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{demo\PYZus{}biohybrid.xlsx}\PY{l+s+s1}{\PYZsq{}}\PY{p}{,} \PY{n}{engine}\PY{o}{=}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{xlsxwriter}\PY{l+s+s1}{\PYZsq{}}\PY{p}{)}
+         \PY{n}{writer}\PY{o}{.}\PY{n}{save}\PY{p}{(}\PY{p}{)}
+         
+         \PY{c+c1}{\PYZsh{} dataframe Name and Age columns}
+         \PY{n}{df} \PY{o}{=} \PY{n}{pd}\PY{o}{.}\PY{n}{DataFrame}\PY{p}{(}\PY{p}{\PYZob{}}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{Group Name}\PY{l+s+s1}{\PYZsq{}}\PY{p}{:} \PY{p}{[}\PY{p}{]}\PY{p}{,}
+                            \PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{Day 15}\PY{l+s+s1}{\PYZsq{}}\PY{p}{:} \PY{p}{[}\PY{p}{]}\PY{p}{,} \PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{\PYZpc{}}\PY{l+s+s1}{Open Channels}\PY{l+s+s1}{\PYZsq{}}\PY{p}{:}\PY{p}{[}\PY{p}{]}\PY{p}{,}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{\PYZpc{}}\PY{l+s+s1}{Area Covered}\PY{l+s+s1}{\PYZsq{}}\PY{p}{:}\PY{p}{[}\PY{p}{]}\PY{p}{,}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{Distance Travelled in the Output Channel}\PY{l+s+s1}{\PYZsq{}}\PY{p}{:}\PY{p}{[}\PY{p}{]}\PY{p}{,}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{Bundling Analysis}\PY{l+s+s1}{\PYZsq{}}\PY{p}{:}\PY{p}{[}\PY{p}{]}\PY{p}{\PYZcb{}}\PY{p}{)}
+         \PY{c+c1}{\PYZsh{}df = pd.DataFrame(\PYZob{}\PYZsq{}Group Name\PYZsq{}: [\PYZsq{}Control 1\PYZsq{}, \PYZsq{}Control 2\PYZsq{}],}
+         \PY{c+c1}{\PYZsh{}                   \PYZsq{}Day 15\PYZsq{}: [\PYZsq{}S1\PYZsq{}, \PYZsq{}S2\PYZsq{}, \PYZsq{}S3\PYZsq{}], \PYZsq{}\PYZpc{}Open Channels\PYZsq{}:[],\PYZsq{}\PYZpc{}Area Covered\PYZsq{}:[],\PYZsq{}Distance Travelled in the Output Channel\PYZsq{}:[],\PYZsq{}Bundling Analysis\PYZsq{}:[]\PYZcb{})}
+         
+         \PY{c+c1}{\PYZsh{} Create a Pandas Excel writer using XlsxWriter as the engine.}
+         \PY{n}{writer} \PY{o}{=} \PY{n}{pd}\PY{o}{.}\PY{n}{ExcelWriter}\PY{p}{(}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{demo\PYZus{}biohybrid.xlsx}\PY{l+s+s1}{\PYZsq{}}\PY{p}{,} \PY{n}{engine}\PY{o}{=}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{xlsxwriter}\PY{l+s+s1}{\PYZsq{}}\PY{p}{)}
+         
+         \PY{c+c1}{\PYZsh{} Convert the dataframe to an XlsxWriter Excel object.}
+         \PY{n}{df}\PY{o}{.}\PY{n}{to\PYZus{}excel}\PY{p}{(}\PY{n}{writer}\PY{p}{,} \PY{n}{sheet\PYZus{}name}\PY{o}{=}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{Day 15}\PY{l+s+s1}{\PYZsq{}}\PY{p}{,} \PY{n}{index}\PY{o}{=}\PY{k+kc}{False}\PY{p}{)}
+         
+         \PY{c+c1}{\PYZsh{} Close the Pandas Excel writer and output the Excel file.}
+         \PY{n}{writer}\PY{o}{.}\PY{n}{save}\PY{p}{(}\PY{p}{)}
+\end{Verbatim}
+
+    \begin{Verbatim}[commandchars=\\\{\}]
+{\color{incolor}In [{\color{incolor}39}]:} \PY{c+c1}{\PYZsh{}write all the data }
+         \PY{n}{df} \PY{o}{=} \PY{n}{pd}\PY{o}{.}\PY{n}{DataFrame}\PY{p}{(}\PY{p}{\PYZob{}}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{Group Name}\PY{l+s+s1}{\PYZsq{}}\PY{p}{:} \PY{p}{[}\PY{n}{im\PYZus{}name}\PY{p}{]}\PY{p}{,}
+                            \PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{Day 15}\PY{l+s+s1}{\PYZsq{}}\PY{p}{:} \PY{p}{[}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{S1}\PY{l+s+s1}{\PYZsq{}}\PY{p}{]}\PY{p}{,} \PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{\PYZpc{}}\PY{l+s+s1}{Open Channels}\PY{l+s+s1}{\PYZsq{}}\PY{p}{:}\PY{p}{[}\PY{n}{filled}\PY{p}{]}\PY{p}{,}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{\PYZpc{}}\PY{l+s+s1}{Area Covered}\PY{l+s+s1}{\PYZsq{}}\PY{p}{:}\PY{p}{[}\PY{n}{area\PYZus{}per}\PY{p}{]}\PY{p}{,}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{Distance Travelled in the Output Channel}\PY{l+s+s1}{\PYZsq{}}\PY{p}{:}\PY{p}{[}\PY{n}{dist}\PY{p}{]}\PY{p}{,}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{Bundling Analysis}\PY{l+s+s1}{\PYZsq{}}\PY{p}{:}\PY{p}{[}\PY{n}{bundling\PYZus{}ratio}\PY{p}{]}\PY{p}{\PYZcb{}}\PY{p}{)}
+         \PY{c+c1}{\PYZsh{} Create writer object with an engine xlsxwriter}
+         \PY{n}{writer} \PY{o}{=} \PY{n}{pd}\PY{o}{.}\PY{n}{ExcelWriter}\PY{p}{(}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{demo\PYZus{}biohybrid.xlsx}\PY{l+s+s1}{\PYZsq{}}\PY{p}{,} \PY{n}{engine}\PY{o}{=}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{xlsxwriter}\PY{l+s+s1}{\PYZsq{}}\PY{p}{)}
+         \PY{c+c1}{\PYZsh{} Write data to an excel}
+         \PY{n}{df}\PY{o}{.}\PY{n}{to\PYZus{}excel}\PY{p}{(}\PY{n}{writer}\PY{p}{,}\PY{n}{sheet\PYZus{}name}\PY{o}{=}\PY{l+s+s2}{\PYZdq{}}\PY{l+s+s2}{Day 15}\PY{l+s+s2}{\PYZdq{}}\PY{p}{,}\PY{n}{index}\PY{o}{=}\PY{k+kc}{False}\PY{p}{)}
+         \PY{c+c1}{\PYZsh{} Get sheet for conditional formatting }
+         \PY{n}{worksheet} \PY{o}{=} \PY{n}{writer}\PY{o}{.}\PY{n}{sheets}\PY{p}{[}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{Day 15}\PY{l+s+s1}{\PYZsq{}}\PY{p}{]}
+         
+         \PY{c+c1}{\PYZsh{} Add conditional formatting for Age column}
+         \PY{c+c1}{\PYZsh{}worksheet.conditional\PYZus{}format(\PYZsq{}B2:B5\PYZsq{}, \PYZob{}\PYZsq{}type\PYZsq{}: \PYZsq{}2\PYZus{}color\PYZus{}scale\PYZsq{}\PYZcb{})}
+         
+         \PY{c+c1}{\PYZsh{} Close writer}
+         \PY{n}{writer}\PY{o}{.}\PY{n}{close}\PY{p}{(}\PY{p}{)}
+\end{Verbatim}
+
+    \begin{Verbatim}[commandchars=\\\{\}]
+{\color{incolor}In [{\color{incolor}45}]:} \PY{c+c1}{\PYZsh{}add every new entry of data by running this cell}
+         
+         \PY{k+kn}{import} \PY{n+nn}{pandas} \PY{k}{as} \PY{n+nn}{pd}
+         \PY{k+kn}{from} \PY{n+nn}{openpyxl} \PY{k}{import} \PY{n}{load\PYZus{}workbook}
+         
+         \PY{c+c1}{\PYZsh{} new dataframe with same columns}
+         \PY{n}{df} \PY{o}{=} \PY{n}{pd}\PY{o}{.}\PY{n}{DataFrame}\PY{p}{(}\PY{p}{\PYZob{}}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{Group Name}\PY{l+s+s1}{\PYZsq{}}\PY{p}{:} \PY{p}{[}\PY{n}{im\PYZus{}name}\PY{p}{]}\PY{p}{,}
+                            \PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{Day 15}\PY{l+s+s1}{\PYZsq{}}\PY{p}{:} \PY{p}{[}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{S1}\PY{l+s+s1}{\PYZsq{}}\PY{p}{]}\PY{p}{,} \PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{\PYZpc{}}\PY{l+s+s1}{Open Channels}\PY{l+s+s1}{\PYZsq{}}\PY{p}{:}\PY{p}{[}\PY{n}{filled}\PY{p}{]}\PY{p}{,}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{\PYZpc{}}\PY{l+s+s1}{Area Covered}\PY{l+s+s1}{\PYZsq{}}\PY{p}{:}\PY{p}{[}\PY{n}{area\PYZus{}per}\PY{p}{]}\PY{p}{,}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{Distance Travelled in the Output Channel}\PY{l+s+s1}{\PYZsq{}}\PY{p}{:}\PY{p}{[}\PY{n}{dist}\PY{p}{]}\PY{p}{,}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{Bundling Analysis}\PY{l+s+s1}{\PYZsq{}}\PY{p}{:}\PY{p}{[}\PY{n}{bundling\PYZus{}ratio}\PY{p}{]}\PY{p}{\PYZcb{}}\PY{p}{)}
+         \PY{n}{writer} \PY{o}{=} \PY{n}{pd}\PY{o}{.}\PY{n}{ExcelWriter}\PY{p}{(}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{demo\PYZus{}biohybrid.xlsx}\PY{l+s+s1}{\PYZsq{}}\PY{p}{,} \PY{n}{engine}\PY{o}{=}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{openpyxl}\PY{l+s+s1}{\PYZsq{}}\PY{p}{)}
+         \PY{c+c1}{\PYZsh{} try to open an existing workbook}
+         \PY{n}{writer}\PY{o}{.}\PY{n}{book} \PY{o}{=} \PY{n}{load\PYZus{}workbook}\PY{p}{(}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{demo\PYZus{}biohybrid.xlsx}\PY{l+s+s1}{\PYZsq{}}\PY{p}{)}
+         \PY{c+c1}{\PYZsh{} copy existing sheets}
+         \PY{n}{writer}\PY{o}{.}\PY{n}{sheets} \PY{o}{=} \PY{n+nb}{dict}\PY{p}{(}\PY{p}{(}\PY{n}{ws}\PY{o}{.}\PY{n}{title}\PY{p}{,} \PY{n}{ws}\PY{p}{)} \PY{k}{for} \PY{n}{ws} \PY{o+ow}{in} \PY{n}{writer}\PY{o}{.}\PY{n}{book}\PY{o}{.}\PY{n}{worksheets}\PY{p}{)}
+         \PY{c+c1}{\PYZsh{} read existing file}
+         \PY{n}{reader} \PY{o}{=} \PY{n}{pd}\PY{o}{.}\PY{n}{read\PYZus{}excel}\PY{p}{(}\PY{l+s+sa}{r}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{demo\PYZus{}biohybrid.xlsx}\PY{l+s+s1}{\PYZsq{}}\PY{p}{)}
+         \PY{c+c1}{\PYZsh{} write out the new sheet}
+         \PY{n}{df}\PY{o}{.}\PY{n}{to\PYZus{}excel}\PY{p}{(}\PY{n}{writer}\PY{p}{,}\PY{n}{index}\PY{o}{=}\PY{k+kc}{False}\PY{p}{,}\PY{n}{header}\PY{o}{=}\PY{k+kc}{False}\PY{p}{,}\PY{n}{startrow}\PY{o}{=}\PY{n+nb}{len}\PY{p}{(}\PY{n}{reader}\PY{p}{)}\PY{o}{+}\PY{l+m+mi}{1}\PY{p}{,}\PY{n}{sheet\PYZus{}name}\PY{o}{=}\PY{l+s+s2}{\PYZdq{}}\PY{l+s+s2}{Day 15}\PY{l+s+s2}{\PYZdq{}} \PY{p}{)}
+         
+         \PY{n}{writer}\PY{o}{.}\PY{n}{close}\PY{p}{(}\PY{p}{)}
+\end{Verbatim}
+
+    \begin{Verbatim}[commandchars=\\\{\}]
+{\color{incolor}In [{\color{incolor}28}]:} \PY{n}{filledChannels3}
+\end{Verbatim}
+
+\begin{Verbatim}[commandchars=\\\{\}]
+{\color{outcolor}Out[{\color{outcolor}28}]:}   Unnamed: 0  Control 1 PDL  Control 2 PDL+Laminin  Group 1 PDL  \textbackslash{}
+         0      Day 0          0.000                   0.00       0.0000   
+         1      Day 4         11.667                  58.33       0.0000   
+         2      Day 7         46.670                  93.33       1.6667   
+         3     Day 15         75.000                 100.00       6.6700   
+         4     Day 22         91.666                  96.67       6.6700   
+         5     Day 30         95.000                  96.66       6.6700   
+         
+            Group 2 PDL + Laminin  Group 3 30 secs Plasma + PDL + Laminin  \textbackslash{}
+         0                    0.0                                    0.00   
+         1                   35.0                                    0.00   
+         2                   87.5                                   18.33   
+         3                   65.0                                   50.00   
+         4                   65.0                                   35.00   
+         5                   47.5                                    5.00   
+         
+            Group 4 2 min Plasma + PDL + Laminin (2 explants lost)  \textbackslash{}
+         0                                                0.0        
+         1                                                0.0        
+         2                                               32.5        
+         3                                               57.5        
+         4                                               15.0        
+         5                                               35.0        
+         
+            Group 6 2 min Plasma + PDL  Group 7 PMOXA  
+         0                         0.0          0.000  
+         1                         0.0         18.330  
+         2                        37.5         73.330  
+         3                        92.5         83.333  
+         4                        87.5         85.000  
+         5                        87.5         70.000  
+\end{Verbatim}
+            
+    \begin{Verbatim}[commandchars=\\\{\}]
+{\color{incolor}In [{\color{incolor}5}]:} \PY{k+kn}{import} \PY{n+nn}{pandas} \PY{k}{as} \PY{n+nn}{pd}
+        
+        \PY{c+c1}{\PYZsh{}Plot Filled Channels}
+        
+        \PY{n}{filledChannels3} \PY{o}{=} \PY{n}{pd}\PY{o}{.}\PY{n}{read\PYZus{}excel}\PY{p}{(}\PY{l+s+s2}{\PYZdq{}}\PY{l+s+s2}{Exp11\PYZus{}DataAnalysis.xlsx}\PY{l+s+s2}{\PYZdq{}}\PY{p}{,}\PY{n}{sheet\PYZus{}name}\PY{o}{=}\PY{l+s+s2}{\PYZdq{}}\PY{l+s+s2}{FilledChannels}\PY{l+s+s2}{\PYZdq{}}\PY{p}{,}\PY{n}{nrows}\PY{o}{=}\PY{l+m+mi}{6}\PY{p}{)}\PY{c+c1}{\PYZsh{} index\PYZus{}col=0, parse\PYZus{}dates=True, \PYZdq{}FilledChannels\PYZdq{})}
+        \PY{n}{filledChannels3}
+        \PY{c+c1}{\PYZsh{}filledChannels\PYZus{}errors = pd.read\PYZus{}excel(\PYZdq{}DataAnalysis\PYZus{}Exp16.xlsx\PYZdq{},sheet\PYZus{}name=\PYZdq{}FilledChannels\PYZus{}errors\PYZdq{},nrows=6)}
+        
+        \PY{n}{filledChannels3}\PY{o}{.}\PY{n}{plot}\PY{o}{.}\PY{n}{line}\PY{p}{(}\PY{n}{figsize}\PY{o}{=}\PY{p}{(}\PY{l+m+mi}{30}\PY{p}{,}\PY{l+m+mi}{10}\PY{p}{)}\PY{p}{,} \PY{n}{style}\PY{o}{=}\PY{p}{[}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{\PYZca{}\PYZhy{}}\PY{l+s+s1}{\PYZsq{}}\PY{p}{,} \PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{o\PYZhy{}}\PY{l+s+s1}{\PYZsq{}}\PY{p}{,} \PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{x\PYZhy{}}\PY{l+s+s1}{\PYZsq{}}\PY{p}{,} \PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{D\PYZhy{}}\PY{l+s+s1}{\PYZsq{}}\PY{p}{,} \PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{.\PYZhy{}}\PY{l+s+s1}{\PYZsq{}}\PY{p}{,}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{v\PYZhy{}}\PY{l+s+s1}{\PYZsq{}}\PY{p}{,}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{*\PYZhy{}}\PY{l+s+s1}{\PYZsq{}}\PY{p}{,}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{s\PYZhy{}}\PY{l+s+s1}{\PYZsq{}}\PY{p}{]}\PY{p}{,} \PY{n}{x}\PY{o}{=}\PY{k+kc}{None}\PY{p}{,} \PY{n}{y}\PY{o}{=}\PY{k+kc}{None}\PY{p}{,}\PY{n}{legend}\PY{o}{=}\PY{k+kc}{False}\PY{p}{)}\PY{c+c1}{\PYZsh{} **kwargs)}
+        \PY{c+c1}{\PYZsh{}plt.errorbar(a, b, xerr=c, fmt=\PYZdq{}o\PYZdq{}, color=\PYZdq{}r\PYZdq{})}
+        \PY{n}{plt}\PY{o}{.}\PY{n}{gca}\PY{p}{(}\PY{p}{)}\PY{o}{.}\PY{n}{set\PYZus{}xticklabels}\PY{p}{(}\PY{p}{[}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{DIV 0}\PY{l+s+s1}{\PYZsq{}}\PY{p}{,}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{DIV 4}\PY{l+s+s1}{\PYZsq{}}\PY{p}{,}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{DIV 7}\PY{l+s+s1}{\PYZsq{}}\PY{p}{,}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{DIV 15}\PY{l+s+s1}{\PYZsq{}}\PY{p}{,}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{DIV 22}\PY{l+s+s1}{\PYZsq{}}\PY{p}{,}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{DIV 30}\PY{l+s+s1}{\PYZsq{}}\PY{p}{]}\PY{p}{,}\PY{n}{fontsize}\PY{o}{=}\PY{l+m+mi}{20}\PY{p}{)}
+        \PY{n}{plt}\PY{o}{.}\PY{n}{yticks}\PY{p}{(}\PY{n}{fontsize}\PY{o}{=}\PY{l+m+mi}{20}\PY{p}{)}
+        \PY{n}{plt}\PY{o}{.}\PY{n}{legend}\PY{p}{(}\PY{p}{[}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{Control PDL}\PY{l+s+s1}{\PYZsq{}}\PY{p}{,} \PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{Control PDL+Laminin}\PY{l+s+s1}{\PYZsq{}}\PY{p}{,} \PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{PDL}\PY{l+s+s1}{\PYZsq{}}\PY{p}{,}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{PDL+Laminin}\PY{l+s+s1}{\PYZsq{}}\PY{p}{,}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{30 secs Plasma+PDL+Laminin}\PY{l+s+s1}{\PYZsq{}}\PY{p}{,}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{2 min Plasma+PDL+Laminin}\PY{l+s+s1}{\PYZsq{}}\PY{p}{,}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{2 min Plasma+PDL}\PY{l+s+s1}{\PYZsq{}}\PY{p}{,}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{PMOXA}\PY{l+s+s1}{\PYZsq{}}\PY{p}{]}\PY{p}{,}\PY{n}{prop}\PY{o}{=}\PY{p}{\PYZob{}}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{size}\PY{l+s+s1}{\PYZsq{}}\PY{p}{:} \PY{l+m+mi}{16}\PY{p}{\PYZcb{}}\PY{p}{)}
+        \PY{n}{plt}\PY{o}{.}\PY{n}{xlim}\PY{p}{(}\PY{p}{[}\PY{l+m+mi}{0}\PY{p}{,} \PY{l+m+mf}{5.1}\PY{p}{]}\PY{p}{)}
+        \PY{n}{plt}\PY{o}{.}\PY{n}{xlabel}\PY{p}{(}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{Time (Days)}\PY{l+s+s1}{\PYZsq{}}\PY{p}{,}\PY{n}{fontsize}\PY{o}{=}\PY{l+m+mi}{25}\PY{p}{)}\PY{p}{;}\PY{n}{plt}\PY{o}{.}\PY{n}{ylabel}\PY{p}{(}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+si}{\PYZpc{} F}\PY{l+s+s1}{illed Channels}\PY{l+s+s1}{\PYZsq{}}\PY{p}{,}\PY{n}{fontsize}\PY{o}{=}\PY{l+m+mi}{25}\PY{p}{)}
+\end{Verbatim}
+
+\begin{Verbatim}[commandchars=\\\{\}]
+{\color{outcolor}Out[{\color{outcolor}5}]:} Text(0, 0.5, '\% Filled Channels')
+\end{Verbatim}
+            
+    \begin{center}
+    \adjustimage{max size={0.9\linewidth}{0.9\paperheight}}{output_35_1.png}
+    \end{center}
+    { \hspace*{\fill} \\}
+    
+    \begin{Verbatim}[commandchars=\\\{\}]
+{\color{incolor}In [{\color{incolor}6}]:} \PY{n}{GrowthArea} \PY{o}{=} \PY{n}{pd}\PY{o}{.}\PY{n}{read\PYZus{}excel}\PY{p}{(}\PY{l+s+s2}{\PYZdq{}}\PY{l+s+s2}{Exp11\PYZus{}DataAnalysis.xlsx}\PY{l+s+s2}{\PYZdq{}}\PY{p}{,}\PY{n}{sheet\PYZus{}name}\PY{o}{=}\PY{l+s+s2}{\PYZdq{}}\PY{l+s+s2}{GrowthArea}\PY{l+s+s2}{\PYZdq{}}\PY{p}{,}\PY{n}{nrows}\PY{o}{=}\PY{l+m+mi}{6}\PY{p}{)}\PY{c+c1}{\PYZsh{} index\PYZus{}col=0, parse\PYZus{}dates=True, \PYZdq{}FilledChannels\PYZdq{})}
+        \PY{c+c1}{\PYZsh{}filledChannels\PYZus{}errors = pd.read\PYZus{}excel(\PYZdq{}DataAnalysis\PYZus{}Exp16.xlsx\PYZdq{},sheet\PYZus{}name=\PYZdq{}FilledChannels\PYZus{}errors\PYZdq{},nrows=6)}
+        
+        \PY{n}{GrowthArea}\PY{o}{.}\PY{n}{plot}\PY{o}{.}\PY{n}{line}\PY{p}{(}\PY{n}{figsize}\PY{o}{=}\PY{p}{(}\PY{l+m+mi}{30}\PY{p}{,}\PY{l+m+mi}{10}\PY{p}{)}\PY{p}{,} \PY{n}{style}\PY{o}{=}\PY{p}{[}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{\PYZca{}\PYZhy{}}\PY{l+s+s1}{\PYZsq{}}\PY{p}{,} \PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{o\PYZhy{}}\PY{l+s+s1}{\PYZsq{}}\PY{p}{,} \PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{x\PYZhy{}}\PY{l+s+s1}{\PYZsq{}}\PY{p}{,} \PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{D\PYZhy{}}\PY{l+s+s1}{\PYZsq{}}\PY{p}{,} \PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{.\PYZhy{}}\PY{l+s+s1}{\PYZsq{}}\PY{p}{,}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{v\PYZhy{}}\PY{l+s+s1}{\PYZsq{}}\PY{p}{,}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{*\PYZhy{}}\PY{l+s+s1}{\PYZsq{}}\PY{p}{,}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{s\PYZhy{}}\PY{l+s+s1}{\PYZsq{}}\PY{p}{]}\PY{p}{,} \PY{n}{x}\PY{o}{=}\PY{k+kc}{None}\PY{p}{,} \PY{n}{y}\PY{o}{=}\PY{k+kc}{None}\PY{p}{,}\PY{n}{legend}\PY{o}{=}\PY{k+kc}{False}\PY{p}{)}\PY{c+c1}{\PYZsh{} **kwargs)}
+        \PY{c+c1}{\PYZsh{}plt.errorbar(a, b, xerr=c, fmt=\PYZdq{}o\PYZdq{}, color=\PYZdq{}r\PYZdq{})}
+        \PY{n}{plt}\PY{o}{.}\PY{n}{gca}\PY{p}{(}\PY{p}{)}\PY{o}{.}\PY{n}{set\PYZus{}xticklabels}\PY{p}{(}\PY{p}{[}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{DIV 0}\PY{l+s+s1}{\PYZsq{}}\PY{p}{,}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{DIV 4}\PY{l+s+s1}{\PYZsq{}}\PY{p}{,}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{DIV 7}\PY{l+s+s1}{\PYZsq{}}\PY{p}{,}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{DIV 15}\PY{l+s+s1}{\PYZsq{}}\PY{p}{,}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{DIV 22}\PY{l+s+s1}{\PYZsq{}}\PY{p}{,}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{DIV 30}\PY{l+s+s1}{\PYZsq{}}\PY{p}{]}\PY{p}{,}\PY{n}{fontsize}\PY{o}{=}\PY{l+m+mi}{20}\PY{p}{)}
+        \PY{n}{plt}\PY{o}{.}\PY{n}{yticks}\PY{p}{(}\PY{n}{fontsize}\PY{o}{=}\PY{l+m+mi}{20}\PY{p}{)}
+        \PY{n}{plt}\PY{o}{.}\PY{n}{legend}\PY{p}{(}\PY{p}{[}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{Control PDL}\PY{l+s+s1}{\PYZsq{}}\PY{p}{,} \PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{Control PDL+Laminin}\PY{l+s+s1}{\PYZsq{}}\PY{p}{,} \PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{PDL}\PY{l+s+s1}{\PYZsq{}}\PY{p}{,}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{PDL+Laminin}\PY{l+s+s1}{\PYZsq{}}\PY{p}{,}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{30 secs Plasma+PDL+Laminin}\PY{l+s+s1}{\PYZsq{}}\PY{p}{,}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{2 min Plasma+PDL+Laminin}\PY{l+s+s1}{\PYZsq{}}\PY{p}{,}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{2 min Plasma+PDL}\PY{l+s+s1}{\PYZsq{}}\PY{p}{,}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{PMOXA}\PY{l+s+s1}{\PYZsq{}}\PY{p}{]}\PY{p}{,}\PY{n}{prop}\PY{o}{=}\PY{p}{\PYZob{}}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{size}\PY{l+s+s1}{\PYZsq{}}\PY{p}{:} \PY{l+m+mi}{16}\PY{p}{\PYZcb{}}\PY{p}{)}
+        \PY{n}{plt}\PY{o}{.}\PY{n}{xlim}\PY{p}{(}\PY{p}{[}\PY{l+m+mi}{0}\PY{p}{,} \PY{l+m+mf}{5.1}\PY{p}{]}\PY{p}{)}
+        \PY{n}{plt}\PY{o}{.}\PY{n}{xlabel}\PY{p}{(}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{Time (Days)}\PY{l+s+s1}{\PYZsq{}}\PY{p}{,}\PY{n}{fontsize}\PY{o}{=}\PY{l+m+mi}{25}\PY{p}{)}\PY{p}{;}\PY{n}{plt}\PY{o}{.}\PY{n}{ylabel}\PY{p}{(}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+si}{\PYZpc{} G}\PY{l+s+s1}{rowth Area}\PY{l+s+s1}{\PYZsq{}}\PY{p}{,}\PY{n}{fontsize}\PY{o}{=}\PY{l+m+mi}{25}\PY{p}{)}
+\end{Verbatim}
+
+\begin{Verbatim}[commandchars=\\\{\}]
+{\color{outcolor}Out[{\color{outcolor}6}]:} Text(0, 0.5, '\% Growth Area')
+\end{Verbatim}
+            
+    \begin{center}
+    \adjustimage{max size={0.9\linewidth}{0.9\paperheight}}{output_36_1.png}
+    \end{center}
+    { \hspace*{\fill} \\}
+    
+    \begin{Verbatim}[commandchars=\\\{\}]
+{\color{incolor}In [{\color{incolor}49}]:} \PY{n}{DistanceTravelled} \PY{o}{=} \PY{n}{pd}\PY{o}{.}\PY{n}{read\PYZus{}excel}\PY{p}{(}\PY{l+s+s2}{\PYZdq{}}\PY{l+s+s2}{Exp11\PYZus{}DataAnalysis.xlsx}\PY{l+s+s2}{\PYZdq{}}\PY{p}{,}\PY{n}{sheet\PYZus{}name}\PY{o}{=}\PY{l+s+s2}{\PYZdq{}}\PY{l+s+s2}{DistanceTravelled}\PY{l+s+s2}{\PYZdq{}}\PY{p}{,}\PY{n}{nrows}\PY{o}{=}\PY{l+m+mi}{6}\PY{p}{)}\PY{c+c1}{\PYZsh{} index\PYZus{}col=0, parse\PYZus{}dates=True, \PYZdq{}FilledChannels\PYZdq{})}
+         \PY{c+c1}{\PYZsh{}filledChannels\PYZus{}errors = pd.read\PYZus{}excel(\PYZdq{}DataAnalysis\PYZus{}Exp16.xlsx\PYZdq{},sheet\PYZus{}name=\PYZdq{}FilledChannels\PYZus{}errors\PYZdq{},nrows=6)}
+         
+         \PY{n}{DistanceTravelled}\PY{o}{.}\PY{n}{plot}\PY{o}{.}\PY{n}{line}\PY{p}{(}\PY{n}{figsize}\PY{o}{=}\PY{p}{(}\PY{l+m+mi}{30}\PY{p}{,}\PY{l+m+mi}{10}\PY{p}{)}\PY{p}{,} \PY{n}{style}\PY{o}{=}\PY{p}{[}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{\PYZca{}\PYZhy{}}\PY{l+s+s1}{\PYZsq{}}\PY{p}{,} \PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{o\PYZhy{}}\PY{l+s+s1}{\PYZsq{}}\PY{p}{,} \PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{x\PYZhy{}}\PY{l+s+s1}{\PYZsq{}}\PY{p}{,} \PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{D\PYZhy{}}\PY{l+s+s1}{\PYZsq{}}\PY{p}{,} \PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{.\PYZhy{}}\PY{l+s+s1}{\PYZsq{}}\PY{p}{,}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{v\PYZhy{}}\PY{l+s+s1}{\PYZsq{}}\PY{p}{,}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{*\PYZhy{}}\PY{l+s+s1}{\PYZsq{}}\PY{p}{,}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{s\PYZhy{}}\PY{l+s+s1}{\PYZsq{}}\PY{p}{]}\PY{p}{,} \PY{n}{x}\PY{o}{=}\PY{k+kc}{None}\PY{p}{,} \PY{n}{y}\PY{o}{=}\PY{k+kc}{None}\PY{p}{,}\PY{n}{legend}\PY{o}{=}\PY{k+kc}{False}\PY{p}{)}\PY{c+c1}{\PYZsh{} **kwargs)}
+         \PY{c+c1}{\PYZsh{}plt.errorbar(a, b, xerr=c, fmt=\PYZdq{}o\PYZdq{}, color=\PYZdq{}r\PYZdq{})}
+         \PY{n}{plt}\PY{o}{.}\PY{n}{gca}\PY{p}{(}\PY{p}{)}\PY{o}{.}\PY{n}{set\PYZus{}xticklabels}\PY{p}{(}\PY{p}{[}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{DIV 0}\PY{l+s+s1}{\PYZsq{}}\PY{p}{,}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{DIV 4}\PY{l+s+s1}{\PYZsq{}}\PY{p}{,}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{DIV 7}\PY{l+s+s1}{\PYZsq{}}\PY{p}{,}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{DIV 15}\PY{l+s+s1}{\PYZsq{}}\PY{p}{,}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{DIV 22}\PY{l+s+s1}{\PYZsq{}}\PY{p}{,}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{DIV 30}\PY{l+s+s1}{\PYZsq{}}\PY{p}{]}\PY{p}{,}\PY{n}{fontsize}\PY{o}{=}\PY{l+m+mi}{20}\PY{p}{)}
+         \PY{n}{plt}\PY{o}{.}\PY{n}{yticks}\PY{p}{(}\PY{n}{fontsize}\PY{o}{=}\PY{l+m+mi}{20}\PY{p}{)}
+         \PY{n}{plt}\PY{o}{.}\PY{n}{legend}\PY{p}{(}\PY{p}{[}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{Control PDL}\PY{l+s+s1}{\PYZsq{}}\PY{p}{,} \PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{Control PDL+Laminin}\PY{l+s+s1}{\PYZsq{}}\PY{p}{,} \PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{PDL}\PY{l+s+s1}{\PYZsq{}}\PY{p}{,}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{PDL+Laminin}\PY{l+s+s1}{\PYZsq{}}\PY{p}{,}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{30 secs Plasma+PDL+Laminin}\PY{l+s+s1}{\PYZsq{}}\PY{p}{,}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{2 min Plasma+PDL+Laminin}\PY{l+s+s1}{\PYZsq{}}\PY{p}{,}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{2 min Plasma+PDL}\PY{l+s+s1}{\PYZsq{}}\PY{p}{,}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{PMOXA}\PY{l+s+s1}{\PYZsq{}}\PY{p}{]}\PY{p}{,}\PY{n}{prop}\PY{o}{=}\PY{p}{\PYZob{}}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{size}\PY{l+s+s1}{\PYZsq{}}\PY{p}{:} \PY{l+m+mi}{16}\PY{p}{\PYZcb{}}\PY{p}{)}
+         \PY{n}{plt}\PY{o}{.}\PY{n}{xlim}\PY{p}{(}\PY{p}{[}\PY{l+m+mi}{0}\PY{p}{,} \PY{l+m+mf}{5.1}\PY{p}{]}\PY{p}{)}
+         \PY{n}{plt}\PY{o}{.}\PY{n}{xlabel}\PY{p}{(}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{Time (Days)}\PY{l+s+s1}{\PYZsq{}}\PY{p}{,}\PY{n}{fontsize}\PY{o}{=}\PY{l+m+mi}{25}\PY{p}{)}\PY{p}{;}\PY{n}{plt}\PY{o}{.}\PY{n}{ylabel}\PY{p}{(}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{Distance Travelled in the Output Channel (\PYZdl{}}\PY{l+s+s1}{\PYZbs{}}\PY{l+s+s1}{mu\PYZdl{}m)}\PY{l+s+s1}{\PYZsq{}}\PY{p}{,}\PY{n}{fontsize}\PY{o}{=}\PY{l+m+mi}{25}\PY{p}{)}
+\end{Verbatim}
+
+\begin{Verbatim}[commandchars=\\\{\}]
+{\color{outcolor}Out[{\color{outcolor}49}]:} Text(0, 0.5, 'Distance Travelled in the Output Channel (\$\textbackslash{}\textbackslash{}mu\$m)')
+\end{Verbatim}
+            
+    \begin{center}
+    \adjustimage{max size={0.9\linewidth}{0.9\paperheight}}{output_37_1.png}
+    \end{center}
+    { \hspace*{\fill} \\}
+    
+    \begin{Verbatim}[commandchars=\\\{\}]
+{\color{incolor}In [{\color{incolor}34}]:} \PY{c+c1}{\PYZsh{}fig = plt.figure(figsize = (30,10))}
+         \PY{c+c1}{\PYZsh{}plot error bars}
+         \PY{n}{ax} \PY{o}{=} \PY{n}{filledChannels3}\PY{o}{.}\PY{n}{plot}\PY{p}{(}\PY{n}{figsize}\PY{o}{=}\PY{p}{(}\PY{l+m+mi}{30}\PY{p}{,}\PY{l+m+mi}{10}\PY{p}{)}\PY{p}{,} \PY{n}{yerr} \PY{o}{=} \PY{n}{filledChannels\PYZus{}errors}\PY{p}{,} \PY{n}{legend} \PY{o}{=} \PY{k+kc}{False}\PY{p}{,}\PY{n}{fmt}\PY{o}{=}\PY{l+s+s2}{\PYZdq{}}\PY{l+s+s2}{o}\PY{l+s+s2}{\PYZdq{}}\PY{p}{,} \PY{n}{color}\PY{o}{=}\PY{l+s+s2}{\PYZdq{}}\PY{l+s+s2}{r}\PY{l+s+s2}{\PYZdq{}}\PY{p}{)}
+         \PY{c+c1}{\PYZsh{}reset color cycle so that the marker colors match}
+         \PY{n}{ax}\PY{o}{.}\PY{n}{set\PYZus{}prop\PYZus{}cycle}\PY{p}{(}\PY{k+kc}{None}\PY{p}{)}
+         \PY{c+c1}{\PYZsh{}plot the markers}
+         \PY{c+c1}{\PYZsh{}filledChannels3.plot(figsize=(12,8), style=[\PYZsq{}\PYZca{}\PYZhy{}\PYZsq{}, \PYZsq{}o\PYZhy{}\PYZhy{}\PYZsq{}, \PYZsq{}x\PYZhy{}.\PYZsq{}, \PYZsq{}D\PYZhy{}\PYZsq{}], markersize=14, ax = ax)}
+         \PY{n}{filledChannels3}\PY{o}{.}\PY{n}{plot}\PY{o}{.}\PY{n}{line}\PY{p}{(}\PY{n}{figsize}\PY{o}{=}\PY{p}{(}\PY{l+m+mi}{30}\PY{p}{,}\PY{l+m+mi}{10}\PY{p}{)}\PY{p}{,} \PY{n}{style}\PY{o}{=}\PY{p}{[}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{\PYZca{}\PYZhy{}}\PY{l+s+s1}{\PYZsq{}}\PY{p}{,} \PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{o\PYZhy{}\PYZhy{}}\PY{l+s+s1}{\PYZsq{}}\PY{p}{,} \PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{x\PYZhy{}.}\PY{l+s+s1}{\PYZsq{}}\PY{p}{,} \PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{D\PYZhy{}}\PY{l+s+s1}{\PYZsq{}}\PY{p}{,} \PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{.\PYZhy{}}\PY{l+s+s1}{\PYZsq{}}\PY{p}{,}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{v\PYZhy{}}\PY{l+s+s1}{\PYZsq{}}\PY{p}{,}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{*\PYZhy{}}\PY{l+s+s1}{\PYZsq{}}\PY{p}{]}\PY{p}{,}\PY{n}{markersize}\PY{o}{=}\PY{l+m+mi}{10}\PY{p}{,} \PY{n}{x}\PY{o}{=}\PY{k+kc}{None}\PY{p}{,} \PY{n}{y}\PY{o}{=}\PY{k+kc}{None}\PY{p}{,}\PY{n}{ax}\PY{o}{=}\PY{n}{ax}\PY{p}{)}\PY{c+c1}{\PYZsh{} **kwargs)}
+         \PY{n}{plt}\PY{o}{.}\PY{n}{legend}\PY{p}{(}\PY{p}{[}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{Control}\PY{l+s+s1}{\PYZsq{}}\PY{p}{,} \PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{Group 1 Heat1}\PY{l+s+s1}{\PYZsq{}}\PY{p}{,} \PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{Group 2 Heat2}\PY{l+s+s1}{\PYZsq{}}\PY{p}{,}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{Group3}\PY{l+s+s1}{\PYZsq{}}\PY{p}{,}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{Group 4}\PY{l+s+s1}{\PYZsq{}}\PY{p}{,}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{Group 5}\PY{l+s+s1}{\PYZsq{}}\PY{p}{,}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{Group 6}\PY{l+s+s1}{\PYZsq{}}\PY{p}{]}\PY{p}{)}
+         \PY{n}{plt}\PY{o}{.}\PY{n}{xlabel}\PY{p}{(}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{Time (Days)}\PY{l+s+s1}{\PYZsq{}}\PY{p}{,}\PY{n}{fontsize}\PY{o}{=}\PY{l+m+mi}{20}\PY{p}{)}\PY{p}{;}\PY{n}{plt}\PY{o}{.}\PY{n}{ylabel}\PY{p}{(}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+si}{\PYZpc{} F}\PY{l+s+s1}{illed Channels}\PY{l+s+s1}{\PYZsq{}}\PY{p}{,}\PY{n}{fontsize}\PY{o}{=}\PY{l+m+mi}{20}\PY{p}{)}
+         \PY{n}{plt}\PY{o}{.}\PY{n}{gca}\PY{p}{(}\PY{p}{)}\PY{o}{.}\PY{n}{set\PYZus{}xticklabels}\PY{p}{(}\PY{p}{[}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{DIV 0}\PY{l+s+s1}{\PYZsq{}}\PY{p}{,}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{DIV 4}\PY{l+s+s1}{\PYZsq{}}\PY{p}{,}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{DIV 7}\PY{l+s+s1}{\PYZsq{}}\PY{p}{,}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{DIV 15}\PY{l+s+s1}{\PYZsq{}}\PY{p}{,}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{DIV 22}\PY{l+s+s1}{\PYZsq{}}\PY{p}{,}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{DIV 30}\PY{l+s+s1}{\PYZsq{}}\PY{p}{]}\PY{p}{,}\PY{n}{fontsize}\PY{o}{=}\PY{l+m+mi}{20}\PY{p}{)}
+         \PY{n}{plt}\PY{o}{.}\PY{n}{xlim}\PY{p}{(}\PY{p}{[}\PY{l+m+mi}{0}\PY{p}{,} \PY{l+m+mf}{5.1}\PY{p}{]}\PY{p}{)}
+         \PY{n}{plt}\PY{o}{.}\PY{n}{show}\PY{p}{(}\PY{p}{)}
+         \PY{n}{plt}\PY{o}{.}\PY{n}{savefig}\PY{p}{(}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{Filled Channels.png}\PY{l+s+s1}{\PYZsq{}}\PY{p}{)}
+\end{Verbatim}
+
+    \begin{Verbatim}[commandchars=\\\{\}]
+
+        ---------------------------------------------------------------------------
+
+        NameError                                 Traceback (most recent call last)
+
+        <ipython-input-34-62c6bc55feaf> in <module>
+          1 \#fig = plt.figure(figsize = (30,10))
+          2 \#plot error bars
+    ----> 3 ax = filledChannels3.plot(figsize=(30,10), yerr = filledChannels\_errors, legend = False,fmt="o", color="r")
+          4 \#reset color cycle so that the marker colors match
+          5 ax.set\_prop\_cycle(None)
+
+
+        NameError: name 'filledChannels\_errors' is not defined
+
+    \end{Verbatim}
+
+    \begin{Verbatim}[commandchars=\\\{\}]
+{\color{incolor}In [{\color{incolor}2}]:} \PY{c+c1}{\PYZsh{}Plot Growth Area}
+        
+        \PY{n}{GrowthArea} \PY{o}{=} \PY{n}{pd}\PY{o}{.}\PY{n}{read\PYZus{}excel}\PY{p}{(}\PY{l+s+s2}{\PYZdq{}}\PY{l+s+s2}{DataAnalysis\PYZus{}Exp16.xlsx}\PY{l+s+s2}{\PYZdq{}}\PY{p}{,}\PY{n}{sheet\PYZus{}name}\PY{o}{=}\PY{l+s+s2}{\PYZdq{}}\PY{l+s+s2}{GrowthArea}\PY{l+s+s2}{\PYZdq{}}\PY{p}{,}\PY{n}{nrows}\PY{o}{=}\PY{l+m+mi}{6}\PY{p}{)}\PY{c+c1}{\PYZsh{} index\PYZus{}col=0, parse\PYZus{}dates=True, \PYZdq{}FilledChannels\PYZdq{})}
+        \PY{n}{GrowthArea}
+        \PY{n}{GrowthArea\PYZus{}errors} \PY{o}{=} \PY{n}{pd}\PY{o}{.}\PY{n}{read\PYZus{}excel}\PY{p}{(}\PY{l+s+s2}{\PYZdq{}}\PY{l+s+s2}{DataAnalysis\PYZus{}Exp16.xlsx}\PY{l+s+s2}{\PYZdq{}}\PY{p}{,}\PY{n}{sheet\PYZus{}name}\PY{o}{=}\PY{l+s+s2}{\PYZdq{}}\PY{l+s+s2}{GrowthArea\PYZus{}errors}\PY{l+s+s2}{\PYZdq{}}\PY{p}{,}\PY{n}{nrows}\PY{o}{=}\PY{l+m+mi}{6}\PY{p}{)}
+        
+        \PY{c+c1}{\PYZsh{}plot error bars}
+        \PY{n}{ax} \PY{o}{=} \PY{n}{GrowthArea}\PY{o}{.}\PY{n}{plot}\PY{p}{(}\PY{n}{figsize}\PY{o}{=}\PY{p}{(}\PY{l+m+mi}{30}\PY{p}{,}\PY{l+m+mi}{10}\PY{p}{)}\PY{p}{,} \PY{n}{yerr} \PY{o}{=} \PY{n}{GrowthArea\PYZus{}errors}\PY{p}{,} \PY{n}{legend} \PY{o}{=} \PY{k+kc}{False}\PY{p}{,}\PY{n}{fmt}\PY{o}{=}\PY{l+s+s2}{\PYZdq{}}\PY{l+s+s2}{o}\PY{l+s+s2}{\PYZdq{}}\PY{p}{,} \PY{n}{color}\PY{o}{=}\PY{l+s+s2}{\PYZdq{}}\PY{l+s+s2}{r}\PY{l+s+s2}{\PYZdq{}}\PY{p}{)}
+        \PY{c+c1}{\PYZsh{}reset color cycle so that the marker colors match}
+        \PY{n}{ax}\PY{o}{.}\PY{n}{set\PYZus{}prop\PYZus{}cycle}\PY{p}{(}\PY{k+kc}{None}\PY{p}{)}
+        \PY{c+c1}{\PYZsh{}plot the markers}
+        \PY{c+c1}{\PYZsh{}filledChannels3.plot(figsize=(12,8), style=[\PYZsq{}\PYZca{}\PYZhy{}\PYZsq{}, \PYZsq{}o\PYZhy{}\PYZhy{}\PYZsq{}, \PYZsq{}x\PYZhy{}.\PYZsq{}, \PYZsq{}D\PYZhy{}\PYZsq{}], markersize=14, ax = ax)}
+        \PY{n}{GrowthArea}\PY{o}{.}\PY{n}{plot}\PY{o}{.}\PY{n}{line}\PY{p}{(}\PY{n}{figsize}\PY{o}{=}\PY{p}{(}\PY{l+m+mi}{30}\PY{p}{,}\PY{l+m+mi}{10}\PY{p}{)}\PY{p}{,} \PY{n}{style}\PY{o}{=}\PY{p}{[}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{\PYZca{}\PYZhy{}}\PY{l+s+s1}{\PYZsq{}}\PY{p}{,} \PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{o\PYZhy{}\PYZhy{}}\PY{l+s+s1}{\PYZsq{}}\PY{p}{,} \PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{x\PYZhy{}.}\PY{l+s+s1}{\PYZsq{}}\PY{p}{,} \PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{D\PYZhy{}}\PY{l+s+s1}{\PYZsq{}}\PY{p}{,} \PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{.\PYZhy{}}\PY{l+s+s1}{\PYZsq{}}\PY{p}{,}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{v\PYZhy{}}\PY{l+s+s1}{\PYZsq{}}\PY{p}{,}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{*\PYZhy{}}\PY{l+s+s1}{\PYZsq{}}\PY{p}{]}\PY{p}{,}\PY{n}{markersize}\PY{o}{=}\PY{l+m+mi}{10}\PY{p}{,} \PY{n}{x}\PY{o}{=}\PY{k+kc}{None}\PY{p}{,} \PY{n}{y}\PY{o}{=}\PY{k+kc}{None}\PY{p}{,}\PY{n}{ax}\PY{o}{=}\PY{n}{ax}\PY{p}{)}\PY{c+c1}{\PYZsh{} **kwargs)}
+        \PY{n}{plt}\PY{o}{.}\PY{n}{legend}\PY{p}{(}\PY{p}{[}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{Control}\PY{l+s+s1}{\PYZsq{}}\PY{p}{,} \PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{Group 1 Heat1}\PY{l+s+s1}{\PYZsq{}}\PY{p}{,} \PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{Group 2 Heat2}\PY{l+s+s1}{\PYZsq{}}\PY{p}{,}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{Group3}\PY{l+s+s1}{\PYZsq{}}\PY{p}{,}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{Group 4}\PY{l+s+s1}{\PYZsq{}}\PY{p}{,}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{Group 5}\PY{l+s+s1}{\PYZsq{}}\PY{p}{,}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{Group 6}\PY{l+s+s1}{\PYZsq{}}\PY{p}{]}\PY{p}{)}
+        \PY{n}{plt}\PY{o}{.}\PY{n}{xlabel}\PY{p}{(}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{Time (Days)}\PY{l+s+s1}{\PYZsq{}}\PY{p}{,}\PY{n}{fontsize}\PY{o}{=}\PY{l+m+mi}{20}\PY{p}{)}\PY{p}{;}\PY{n}{plt}\PY{o}{.}\PY{n}{ylabel}\PY{p}{(}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+si}{\PYZpc{} G}\PY{l+s+s1}{rowth Area}\PY{l+s+s1}{\PYZsq{}}\PY{p}{,}\PY{n}{fontsize}\PY{o}{=}\PY{l+m+mi}{20}\PY{p}{)}
+        \PY{n}{plt}\PY{o}{.}\PY{n}{xlim}\PY{p}{(}\PY{p}{[}\PY{l+m+mi}{0}\PY{p}{,} \PY{l+m+mf}{5.1}\PY{p}{]}\PY{p}{)}
+        \PY{n}{plt}\PY{o}{.}\PY{n}{gca}\PY{p}{(}\PY{p}{)}\PY{o}{.}\PY{n}{set\PYZus{}xticklabels}\PY{p}{(}\PY{p}{[}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{DIV 0}\PY{l+s+s1}{\PYZsq{}}\PY{p}{,}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{DIV 4}\PY{l+s+s1}{\PYZsq{}}\PY{p}{,}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{DIV 7}\PY{l+s+s1}{\PYZsq{}}\PY{p}{,}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{DIV 15}\PY{l+s+s1}{\PYZsq{}}\PY{p}{,}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{DIV 22}\PY{l+s+s1}{\PYZsq{}}\PY{p}{,}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{DIV 30}\PY{l+s+s1}{\PYZsq{}}\PY{p}{]}\PY{p}{,}\PY{n}{fontsize}\PY{o}{=}\PY{l+m+mi}{20}\PY{p}{)}
+        \PY{n}{plt}\PY{o}{.}\PY{n}{show}\PY{p}{(}\PY{p}{)}
+\end{Verbatim}
+
+    \begin{Verbatim}[commandchars=\\\{\}]
+
+        ---------------------------------------------------------------------------
+
+        NameError                                 Traceback (most recent call last)
+
+        <ipython-input-2-317b101345a4> in <module>
+          1 \#Plot Growth Area
+          2 
+    ----> 3 GrowthArea = pd.read\_excel("DataAnalysis\_Exp16.xlsx",sheet\_name="GrowthArea",nrows=6)\# index\_col=0, parse\_dates=True, "FilledChannels")
+          4 GrowthArea
+          5 GrowthArea\_errors = pd.read\_excel("DataAnalysis\_Exp16.xlsx",sheet\_name="GrowthArea\_errors",nrows=6)
+
+
+        NameError: name 'pd' is not defined
+
+    \end{Verbatim}
+
+    \begin{Verbatim}[commandchars=\\\{\}]
+{\color{incolor}In [{\color{incolor}1}]:} \PY{n}{GrowthArea\PYZus{}errors}
+\end{Verbatim}
+
+    \begin{Verbatim}[commandchars=\\\{\}]
+
+        ---------------------------------------------------------------------------
+
+        NameError                                 Traceback (most recent call last)
+
+        <ipython-input-1-b1186f7c8b66> in <module>
+    ----> 1 GrowthArea\_errors
+    
+
+        NameError: name 'GrowthArea\_errors' is not defined
+
+    \end{Verbatim}
+
+    \begin{Verbatim}[commandchars=\\\{\}]
+{\color{incolor}In [{\color{incolor}50}]:} \PY{c+c1}{\PYZsh{}Plot Distance Travlled}
+         
+         \PY{n}{DistanceTravelled} \PY{o}{=} \PY{n}{pd}\PY{o}{.}\PY{n}{read\PYZus{}excel}\PY{p}{(}\PY{l+s+s2}{\PYZdq{}}\PY{l+s+s2}{DataAnalysis\PYZus{}Exp16.xlsx}\PY{l+s+s2}{\PYZdq{}}\PY{p}{,}\PY{n}{sheet\PYZus{}name}\PY{o}{=}\PY{l+s+s2}{\PYZdq{}}\PY{l+s+s2}{DistanceTravelled}\PY{l+s+s2}{\PYZdq{}}\PY{p}{,}\PY{n}{nrows}\PY{o}{=}\PY{l+m+mi}{6}\PY{p}{)}\PY{c+c1}{\PYZsh{} index\PYZus{}col=0, parse\PYZus{}dates=True, \PYZdq{}FilledChannels\PYZdq{})}
+         \PY{n}{DistanceTravelled}
+         \PY{n}{DistanceTravelled\PYZus{}errors} \PY{o}{=} \PY{n}{pd}\PY{o}{.}\PY{n}{read\PYZus{}excel}\PY{p}{(}\PY{l+s+s2}{\PYZdq{}}\PY{l+s+s2}{DataAnalysis\PYZus{}Exp16.xlsx}\PY{l+s+s2}{\PYZdq{}}\PY{p}{,}\PY{n}{sheet\PYZus{}name}\PY{o}{=}\PY{l+s+s2}{\PYZdq{}}\PY{l+s+s2}{DistanceTravelled\PYZus{}errors}\PY{l+s+s2}{\PYZdq{}}\PY{p}{,}\PY{n}{nrows}\PY{o}{=}\PY{l+m+mi}{6}\PY{p}{)}
+         
+         \PY{c+c1}{\PYZsh{}plot error bars}
+         \PY{n}{ax} \PY{o}{=} \PY{n}{DistanceTravelled}\PY{o}{.}\PY{n}{plot}\PY{p}{(}\PY{n}{figsize}\PY{o}{=}\PY{p}{(}\PY{l+m+mi}{30}\PY{p}{,}\PY{l+m+mi}{10}\PY{p}{)}\PY{p}{,} \PY{n}{yerr} \PY{o}{=} \PY{n}{DistanceTravelled\PYZus{}errors}\PY{p}{,} \PY{n}{legend} \PY{o}{=} \PY{k+kc}{False}\PY{p}{,}\PY{n}{fmt}\PY{o}{=}\PY{l+s+s2}{\PYZdq{}}\PY{l+s+s2}{o}\PY{l+s+s2}{\PYZdq{}}\PY{p}{,} \PY{n}{color}\PY{o}{=}\PY{l+s+s2}{\PYZdq{}}\PY{l+s+s2}{r}\PY{l+s+s2}{\PYZdq{}}\PY{p}{)}
+         \PY{c+c1}{\PYZsh{}reset color cycle so that the marker colors match}
+         \PY{n}{ax}\PY{o}{.}\PY{n}{set\PYZus{}prop\PYZus{}cycle}\PY{p}{(}\PY{k+kc}{None}\PY{p}{)}
+         \PY{c+c1}{\PYZsh{}plot the markers}
+         \PY{c+c1}{\PYZsh{}filledChannels3.plot(figsize=(12,8), style=[\PYZsq{}\PYZca{}\PYZhy{}\PYZsq{}, \PYZsq{}o\PYZhy{}\PYZhy{}\PYZsq{}, \PYZsq{}x\PYZhy{}.\PYZsq{}, \PYZsq{}D\PYZhy{}\PYZsq{}], markersize=14, ax = ax)}
+         \PY{n}{DistanceTravelled}\PY{o}{.}\PY{n}{plot}\PY{o}{.}\PY{n}{line}\PY{p}{(}\PY{n}{figsize}\PY{o}{=}\PY{p}{(}\PY{l+m+mi}{30}\PY{p}{,}\PY{l+m+mi}{10}\PY{p}{)}\PY{p}{,} \PY{n}{style}\PY{o}{=}\PY{p}{[}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{\PYZca{}\PYZhy{}}\PY{l+s+s1}{\PYZsq{}}\PY{p}{,} \PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{o\PYZhy{}\PYZhy{}}\PY{l+s+s1}{\PYZsq{}}\PY{p}{,} \PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{x\PYZhy{}.}\PY{l+s+s1}{\PYZsq{}}\PY{p}{,} \PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{D\PYZhy{}}\PY{l+s+s1}{\PYZsq{}}\PY{p}{,} \PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{.\PYZhy{}}\PY{l+s+s1}{\PYZsq{}}\PY{p}{,}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{v\PYZhy{}}\PY{l+s+s1}{\PYZsq{}}\PY{p}{,}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{*\PYZhy{}}\PY{l+s+s1}{\PYZsq{}}\PY{p}{]}\PY{p}{,}\PY{n}{markersize}\PY{o}{=}\PY{l+m+mi}{10}\PY{p}{,} \PY{n}{x}\PY{o}{=}\PY{k+kc}{None}\PY{p}{,} \PY{n}{y}\PY{o}{=}\PY{k+kc}{None}\PY{p}{,}\PY{n}{ax}\PY{o}{=}\PY{n}{ax}\PY{p}{)}\PY{c+c1}{\PYZsh{} **kwargs)}
+         \PY{n}{plt}\PY{o}{.}\PY{n}{legend}\PY{p}{(}\PY{p}{[}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{Control}\PY{l+s+s1}{\PYZsq{}}\PY{p}{,} \PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{Group 1 Heat1}\PY{l+s+s1}{\PYZsq{}}\PY{p}{,} \PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{Group 2 Heat2}\PY{l+s+s1}{\PYZsq{}}\PY{p}{,}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{Group3}\PY{l+s+s1}{\PYZsq{}}\PY{p}{,}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{Group 4}\PY{l+s+s1}{\PYZsq{}}\PY{p}{,}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{Group 5}\PY{l+s+s1}{\PYZsq{}}\PY{p}{,}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{Group 6}\PY{l+s+s1}{\PYZsq{}}\PY{p}{]}\PY{p}{)}
+         \PY{n}{plt}\PY{o}{.}\PY{n}{xlabel}\PY{p}{(}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{Time (Days)}\PY{l+s+s1}{\PYZsq{}}\PY{p}{,}\PY{n}{fontsize}\PY{o}{=}\PY{l+m+mi}{20}\PY{p}{)}\PY{p}{;}\PY{n}{plt}\PY{o}{.}\PY{n}{ylabel}\PY{p}{(}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{Distance Travelled in the Output Channel (\PYZdl{}}\PY{l+s+s1}{\PYZbs{}}\PY{l+s+s1}{mu\PYZdl{}m)}\PY{l+s+s1}{\PYZsq{}}\PY{p}{,}\PY{n}{fontsize}\PY{o}{=}\PY{l+m+mi}{20}\PY{p}{)}
+         \PY{n}{plt}\PY{o}{.}\PY{n}{xlim}\PY{p}{(}\PY{p}{[}\PY{l+m+mi}{0}\PY{p}{,} \PY{l+m+mf}{5.1}\PY{p}{]}\PY{p}{)}
+         \PY{n}{plt}\PY{o}{.}\PY{n}{gca}\PY{p}{(}\PY{p}{)}\PY{o}{.}\PY{n}{set\PYZus{}xticklabels}\PY{p}{(}\PY{p}{[}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{DIV 0}\PY{l+s+s1}{\PYZsq{}}\PY{p}{,}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{DIV 4}\PY{l+s+s1}{\PYZsq{}}\PY{p}{,}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{DIV 7}\PY{l+s+s1}{\PYZsq{}}\PY{p}{,}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{DIV 15}\PY{l+s+s1}{\PYZsq{}}\PY{p}{,}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{DIV 22}\PY{l+s+s1}{\PYZsq{}}\PY{p}{,}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{DIV 30}\PY{l+s+s1}{\PYZsq{}}\PY{p}{]}\PY{p}{,}\PY{n}{fontsize}\PY{o}{=}\PY{l+m+mi}{20}\PY{p}{)}
+         \PY{n}{plt}\PY{o}{.}\PY{n}{show}\PY{p}{(}\PY{p}{)}
+\end{Verbatim}
+
+    \begin{Verbatim}[commandchars=\\\{\}]
+
+        ---------------------------------------------------------------------------
+
+        FileNotFoundError                         Traceback (most recent call last)
+
+        <ipython-input-50-bda8a94760eb> in <module>
+          1 \#Plot Distance Travlled
+          2 
+    ----> 3 DistanceTravelled = pd.read\_excel("DataAnalysis\_Exp16.xlsx",sheet\_name="DistanceTravelled",nrows=6)\# index\_col=0, parse\_dates=True, "FilledChannels")
+          4 DistanceTravelled
+          5 DistanceTravelled\_errors = pd.read\_excel("DataAnalysis\_Exp16.xlsx",sheet\_name="DistanceTravelled\_errors",nrows=6)
+
+
+        \textasciitilde{}/anaconda3/lib/python3.7/site-packages/pandas/util/\_decorators.py in wrapper(*args, **kwargs)
+        186                 else:
+        187                     kwargs[new\_arg\_name] = new\_arg\_value
+    --> 188             return func(*args, **kwargs)
+        189         return wrapper
+        190     return \_deprecate\_kwarg
+
+
+        \textasciitilde{}/anaconda3/lib/python3.7/site-packages/pandas/util/\_decorators.py in wrapper(*args, **kwargs)
+        186                 else:
+        187                     kwargs[new\_arg\_name] = new\_arg\_value
+    --> 188             return func(*args, **kwargs)
+        189         return wrapper
+        190     return \_deprecate\_kwarg
+
+
+        \textasciitilde{}/anaconda3/lib/python3.7/site-packages/pandas/io/excel.py in read\_excel(io, sheet\_name, header, names, index\_col, parse\_cols, usecols, squeeze, dtype, engine, converters, true\_values, false\_values, skiprows, nrows, na\_values, keep\_default\_na, verbose, parse\_dates, date\_parser, thousands, comment, skip\_footer, skipfooter, convert\_float, mangle\_dupe\_cols, **kwds)
+        348 
+        349     if not isinstance(io, ExcelFile):
+    --> 350         io = ExcelFile(io, engine=engine)
+        351 
+        352     return io.parse(
+
+
+        \textasciitilde{}/anaconda3/lib/python3.7/site-packages/pandas/io/excel.py in \_\_init\_\_(self, io, engine)
+        651         self.\_io = \_stringify\_path(io)
+        652 
+    --> 653         self.\_reader = self.\_engines[engine](self.\_io)
+        654 
+        655     def \_\_fspath\_\_(self):
+
+
+        \textasciitilde{}/anaconda3/lib/python3.7/site-packages/pandas/io/excel.py in \_\_init\_\_(self, filepath\_or\_buffer)
+        422             self.book = xlrd.open\_workbook(file\_contents=data)
+        423         elif isinstance(filepath\_or\_buffer, compat.string\_types):
+    --> 424             self.book = xlrd.open\_workbook(filepath\_or\_buffer)
+        425         else:
+        426             raise ValueError('Must explicitly set engine if not passing in'
+
+
+        \textasciitilde{}/anaconda3/lib/python3.7/site-packages/xlrd/\_\_init\_\_.py in open\_workbook(filename, logfile, verbosity, use\_mmap, file\_contents, encoding\_override, formatting\_info, on\_demand, ragged\_rows)
+        109     else:
+        110         filename = os.path.expanduser(filename)
+    --> 111         with open(filename, "rb") as f:
+        112             peek = f.read(peeksz)
+        113     if peek == b"PK\textbackslash{}x03\textbackslash{}x04": \# a ZIP file
+
+
+        FileNotFoundError: [Errno 2] No such file or directory: 'DataAnalysis\_Exp16.xlsx'
+
+    \end{Verbatim}
+
+    \begin{Verbatim}[commandchars=\\\{\}]
+{\color{incolor}In [{\color{incolor} }]:} \PY{c+c1}{\PYZsh{}\PYZpc{}matplotlib qt}
+        \PY{c+c1}{\PYZsh{}\PYZpc{}matplotlib inline}
+        \PY{c+c1}{\PYZsh{}\PYZpc{}pylab qt}
+        \PY{o}{\PYZpc{}}\PY{k}{matplotlib} notebook 
+        \PY{c+c1}{\PYZsh{}source: https://github.com/jdoepfert/roipoly.py}
+        \PY{k+kn}{from} \PY{n+nn}{roipoly} \PY{k}{import} \PY{n}{RoiPoly}
+        
+        \PY{c+c1}{\PYZsh{}To draw a ROI within an image present as a numpy array, show it first using e.g. pylabs’s imshow:}
+        \PY{k+kn}{from} \PY{n+nn}{matplotlib} \PY{k}{import} \PY{n}{pyplot} \PY{k}{as} \PY{n}{plt}
+        \PY{c+c1}{\PYZsh{}I\PYZus{}gray =cv2.cvtColor(I, cv2.COLOR\PYZus{}BGR2GRAY)}
+        \PY{c+c1}{\PYZsh{}pl.imshow(I\PYZus{}gray, interpolation=\PYZsq{}nearest\PYZsq{}, cmap=\PYZdq{}Greys\PYZdq{})}
+        \PY{n}{fig} \PY{o}{=} \PY{n}{plt}\PY{o}{.}\PY{n}{figure}\PY{p}{(}\PY{p}{)}
+        \PY{n}{plt}\PY{o}{.}\PY{n}{imshow}\PY{p}{(}\PY{n}{I}\PY{p}{,} \PY{n}{interpolation}\PY{o}{=}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{nearest}\PY{l+s+s1}{\PYZsq{}}\PY{p}{,} \PY{n}{cmap}\PY{o}{=}\PY{l+s+s2}{\PYZdq{}}\PY{l+s+s2}{Greys}\PY{l+s+s2}{\PYZdq{}}\PY{p}{)}
+        \PY{n}{plt}\PY{o}{.}\PY{n}{colorbar}\PY{p}{(}\PY{p}{)}
+        \PY{n}{plt}\PY{o}{.}\PY{n}{title}\PY{p}{(}\PY{l+s+s2}{\PYZdq{}}\PY{l+s+s2}{left click: line segment         right click or double click: close region}\PY{l+s+s2}{\PYZdq{}}\PY{p}{)}
+        \PY{n}{plt}\PY{o}{.}\PY{n}{show}\PY{p}{(}\PY{n}{block}\PY{o}{=}\PY{k+kc}{False}\PY{p}{)}
+        
+        \PY{c+c1}{\PYZsh{}draw a polygonal ROI within that image:}
+        \PY{n}{my\PYZus{}roi} \PY{o}{=} \PY{n}{RoiPoly}\PY{p}{(}\PY{n}{color}\PY{o}{=}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{r}\PY{l+s+s1}{\PYZsq{}}\PY{p}{)} \PY{c+c1}{\PYZsh{} draw new ROI in red color}
+        
+        \PY{c+c1}{\PYZsh{}This lets the user interactively draw a polygon within the image by clicking with the left mouse button to select the vertices of the polygon. }
+        \PY{c+c1}{\PYZsh{}To close the polygon, click with the right mouse button. }
+        \PY{c+c1}{\PYZsh{}After finishing the ROI, the current figure is closed so that the execution of the code can continue.}
+        
+        \PY{c+c1}{\PYZsh{}To display a created ROI within an image, first display the image as described above using e.g. imshow. Then,}
+        \PY{c+c1}{\PYZsh{}my\PYZus{}roi.display\PYZus{}roi()}
+\end{Verbatim}
+
+    \begin{Verbatim}[commandchars=\\\{\}]
+{\color{incolor}In [{\color{incolor} }]:} \PY{c+c1}{\PYZsh{} Define the callback to save the image}
+        \PY{k}{def} \PY{n+nf}{callback}\PY{p}{(}\PY{n}{image\PYZus{}name}\PY{p}{,} \PY{n}{shape}\PY{p}{)}\PY{p}{:}
+            \PY{n}{shape}\PY{o}{.}\PY{n}{draw}\PY{p}{(}\PY{p}{)} \PY{c+c1}{\PYZsh{} Draw the shape onto the PIL image; Otherwise we print the unmodified image. }
+            \PY{c+c1}{\PYZsh{} Note draw() is inplace method}
+            \PY{n}{PIL\PYZus{}im} \PY{o}{=} \PY{n}{shape}\PY{o}{.}\PY{n}{image} \PY{c+c1}{\PYZsh{} Access the PIL image from the \PYZsq{}shape\PYZsq{} object}
+            \PY{n}{d} \PY{o}{=} \PY{n}{ImageDraw}\PY{o}{.}\PY{n}{Draw}\PY{p}{(}\PY{n}{PIL\PYZus{}im}\PY{p}{)}
+            \PY{n}{d}\PY{o}{.}\PY{n}{text}\PY{p}{(}\PY{p}{(}\PY{l+m+mi}{10}\PY{p}{,}\PY{l+m+mi}{10}\PY{p}{)}\PY{p}{,} \PY{n}{text}\PY{o}{=}\PY{n+nb}{str}\PY{p}{(}\PY{n}{shape}\PY{o}{.}\PY{n}{size}\PY{p}{)}\PY{p}{,} \PY{n}{fill}\PY{o}{=}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{white}\PY{l+s+s1}{\PYZsq{}}\PY{p}{)} \PY{c+c1}{\PYZsh{} Draw the crop shape onto the image}
+            \PY{n}{PIL\PYZus{}im}\PY{o}{.}\PY{n}{save}\PY{p}{(}\PY{n}{image\PYZus{}name}\PY{o}{+}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{\PYZus{}w\PYZus{}Text.jpg}\PY{l+s+s1}{\PYZsq{}}\PY{p}{)} \PY{c+c1}{\PYZsh{} Saves the image with text}
+            
+        \PY{n}{crop}\PY{p}{(}\PY{n}{image\PYZus{}list}\PY{p}{,} \PY{n}{image\PYZus{}name\PYZus{}list}\PY{o}{=}\PY{n}{image\PYZus{}name\PYZus{}list}\PY{p}{,} \PY{n}{callback}\PY{o}{=}\PY{n}{callback}\PY{p}{,} \PY{n}{crop\PYZus{}shape} \PY{o}{=} \PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{Rectangle}\PY{l+s+s1}{\PYZsq{}}\PY{p}{)}
+\end{Verbatim}
+
+    \begin{Verbatim}[commandchars=\\\{\}]
+{\color{incolor}In [{\color{incolor} }]:} \PY{c+c1}{\PYZsh{}hist,bins = np.histogram(im.ravel(),256,[0,256])}
+        \PY{c+c1}{\PYZsh{}img = cv2.imread(\PYZsq{}test.png\PYZsq{})}
+        \PY{n}{image} \PY{o}{=} \PY{n}{io}\PY{o}{.}\PY{n}{imread}\PY{p}{(}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{test.png}\PY{l+s+s1}{\PYZsq{}}\PY{p}{)}
+        \PY{n}{image} \PY{o}{=} \PY{n}{skimage}\PY{o}{.}\PY{n}{img\PYZus{}as\PYZus{}float}\PY{p}{(}\PY{n}{image}\PY{p}{)}
+        \PY{c+c1}{\PYZsh{}img = img.astype(float)}
+        \PY{c+c1}{\PYZsh{}img = np.uint8(img)}
+        \PY{c+c1}{\PYZsh{}plt.hist(img.ravel(),256,[0,5]); plt.show()}
+        \PY{c+c1}{\PYZsh{}hist = np.histogram(img)}
+        \PY{n}{plt}\PY{o}{.}\PY{n}{hist}\PY{p}{(}\PY{n}{image}\PY{p}{)}
+        \PY{n+nb}{type}\PY{p}{(}\PY{n}{img}\PY{p}{)}
+\end{Verbatim}
+
+    \begin{Verbatim}[commandchars=\\\{\}]
+{\color{incolor}In [{\color{incolor} }]:} \PY{k+kn}{import} \PY{n+nn}{plotly}\PY{n+nn}{.}\PY{n+nn}{express} \PY{k}{as} \PY{n+nn}{px}
+        \PY{k+kn}{import} \PY{n+nn}{plotly}\PY{n+nn}{.}\PY{n+nn}{graph\PYZus{}objects} \PY{k}{as} \PY{n+nn}{go}
+        \PY{k+kn}{from} \PY{n+nn}{skimage} \PY{k}{import} \PY{n}{data}\PY{p}{,} \PY{n}{filters}\PY{p}{,} \PY{n}{measure}\PY{p}{,} \PY{n}{morphology}
+        \PY{k+kn}{import} \PY{n+nn}{numpy} \PY{k}{as} \PY{n+nn}{np} 
+        
+        \PY{n}{im} \PY{o}{=} \PY{n}{np}\PY{o}{.}\PY{n}{uint8}\PY{p}{(}\PY{n}{img}\PY{p}{)}
+        \PY{c+c1}{\PYZsh{} Binary image, post\PYZhy{}process the binary mask and compute labels}
+        \PY{c+c1}{\PYZsh{}closed = morphology.remove\PYZus{}small\PYZus{}objects(mask, 50)}
+        \PY{c+c1}{\PYZsh{}mask = morphology.remove\PYZus{}small\PYZus{}holes(mask, 50)}
+        \PY{n}{labels} \PY{o}{=} \PY{n}{measure}\PY{o}{.}\PY{n}{label}\PY{p}{(}\PY{n}{img2}\PY{p}{)}
+        
+        \PY{n}{fig} \PY{o}{=} \PY{n}{px}\PY{o}{.}\PY{n}{imshow}\PY{p}{(}\PY{n}{img}\PY{p}{)} \PY{c+c1}{\PYZsh{}, binary\PYZus{}string = True)}
+        \PY{n}{fig}\PY{o}{.}\PY{n}{update\PYZus{}traces}\PY{p}{(}\PY{n}{hoverinfo}\PY{o}{=}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{skip}\PY{l+s+s1}{\PYZsq{}}\PY{p}{)} \PY{c+c1}{\PYZsh{} hover is only for label info}
+        
+        \PY{n}{props} \PY{o}{=} \PY{n}{measure}\PY{o}{.}\PY{n}{regionprops}\PY{p}{(}\PY{n}{labels}\PY{p}{,} \PY{n}{img}\PY{p}{)}
+        \PY{n}{properties} \PY{o}{=} \PY{p}{[}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{area}\PY{l+s+s1}{\PYZsq{}}\PY{p}{,} \PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{eccentricity}\PY{l+s+s1}{\PYZsq{}}\PY{p}{,} \PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{perimeter}\PY{l+s+s1}{\PYZsq{}}\PY{p}{,} \PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{mean\PYZus{}intensity}\PY{l+s+s1}{\PYZsq{}}\PY{p}{]}
+        
+        \PY{c+c1}{\PYZsh{} For each label, add a filled scatter trace for its contour,}
+        \PY{c+c1}{\PYZsh{} and display the properties of the label in the hover of this trace.}
+        \PY{k}{for} \PY{n}{index} \PY{o+ow}{in} \PY{n+nb}{range}\PY{p}{(}\PY{l+m+mi}{1}\PY{p}{,} \PY{n}{labels}\PY{o}{.}\PY{n}{max}\PY{p}{(}\PY{p}{)}\PY{p}{)}\PY{p}{:}
+            \PY{n}{label} \PY{o}{=} \PY{n}{props}\PY{p}{[}\PY{n}{index}\PY{p}{]}\PY{o}{.}\PY{n}{label}
+            \PY{n}{contour} \PY{o}{=} \PY{n}{measure}\PY{o}{.}\PY{n}{find\PYZus{}contours}\PY{p}{(}\PY{n}{labels} \PY{o}{==} \PY{n}{label}\PY{p}{,} \PY{l+m+mf}{0.5}\PY{p}{)}\PY{p}{[}\PY{l+m+mi}{0}\PY{p}{]}
+            \PY{n}{y}\PY{p}{,} \PY{n}{x} \PY{o}{=} \PY{n}{contour}\PY{o}{.}\PY{n}{T}
+            \PY{n}{hoverinfo} \PY{o}{=} \PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{\PYZsq{}}
+            \PY{k}{for} \PY{n}{prop\PYZus{}name} \PY{o+ow}{in} \PY{n}{properties}\PY{p}{:}
+                \PY{n}{hoverinfo} \PY{o}{+}\PY{o}{=} \PY{n}{f}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{\PYZlt{}b\PYZgt{}}\PY{l+s+si}{\PYZob{}prop\PYZus{}name\PYZcb{}}\PY{l+s+s1}{: }\PY{l+s+s1}{\PYZob{}}\PY{l+s+s1}{getattr(props[index], prop\PYZus{}name):.2f\PYZcb{}\PYZlt{}/b\PYZgt{}\PYZlt{}br\PYZgt{}}\PY{l+s+s1}{\PYZsq{}}
+            \PY{n}{fig}\PY{o}{.}\PY{n}{add\PYZus{}trace}\PY{p}{(}\PY{n}{go}\PY{o}{.}\PY{n}{Scatter}\PY{p}{(}
+                \PY{n}{x}\PY{o}{=}\PY{n}{x}\PY{p}{,} \PY{n}{y}\PY{o}{=}\PY{n}{y}\PY{p}{,} \PY{n}{name}\PY{o}{=}\PY{n}{label}\PY{p}{,}
+                \PY{n}{mode}\PY{o}{=}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{lines}\PY{l+s+s1}{\PYZsq{}}\PY{p}{,} \PY{n}{fill}\PY{o}{=}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{toself}\PY{l+s+s1}{\PYZsq{}}\PY{p}{,} \PY{n}{showlegend}\PY{o}{=}\PY{k+kc}{False}\PY{p}{,}
+                \PY{n}{hovertemplate}\PY{o}{=}\PY{n}{hoverinfo}\PY{p}{,} \PY{n}{hoveron}\PY{o}{=}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{points+fills}\PY{l+s+s1}{\PYZsq{}}\PY{p}{)}\PY{p}{)}
+        
+        \PY{n}{fig}
+\end{Verbatim}
+
+
+    % Add a bibliography block to the postdoc
+    
+    
+    
+    \end{document}

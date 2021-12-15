@@ -1,0 +1,24 @@
+makecell 0.1e
+Managing of tabular column heads and cells.
+
+      Package offers a command, based on one-column tabular environment, which
+      allows  to support  a common layout  for tabular  column heads  in whole
+      document.  Another offered command is for creation of multilined tabular
+      cells.  There are also:       1) a macro, which  changes vertical spaces
+      around all cells in tabular,  like in tabls package,  but based on array
+      package;        2) macros for multirow cells/heads, which use macro from
+      multirow package;       3) macros for numbered rows of cells or skipping
+      cells in tabulars;      4) diagonally divided cells;       5) macros for
+      horizonral lines in tabulars with defined thickness.
+
+Documentation: makecell.pdf.
+
+tablists 0.0c (beta)
+Tabulated list of short items (exersizes in textbooks).
+
+      Package  offers environments  and commands  for one-level  and two-level
+      lists of short items (exersizes in textbooks).   The environments follow
+      support of optional arguments of item numbering as enumerate or paralist
+      packages.
+
+Documentation: tablists.pdf.
