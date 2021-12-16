@@ -177,29 +177,29 @@ class StructureScreen(object):
         # exit()
         pass
 
-    def compute_metrics(self, draw=False):
+    # def compute_metrics(self, draw=False):
 
-        # get the change in distance to outputchannel between each t, t+1
-        pred_gr_directions = self.growth_direction(self.distances)
-        pred_axon_gr_directions = self.growth_direction_start2end(self.distances)
+    #     # get the change in distance to outputchannel between each t, t+1
+    #     pred_gr_directions = self.growth_direction(self.distances)
+    #     pred_axon_gr_directions = self.growth_direction_start2end(self.distances)
 
-        pred_gr_directions *= self.pixelsize
-        pred_axon_gr_directions *= self.pixelsize
+    #     pred_gr_directions *= self.pixelsize
+    #     pred_axon_gr_directions *= self.pixelsize
         
-        if draw:
-            plt.figure()
-            plt.hist(pred_gr_directions, alpha=.5, bins=80, density=True, range=(-400,400), label='pred')
-            plt.legend()
+    #     if draw:
+    #         plt.figure()
+    #         plt.hist(pred_gr_directions, alpha=.5, bins=80, density=True, range=(-400,400), label='pred')
+    #         plt.legend()
             
-            plt.figure()
-            plt.hist(pred_axon_gr_directions, alpha=.5, bins=80, range=(-2000,2000), density=True, label='pred')
-            plt.legend()
-            plt.show()
-        stagnating_axons, good_trans_axons, bad_trans_axons = self.detect_transitions(self.distances, draw=draw)
-        reached_target_axons, crossgrown_axons = self.detect_axons_final_location(self.distances, self.all_dets, draw=draw)
+    #         plt.figure()
+    #         plt.hist(pred_axon_gr_directions, alpha=.5, bins=80, range=(-2000,2000), density=True, label='pred')
+    #         plt.legend()
+    #         plt.show()
+    #     stagnating_axons, good_trans_axons, bad_trans_axons = self.detect_transitions(self.distances, draw=draw)
+    #     reached_target_axons, crossgrown_axons = self.detect_axons_final_location(self.distances, self.all_dets, draw=draw)
 
-        metrics = pred_gr_directions, pred_axon_gr_directions, stagnating_axons, good_trans_axons, bad_trans_axons, reached_target_axons, crossgrown_axons
-        return metrics
+    #     metrics = pred_gr_directions, pred_axon_gr_directions, stagnating_axons, good_trans_axons, bad_trans_axons, reached_target_axons, crossgrown_axons
+    #     return metrics
         
 
     def get_special_axons(self, kwargs):
@@ -332,7 +332,7 @@ class StructureScreen(object):
 
 
 
-    def growth_direction_start2end(self, dists):
+    def growth_direction_start2end(self, dists, drop_axon_names=False):
         start_dist = dists.groupby(level=0).apply(lambda row: row.dropna(axis=1).iloc[:,0])
         end_dist = dists.groupby(level=0).apply(lambda row: row.dropna(axis=1).iloc[:,-1])
         
@@ -340,6 +340,8 @@ class StructureScreen(object):
         # growth_direction = (growth_direction*self.dt) /60
         growth_direction = pd.Series(end_dist.values-start_dist.values, 
                                         index=dists.index, name='dist_change')
+        if drop_axon_names:
+            return growth_direction.T.reset_index(drop=True).T
         return growth_direction
     
     def detect_transitions(self, dists, draw=False):

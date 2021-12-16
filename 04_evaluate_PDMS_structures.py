@@ -217,7 +217,7 @@ def main():
     # structure_names_subset = range(25,45)
     exclude_names = ['tl13_D04_G004', 'tl13_D19_G035', # training data
                      'tl14_D02_G002', 'tl14_D02_G014', 'tl14_D03_G015', # bad detections
-                     'tl13_D20_G036'] # only one exists for D20....
+                     'tl13_D20_G036'] # only one exists for D20.... changed on 2nd wafer....
     # exclude_names.extend(['tl13_D02_G002',  # not in both datasets
     #                       'tl13_D02_G006',
     #                       'tl13_D03_G003',
@@ -245,8 +245,8 @@ def main():
     
     # where to save the analysis output
     # PDMS_screen_dest_dir = 'tl13_results'
-    PDMS_screen_dest_dir = 'all_results_v6_direccount'
-    PDMS_screen_dest_dir = '../ETZ_drive/biohybrid-signal-p/PDMS_structure_screen_v2/all_results_v6'
+    # PDMS_screen_dest_dir = '../ETZ_drive/biohybrid-signal-p/PDMS_structure_screen_v2/all_results_v6'
+    PDMS_screen_dest_dir = 'all_results_v7'
     
     screen = get_PDMSscreen(num_workers, 
                             device, 
@@ -268,81 +268,99 @@ def main():
 
     rank = False
     show = True if config.BASE_DIR.startswith('/home/loaloa/') else False # on server, show is always False
-    show = False
+    # show = False
     symlink_results = False
     DIV_range = (3.5,6.5)
     plot_kwargs = {'show': show}
     
-    """Validate the single screens, checking tha maks and ID lifetime"""
+    """Validate the single screens, checking the masks and ID lifetime"""
     # validate_screens(screen, symlink_results, plot_kwargs)
 
-    """Take a first look at single-structure distance over time plots"""
+
+
+
+
+    """Results figure `Information obtained through tracking` : 
+    Take a first look at single-structure distance over time plots, 
+    base line subtr and not"""
     screen.sss_target_distance_timeline(symlink_results=symlink_results, plot_kwargs=plot_kwargs)
-    # _plot_kwargs = {**plot_kwargs, 'subtr_init_dist': False, 'fname_postfix':'_nodelta'}
-    # screen.sss_target_distance_timeline(symlink_results=symlink_results, plot_kwargs=_plot_kwargs)
+    _plot_kwargs = {**plot_kwargs, 'subtr_init_dist': False, 'fname_postfix':'_nodelta'}
+    screen.sss_target_distance_timeline(symlink_results=symlink_results, plot_kwargs=_plot_kwargs)
 
     """Compare the two datasets tl13, and 1l14 wrt growth speed variance & dist to target var"""
-    # screen.cs_target_distance_timeline(speed=False, plot_kwargs=plot_kwargs)
-    # screen.cs_target_distance_timeline(speed=True, plot_kwargs=plot_kwargs)
+    # # structure_names_subset = range(34)  # all timelapse13        |   <-- uncomment one of the two above (line215)
+    # # structure_names_subset = range(34, 75)  # all timelapse14    |            and run
+    # _plot_kwargs = {**plot_kwargs, 'fname_postfix': '_tl13'}
+    # screen.cs_target_distance_timeline(speed=False, plot_kwargs=_plot_kwargs)
+    # screen.cs_target_distance_timeline(speed=True, plot_kwargs=_plot_kwargs)
+    
+    """Quantify the above the two datasets tl13, and 1l14 wrt growth speed variance & dist to target var"""
+    _plot_kwargs = {**plot_kwargs, 'split_by':'timelapse', 'bar_colors':(config.DARK_GRAY, config.DARK_GRAY)}
+    screen.cs_axon_growth(DIV_range=DIV_range, which_metric='speed', plot_kwargs=_plot_kwargs)
+    screen.cs_axon_growth(DIV_range=DIV_range, which_metric='growth_direction', plot_kwargs=_plot_kwargs)
+
+
+
+
+
+
+
+
+
+
 
 
 
     """Results figure 1: structure,- and feature wise comparison of directionality 
        based on reached target and reached neighbor"""
-    plot_kwargs['fname_postfix'] = 'all_designs'
-    screen.cs_axon_destinations(DIV_range=DIV_range, plot_kwargs=plot_kwargs)
-    plot_kwargs['design_subset'] = [0,1,2,3,4]
-    plot_kwargs['fname_postfix'] = '_group1'
-    screen.cs_axon_destinations(DIV_range=DIV_range, plot_kwargs=plot_kwargs)
-    plot_kwargs['design_subset'] = [2,5,6,7,8]
-    plot_kwargs['fname_postfix'] = '_group2'
-    screen.cs_axon_destinations(DIV_range=DIV_range, plot_kwargs=plot_kwargs)
-    plot_kwargs['design_subset'] = [2,9,10,11,12]
-    plot_kwargs['fname_postfix'] = '_group3'
-    screen.cs_axon_destinations(DIV_range=DIV_range, plot_kwargs=plot_kwargs)
-    plot_kwargs['fname_postfix'] = '_group4'
-    screen.cs_axon_destinations(DIV_range=DIV_range, plot_kwargs=plot_kwargs)
-    plot_kwargs['design_subset'] = None
+    # plot_kwargs['fname_postfix'] = 'all_designs'
+    # screen.cs_axon_destinations(DIV_range=DIV_range, plot_kwargs=plot_kwargs)
+    # plot_kwargs['design_subset'] = [0,1,2,3,4]
+    # plot_kwargs['fname_postfix'] = '_group1'
+    # screen.cs_axon_destinations(DIV_range=DIV_range, plot_kwargs=plot_kwargs)
+    # plot_kwargs['design_subset'] = [2,5,6,7,8]
+    # plot_kwargs['fname_postfix'] = '_group2'
+    # screen.cs_axon_destinations(DIV_range=DIV_range, plot_kwargs=plot_kwargs)
+    # plot_kwargs['design_subset'] = [2,9,10,11,12]
+    # plot_kwargs['fname_postfix'] = '_group3'
+    # screen.cs_axon_destinations(DIV_range=DIV_range, plot_kwargs=plot_kwargs)
+    # plot_kwargs['fname_postfix'] = '_group4'
+    # screen.cs_axon_destinations(DIV_range=DIV_range, plot_kwargs=plot_kwargs)
+    # plot_kwargs['design_subset'] = None
     
 
-    design_subsets = {
-        'channel width': (2,3,4),
-        'n 2-joints': (9,10,11,12,5,8,6,7),
-        'n rescue loops': (2,9,10,11,12),
-        '2-joint placement': (5,6,7,8),
-        'rescue loop design': (12, 17),
-        'use spiky tracks': (12, 20),
-        'final lane design': (1, 12,18,19),
-        '2-joint design': (12,13,14,15,16),
-    }
-    plot_kwargs['order'] = 'rank'
-    plot_kwargs['draw_bar_singles'] = True
-    plot_kwargs['draw_naxons_counts'] = False
-    for design_feature in  ['timelapse'] + config.DESIGN_FEATURE_NAMES:
-        plot_kwargs['split_by'] = design_feature
-        if design_feature != 'timelapse':
-            plot_kwargs['design_subset'] = design_subsets[design_feature]
+    # design_subsets = {
+    #     'channel width': (2,3,4),
+    #     'n 2-joints': (9,10,11,12,5,8,6,7),
+    #     'n rescue loops': (2,9,10,11,12),
+    #     '2-joint placement': (5,6,7,8),
+    #     'rescue loop design': (12, 17),
+    #     'use spiky tracks': (12, 20),
+    #     'final lane design': (1, 12,18,19),
+    #     '2-joint design': (12,13,14,15,16),
+    # }
+    # plot_kwargs['order'] = 'rank'
+    # plot_kwargs['draw_bar_singles'] = True
+    # plot_kwargs['draw_naxons_counts'] = False
+    # for design_feature in  ['timelapse'] + config.DESIGN_FEATURE_NAMES:
+    #     plot_kwargs['split_by'] = design_feature
+    #     if design_feature != 'timelapse':
+    #         plot_kwargs['design_subset'] = design_subsets[design_feature]
         
-        plot_kwargs['which_bars'] = 'metric'
-        plot_kwargs['fname_postfix'] = f'_des_subset_{design_feature}'
-        screen.cs_axon_destinations(DIV_range=DIV_range, plot_kwargs=plot_kwargs)
-        plot_kwargs['which_bars'] = 'pos_metric'
-        plot_kwargs['fname_postfix'] = f'_des_subset_{design_feature}_pos'
-        screen.cs_axon_destinations(DIV_range=DIV_range, plot_kwargs=plot_kwargs)
-        plot_kwargs['which_bars'] = 'neg_metric'
-        plot_kwargs['fname_postfix'] = f'_des_subset_{design_feature}_neg'
-        screen.cs_axon_destinations(DIV_range=DIV_range, plot_kwargs=plot_kwargs)
+    #     plot_kwargs['which_bars'] = 'metric'
+    #     plot_kwargs['fname_postfix'] = f'_des_subset_{design_feature}'
+    #     screen.cs_axon_destinations(DIV_range=DIV_range, plot_kwargs=plot_kwargs)
+    #     plot_kwargs['which_bars'] = 'pos_metric'
+    #     plot_kwargs['fname_postfix'] = f'_des_subset_{design_feature}_pos'
+    #     screen.cs_axon_destinations(DIV_range=DIV_range, plot_kwargs=plot_kwargs)
+    #     plot_kwargs['which_bars'] = 'neg_metric'
+    #     plot_kwargs['fname_postfix'] = f'_des_subset_{design_feature}_neg'
+    #     screen.cs_axon_destinations(DIV_range=DIV_range, plot_kwargs=plot_kwargs)
     
 
     """Compare all structures based on n axons detected, growth speed"""
-    # _plot_kwargs = {**plot_kwargs, 'order': 'rank', 'which_metric':'speed'}
-    # screen.cs_naxons(DIV_range=DIV_range, plot_kwargs=_plot_kwargs)
-    
-    # screen.cs_axon_growthspeed(DIV_range=DIV_range, plot_kwargs=_plot_kwargs)
-    # _plot_kwargs = {**_plot_kwargs, 'fname_postfix':'_D02-D04', 'split_by':'channel width', 'design_subset':(2,3,4)}
-    # screen.cs_axon_growthspeed(DIV_range=DIV_range, plot_kwargs=_plot_kwargs)
+    # screen.cs_naxons(DIV_range=DIV_range, plot_kwargs=plot_kwargs)
 
-    
 
 
 

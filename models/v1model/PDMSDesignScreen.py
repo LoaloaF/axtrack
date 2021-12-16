@@ -15,7 +15,6 @@ from plotting import (
     plot_axon_IDs_lifetime,
     plot_target_distance_over_time,
     plot_n_axons,
-    plot_axon_growthspeed,
     plot_axon_destinations,
     # plot_growth_directions,
     # plot_counted_growth_directions,
@@ -144,7 +143,7 @@ class PDMSDesignScreen(object):
         plot_n_axons(n_axons, self.dir, DIV_range, **plot_kwargs)
 
     # compare structures 
-    def cs_axon_growthspeed(self, DIV_range=None, plot_kwargs={}):
+    def cs_axon_growth(self, DIV_range=None, which_metric='speed', plot_kwargs={}):
         # print('Plotting number of axons identified in each structure.')
 
         if DIV_range is not None:
@@ -152,22 +151,23 @@ class PDMSDesignScreen(object):
                 plot_kwargs['fname_postfix'] = ''
             plot_kwargs['fname_postfix'] += f'_DIV{DIV_range}'
 
-        
-        all_growth_speeds = []
+        all_metrics = []
         for ss in self:
             dists = ss.get_distances(DIV_range=DIV_range)
-            growth_speed = ss.get_growth_speed(dists, average=True, absolute=True).reset_index(drop=True)
-            identifier = ss.identifier
-            identifier = tuple(list(identifier) + ss.design_features)
-
-            all_growth_speeds.append(growth_speed.rename(identifier))
-        all_growth_speeds = pd.concat(all_growth_speeds, axis=1).T
+            if which_metric == 'speed':
+                metric = ss.get_growth_speed(dists, average=True, absolute=True).reset_index(drop=True)
+            elif which_metric == 'growth_direction':
+                metric = ss.growth_direction_start2end(dists, drop_axon_names=True)
+            
+            identifier = tuple(list(ss.identifier) + ss.design_features)
+            all_metrics.append(metric.rename(identifier))
+        all_metrics = pd.concat(all_metrics, axis=1).T
         
         index_names = ['timelapse','design','CLSM_area']
         index_names.extend(config.DESIGN_FEATURE_NAMES)
-        all_growth_speeds.index.rename(index_names, inplace=True)
+        all_metrics.index.rename(index_names, inplace=True)
 
-        fname = plotting.plot_axon_distribution(all_growth_speeds, self.dir, **plot_kwargs)
+        fname = plotting.plot_axon_distribution(all_metrics, self.dir, which_metric=which_metric, **plot_kwargs)
 
     
 
@@ -201,6 +201,9 @@ class PDMSDesignScreen(object):
         index_names = ['timelapse','design','CLSM_area']
         index_names.extend(config.DESIGN_FEATURE_NAMES)
         all_growth_direcs.index.rename(index_names, inplace=True)
+
+        print(all_growth_direcs)
+        exit()
 
         if not counted:
             fname = plot_growth_directions(all_growth_direcs, self.dir, **plot_kwargs)

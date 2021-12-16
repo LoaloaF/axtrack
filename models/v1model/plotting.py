@@ -591,7 +591,7 @@ def plot_target_distance_over_time(structure_screen, show=False, subtr_init_dist
     nIDs, sizet = dists.shape
 
     fig, ax = plt.subplots(figsize=config.MEDIUM_FIGSIZE)
-    fig.subplots_adjust(left=.14, right=.95)
+    fig.subplots_adjust(left=.18, top=.9, bottom=.2)
     [ax.spines[which_spine].set_visible(False) for which_spine in ax.spines]
     # title = 'distance to outputchannel'
     
@@ -624,22 +624,22 @@ def plot_target_distance_over_time(structure_screen, show=False, subtr_init_dist
                                edgecolor='none', alpha=.2))
         ymin, ymax = 0, 4000
         yticks = range(ymin, ymax, 1500)
-        ylbl = f'distance to outputchannel {config.um}'
-        ax.text(xmax-5,ymin+200, 'outputchannel reached', ha='right', va='center', fontsize=config.SMALL_FONTS, color=main_col)
+        ylbl = f'dist. to output ch. {config.um}'
+        ax.text(xmin+5,ymin+200, 'outputchannel reached', ha='left', va='center', 
+                fontsize=config.SMALL_FONTS, color=main_col)
     
     # or let every ID start at distance=0, then see if it increases or decreases
     else:
         ymin, ymax = -2500, 2500
         yticks = range(ymin+500,ymax-499, 1000)
-        ylbl = f'{config.delta} distance to outputchannel {config.um}'
-        alpha = .06 if not draw_until_t else .12
-        ax.add_patch(Rectangle((0,0), xmax, ymax, color=config.RED, alpha=alpha, zorder=1))
-        lbl = 'distance increases' if not count_growth_dir else f'distance increases,\nn = {n_incorrect}'
-        ax.text(xmax-5,ymax-240, lbl, ha='right', va='center', fontsize=config.SMALL_FONTS, color=main_col)
-        
-        lbl = 'distance decreases' if not count_growth_dir else f'distance decreases,\nn = {n_correct}'
-        ax.add_patch(Rectangle((0,0), xmax, ymin, color=config.GREEN, alpha=alpha, zorder=1))
-        ax.text(xmax-5,ymin+240, lbl, ha='right', va='center', fontsize=config.SMALL_FONTS, color=main_col)
+        ylbl = f'{config.delta} dist. to output ch. {config.um}'
+
+        labels = ['distance increases', 'distance decreases']
+        if count_growth_dir:
+            labels[1] += f',\nn = {n_correct}'
+            labels[0] += f',\nn = {n_incorrect}'
+        _add_color_bg(ax, ymin, ymax, xmin, xmax, flip=True, labels=labels,
+                        alpha=.06 if not draw_until_t else .12)
 
     # y axis setup (distance)
     ax.grid(axis='y', which='major', alpha=.4)
@@ -647,7 +647,6 @@ def plot_target_distance_over_time(structure_screen, show=False, subtr_init_dist
     ax.set_ylabel(ylbl, fontsize=config.FONTS, color=main_col)
     ax.set_yticks(yticks)
     ax.set_yticklabels(yticks)
-    # ax.set_yticklabels([f'{yt}' for yt in yticks])
     ax.tick_params(labelsize=config.SMALL_FONTS, color=main_col, labelcolor=main_col)
 
     # title and spines
@@ -657,10 +656,9 @@ def plot_target_distance_over_time(structure_screen, show=False, subtr_init_dist
     ax.axline((xmin, 0), (xmax, 0), color=main_col, linewidth=1.3)
     
     # finally draw axon distances over time
-    cmap = plt.cm.get_cmap('tab10', 20)
     for axon_id, dists in dists.iterrows():
         dists = dists.iloc[:tmax]
-        ax.plot(dists.values, color=cmap(int(axon_id[-3:])%20), linewidth=1, zorder=3)
+        ax.plot(dists.values, color=config.DARK_GRAY, linewidth=1, zorder=3)
         
         if count_growth_dir and abs(growth_dir[axon_id]) >config.MIN_GROWTH_DELTA:
             if growth_dir[axon_id] >= config.MIN_GROWTH_DELTA:
@@ -706,8 +704,10 @@ def plot_target_distance_over_time_allscreens(all_delta_dists, dest_dir, speed, 
     all_delta_dists_std = all_delta_dists.groupby(level='design').std()
     
     fig, ax = plt.subplots(figsize=config.MEDIUM_FIGSIZE)
-    fig.subplots_adjust(left=.14, right=.95)
-    [ax.spines[which_spine].set_visible(False) for which_spine in ax.spines]
+    fig.subplots_adjust(left=.18, bottom=.2, top=.9)
+    # [ax.spines[which_spine].set_visible(False) for which_spine in ax.spines]
+    ax.spines['top'].set_visible(False)
+    ax.spines['right'].set_visible(False)
 
     # x axis setup (time)
     tmin, tmax = 1.33, 6.57
@@ -723,13 +723,10 @@ def plot_target_distance_over_time_allscreens(all_delta_dists, dest_dir, speed, 
     
     else:
         ymin, ymax = -1500, 1500
-        yticks = range(ymin+100,ymax-99, 400)
-        ylbl = f'{config.delta} distance to outputchannel {config.um}'
-        alpha = .12
-        ax.add_patch(Rectangle((0,0), tmax, ymax, color=config.RED, alpha=alpha, edgecolor='none', zorder=1))
-        ax.text(tmax, ymax-100, 'distance increases', ha='right', va='center', fontsize=config.SMALL_FONTS)
-        ax.add_patch(Rectangle((0,0), tmax, ymin, color=config.GREEN, alpha=alpha, edgecolor='none', zorder=1))
-        ax.text(tmax, ymin+100, 'distance decreases', ha='right', va='center', fontsize=config.SMALL_FONTS)
+        yticks = (-1200,-400,0,400,1200)
+
+        ylbl = f'{config.delta} dist. to output ch. {config.um}'
+        _add_color_bg(ax, ymin, ymax, tmin, tmax, flip=True)
 
     # y axis setup (distance)
     ax.grid(axis='y', which='major', alpha=.4)
@@ -737,12 +734,8 @@ def plot_target_distance_over_time_allscreens(all_delta_dists, dest_dir, speed, 
     ax.set_ylabel(ylbl, fontsize=config.FONTS)
     ax.set_yticks(yticks)
     ax.set_yticklabels(yticks)
-    # ax.set_yticklabels([f'{yt}' for yt in yticks])
     ax.tick_params(labelsize=config.SMALL_FONTS)
 
-    # title and spines
-    # ax.set_title(config.delta , pad=15, fontsize=config.FONTS)
-    
     # finally draw axon distances over time
     cmap = plt.cm.get_cmap('tab10', 20)
     for i in range(all_delta_dists_med.shape[0]):
@@ -849,11 +842,12 @@ def plot_n_axons(n_axons, dest_dir, DIV_range, rank=False, show=False, fname_pos
     # set ticks
     ax.set_xlim((xlocs[0]-.75, xlocs[-1]+.75))
     ax.set_xticks(xlocs)
-    ax.set_xticklabels([f'D{x:0>2}' for x in n_axons_design_avg.index], fontsize=config.FONTS, weight='bold')
+    ax.set_xticklabels([f'D{x:0>2}' for x in n_axons_design_avg.index], 
+                       fontsize=config.FONTS)
     lbl = 'Axons identified'
     if DIV_range:
         lbl += f' DIV{DIV_range[0]}-{DIV_range[1]}'
-    ax.set_ylabel(lbl, fontsize=config.FONTS, weight='bold')
+    ax.set_ylabel(lbl, fontsize=config.FONTS)
     
     # finally draw the number of axons
     ax.bar(xlocs, n_axons_design_avg, color=config.DESIGN_CMAP(n_axons_design_avg.index-1), zorder=1)
@@ -861,63 +855,6 @@ def plot_n_axons(n_axons, dest_dir, DIV_range, rank=False, show=False, fname_pos
     
     return _save_plot(show, dest_dir, 'naxons', DIV_range, fname_postfix)
     
-def plot_axon_growthspeed(growth_speeds, dest_dir, DIV_range, rank=False,
-                          show=False, split_by = 'design', fname_postfix=''):
-    # flatten which dataset/ timelapse dim and design replicate dim
-
-    if split_by not in growth_speeds.index.names:
-        print(f'Invalid feature to split by: {split_by}. \n Valid are {growth_speeds.index.names}')
-        exit(1)
-    
-    average_over = [dim for dim in growth_speeds.index.names if dim != split_by]
-    
-    growth_speeds = growth_speeds.unstack(level=tuple(average_over))
-    growth_speeds.drop('NA', errors='ignore', inplace=True)
-
-    if rank:
-        growth_speeds = growth_speeds.reindex(growth_speeds.median(1).sort_values(ascending=False).index)
-    # growth_speeds_medians = growth_speeds.median(1)
-    # x llocations of violin plots
-    xlocs = np.arange(1,growth_speeds.shape[0]+1)
-
-    # get the figure
-    fig, ax = _get_barplot(n_bars=growth_speeds.shape[0], draw_colorbar=split_by=='design')
-    ax.tick_params(labelsize=config.SMALL_FONTS)
-
-    # set y axis up
-    ymin, ymax = 0, 4000
-    ax.set_ylim(ymin, ymax)
-    lbl = f'Axon growth {config.um_d}'
-    ax.set_ylabel(lbl, fontsize=config.FONTS, weight='bold')
-    
-    # setup x axis
-    xmin, xmax = xlocs.min()-.75, xlocs.max()+.75
-    ax.set_xlim(xmin, xmax)
-    ax.set_title(split_by, fontsize=config.FONTS, weight='bold')
-    xtl = [f'D{i:0>2}' for i in growth_speeds.index] if split_by == 'design' else growth_speeds.index
-    
-    # finally draw the number of axons
-    for i, x in enumerate(xlocs):
-        Y = growth_speeds.iloc[i,:].dropna()
-        vp = ax.boxplot(Y, widths=.6, positions=(x,), patch_artist=True, 
-                        whis=(5,95), showfliers=False)
-        vp['medians'][0].set_color('k')
-        vp['medians'][0].set_zorder(6)
-        vp['boxes'][0].set_zorder(5)
-        vp['boxes'][0].set_alpha(1)
-        if split_by == 'design':
-            vp['boxes'][0].set_color(config.DESIGN_CMAP(growth_speeds.index[i]))
-        else:
-            vp['boxes'][0].set_color(config.DEFAULT_COLORS[i])
-
-    ax.set_xticks(xlocs)
-    ax.set_xticklabels(xtl, fontsize=config.FONTS, weight='bold')
-    return _save_plot(show, dest_dir, 'growth_direction', None, fname_postfix)
-
-
-
-
-
 
 
 
@@ -986,7 +923,7 @@ def plot_axon_destinations(destinations, dest_dir, neg_comp_metric, show=False, 
         split_by_lbl += f', opening diameter {config.um}'
     if split_by_lbl == 'channel width':
         split_by_lbl += f' {config.um}'
-    ax.set_title(split_by_lbl, fontsize=config.FONTS, weight='bold')
+    ax.set_title(split_by_lbl, fontsize=config.FONTS )
 
     # setup x axis
     xmin, xmax = (xlocs[0]-.75, xlocs[-1]+.75)
@@ -996,7 +933,7 @@ def plot_axon_destinations(destinations, dest_dir, neg_comp_metric, show=False, 
         xtls = [f'D{i:0>2}' for i in mean.index]
     else:
         xtls = [i for i in mean.index]
-    ax.set_xticklabels(xtls, fontsize=config.FONTS, weight='bold', rotation=45, ha='right', va='top')
+    ax.set_xticklabels(xtls, fontsize=config.FONTS , rotation=45, ha='right', va='top')
     
     # setup y axis
     if which_bars in ['pos_metric', 'neg_metric']:
@@ -1031,7 +968,7 @@ def plot_axon_destinations(destinations, dest_dir, neg_comp_metric, show=False, 
     # y axis mess..... draw patches 
     if which_bars == 'metric':
         lbl = 'directionality ratio'
-        ax.set_ylabel(lbl, fontsize=config.FONTS, weight='bold')
+        ax.set_ylabel(lbl, fontsize=config.FONTS )
         ax.hlines([1.66, 1.33, .33, .66], xmin, xmax, linewidth=.5, alpha=.5, zorder=3)
 
         ax.add_patch(Rectangle((0,1), xmax, ymax, color=config.GREEN, alpha=.1, zorder=1))
@@ -1157,11 +1094,10 @@ def plot_axon_destinations(destinations, dest_dir, neg_comp_metric, show=False, 
 
 
 # sorry for this monster...
-def plot_axon_distribution(axon_data, dest_dir, show=False, fname_postfix='', 
+def plot_axon_distribution(axon_data, dest_dir, which_metric, show=False, fname_postfix='', 
                            order=None, design_subset=None, split_by='design',
-                           draw_bar_singles=False, 
-                           which_metric='metric',
-                           shift_bar_singles=True):
+                           draw_bar_singles=False, mixed_colorbars=False,
+                           shift_bar_singles=True, bar_colors=None):
 
     print(axon_data)
     # check that a valid column name was passed
@@ -1170,7 +1106,7 @@ def plot_axon_distribution(axon_data, dest_dir, show=False, fname_postfix='',
         exit(1)
 
     def select_feature(data, split_by, design_subset):
-        # get rid of samples that don't have vlid values for that feature
+        # get rid of samples that don't have valid values for that feature
         notna = data.index.get_level_values(split_by) != 'NA'
         data = data[notna]
         # limit plot to a subset of designs
@@ -1205,7 +1141,7 @@ def plot_axon_distribution(axon_data, dest_dir, show=False, fname_postfix='',
     # x locations of bars
     xlocs = np.arange(1,medians.shape[0]+1)
     
-    # get the c index of the single datapoints 
+    # get the x index of the single datapoints 
     idx = axon_data.index.get_level_values(split_by)
     x, xlocs_single = 1, []
     for i in range(len(idx)):
@@ -1224,7 +1160,7 @@ def plot_axon_distribution(axon_data, dest_dir, show=False, fname_postfix='',
         split_by_lbl += f', opening diameter {config.um}'
     if split_by_lbl == 'channel width':
         split_by_lbl += f' {config.um}'
-    ax.set_title(split_by_lbl, fontsize=config.FONTS, weight='bold')
+    ax.set_title(split_by_lbl, fontsize=config.FONTS )
 
     # setup x axis
     xmin, xmax = (xlocs[0]-.75, xlocs[-1]+.75)
@@ -1234,67 +1170,46 @@ def plot_axon_distribution(axon_data, dest_dir, show=False, fname_postfix='',
         xtls = [f'D{i:0>2}' for i in medians.index]
     else:
         xtls = [i for i in medians.index]
-    ax.set_xticklabels(xtls, fontsize=config.FONTS, weight='bold', rotation=45, ha='right', va='top')
+    ax.set_xticklabels(xtls, fontsize=config.FONTS , rotation=45, ha='right', va='top')
     
     # setup y axis
     if which_metric in ['speed']:
         ymin, ymax = 0, 4000
         yticks = [0,1500,3000,]
-        ax.set_ylim(ymin, ymax)
-        
-    elif draw_bar_singles:
-        ymin, ymax = 0, 12
-        yticks = [0,1,4,8,]
-    elif which_metric == 'metric':
-        ymin, ymax = 0, 3.5
-        yticks = np.arange(ymin, ymax, 1)
+        ylbl = f'Axon growth {config.um_d}'
 
-    # y ticks left
+    elif which_metric == 'growth_direction':
+        ymin, ymax = -1500, 1500
+        yticks = [-1200,-400,0,400,1200]
+        ylbl = f'{config.delta} dist. to output ch. {config.um}'
+
+        _add_color_bg(ax, ymin, ymax, xmin, xmax, flip=True)
+    
     ax.set_ylim(ymin, ymax)
     ax.set_yticks(yticks)
+    ax.set_ylabel(ylbl, fontsize=config.FONTS )
     ax.grid(axis='y', alpha=.6, linewidth=.7)
 
-    # y axis mess..... draw patches 
-    if which_metric == 'speed':
-        lbl = f'Axon growth {config.um_d}'
-        ax.set_ylabel(lbl, fontsize=config.FONTS, weight='bold')
-
-        # ax.add_patch(Rectangle((0,1), xmax, ymax, color=config.GREEN, alpha=.1, zorder=1))
-    else:
-        pass
-        # ax.tick_params(axis='y', left=False, labelleft=False, right=True, labelright=True, 
-        #                labelcolor='gray', labelsize=config.SMALL_FONTS)
-
-        # if which_metric =='pos_metric':
-        #     text = 'reached\ntarget'
-        #     col = config.GREEN
-        # else:
-        #     text = 'reached\nneighbour'
-        #     col = config.RED
-        # ax.text(xmax+.2, 2, text, ha='left', va='center', fontsize=config.SMALL_FONTS, color='gray')
-        # ax.add_patch(Rectangle((0,ymin), xmax, ymax-ymin, color=col, alpha=.1, zorder=1))
-
-    # get colors for bars, some bars have more than one color
+    # get colors for bars, bars may have more than one color
     main_cols = []
     cols = []
     split_by_values = medians.index
-    if split_by == 'design':
+    if bar_colors:
+        main_cols = bar_colors
+    elif split_by == 'design':
         main_cols = config.DESIGN_CMAP(split_by_values)
-    else:
-        # more than one color
+    elif mixed_colorbars:
+        # more than one color if mixed_colorbars
         for val in split_by_values:
             designs = axon_data.reindex([val], level=split_by).index.unique('design')
             cols.append(config.DESIGN_CMAP(designs))
             main_cols.append(cols[-1][0])
+    else:
+        main_cols = [config.DEFAULT_COLORS[i] for i in range(len(split_by_values))]
 
-    # draw bars
-    bw = .6
+    bw = config.BAR_WIDTH
 
-
-    # print(xtls)
-    # print(medians)
-    # print(axon_data)
-    # finally draw the number of axons
+    # finally draw the distributions
     for i, x in enumerate(xlocs):
         mask = axon_data.index.get_level_values(split_by) == medians.index[i]
         Y = axon_data[mask].stack().dropna().values
@@ -1313,7 +1228,7 @@ def plot_axon_distribution(axon_data, dest_dir, show=False, fname_postfix='',
         print(vp['boxes'][0].get_path())
 
     ax.set_xticks(xlocs)
-    ax.set_xticklabels(xtls, fontsize=config.FONTS, weight='bold')
+    ax.set_xticklabels(xtls, fontsize=config.FONTS )
 
 
     
@@ -1347,7 +1262,7 @@ def plot_axon_distribution(axon_data, dest_dir, show=False, fname_postfix='',
     #         [ax.add_patch(p) for p in patches]
 
     # for feature split, bars have more than one color, draw ploygons here
-    if not split_by == 'design':
+    if not split_by == 'design' and mixed_colorbars:
         angle = .1
         # iter bars
         for i in range(len(medians)):
@@ -1367,8 +1282,8 @@ def plot_axon_distribution(axon_data, dest_dir, show=False, fname_postfix='',
                 tr = [x+bw/2, y_centers[j]+angle]
                 ax.add_patch(Polygon([bl,tl,tr,br], color=cols[i][j+1], zorder=100-j))
     
-  
-    return _save_plot(show, dest_dir, 'destinations', DIV_range=None, fname_postfix=fname_postfix)
+    return _save_plot(show, dest_dir, which_metric, DIV_range=None, 
+                      fname_postfix=fname_postfix)
     
 
 
@@ -1403,8 +1318,8 @@ def plot_axon_distribution(axon_data, dest_dir, show=False, fname_postfix='',
 #     ymin, ymax = -2500, 2500
 #     ax.set_ylim(ymin, ymax)
 #     lbl = f'Axons {config.delta} distance to target {config.um}'
-#     ax.set_ylabel(lbl, fontsize=config.FONTS, weight='bold')
-#     ax.set_title(split_by, fontsize=config.FONTS, weight='bold')
+#     ax.set_ylabel(lbl, fontsize=config.FONTS )
+#     ax.set_title(split_by, fontsize=config.FONTS )
     
 #     # setup x axis
 #     xmin, xmax = xlocs.min()-.75, xlocs.max()+.75
@@ -1412,7 +1327,7 @@ def plot_axon_distribution(axon_data, dest_dir, show=False, fname_postfix='',
 #     ax.set_xticks(xlocs)
 
 #     xtl = [f'D{i:0>2}' for i in directions.index] if split_by == 'design' else directions.index
-#     ax.set_xticklabels(xtl, fontsize=config.FONTS, weight='bold', ha='right', va='top', rotation=25)
+#     ax.set_xticklabels(xtl, fontsize=config.FONTS , ha='right', va='top', rotation=25)
 
 #     ax.hlines(0, xlocs[0]-.75, xlocs[-1]+.75, color='k', linewidth=1, zorder=2)
 #     if draw_min_dist_lines:
@@ -1486,7 +1401,7 @@ def plot_axon_distribution(axon_data, dest_dir, show=False, fname_postfix='',
 #     # yticks = np.arange(ymin+1,ymax,25)
 #     # ax.set_ylim(ymin, ymax)
 #     lbl = 'n axons growth direction'
-#     ax.set_ylabel(lbl, fontsize=config.FONTS, weight='bold')
+#     ax.set_ylabel(lbl, fontsize=config.FONTS )
 #     # ax.set_yticks(yticks)
 #     # ax.set_yticklabels(abs(yticks))
     
@@ -1494,7 +1409,7 @@ def plot_axon_distribution(axon_data, dest_dir, show=False, fname_postfix='',
 #     xmin, xmax = (xlocs[0]-.75, xlocs[-1]+.75)
 #     ax.set_xlim(xmin, xmax)
 #     ax.set_xticks(xlocs)
-#     ax.set_xticklabels([f'D{i:0>2}' for i in directions_sum.index], fontsize=config.FONTS, weight='bold')
+#     ax.set_xticklabels([f'D{i:0>2}' for i in directions_sum.index], fontsize=config.FONTS )
 #     ax.hlines(0, xlocs[0]-.75, xlocs[-1]+.75, color='k', linewidth=1, zorder=2)
     
 #     # ax.add_patch(Rectangle((0,0), xmax, ymax, color=config.GREEN, alpha=.1, zorder=1))
@@ -1544,3 +1459,28 @@ def _minus3D(xy_center, x_diameter, y_diameter, linewidth, thickness, facecolor=
     minus = Polygon(coordinates, linewidth=linewidth, facecolor=facecolor, 
                 edgecolor=edgecolor, zorder=zorder, clip_on=False, alpha=.8)
     return minus
+
+# add green and red patch
+def _add_color_bg(ax, ymin, ymax, xmin, xmax, ystart=0, labels=True, flip=False, alpha=.12):
+    yshift = (abs(ymax) + abs(ymin)) *.02
+    xshift = (abs(xmax) + abs(xmin)) *.01
+
+    top_col, bottom_col = (config.RED, config.GREEN) if flip else (config.GREEN, config.RED)
+    ax.add_patch(Rectangle((xmin,ystart), xmax, ymax, color=top_col, 
+                    alpha=alpha, zorder=1))
+    ax.add_patch(Rectangle((xmin,ystart), xmax, ymin, color=bottom_col, 
+                    alpha=alpha, zorder=1))
+    if labels is True:
+        green_text, red_text = 'correct direc.', 'incorrect direc.'
+        if flip:
+            green_text, red_text = red_text, green_text
+
+    elif labels:
+        green_text, red_text = labels
+    else:
+        return
+    ax.text(xmax-xshift, ymax-yshift, green_text, ha='right', va='top', 
+            fontsize=config.SMALL_FONTS)
+    ax.text(xmax-xshift, ymin+yshift, red_text, ha='right', va='bottom', 
+            fontsize=config.SMALL_FONTS)
+    
