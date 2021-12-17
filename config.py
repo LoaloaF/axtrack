@@ -135,8 +135,8 @@ DESIGN_FEATURES = {
     8: [3, 0, 'early', 8, 'NA',      '3',            '3',            'no'],
     
     9: [0, 1, 'NA',    8, 'angled',   'NA',          '3',            'no'],
-   11: [0, 3, 'NA',    8, 'angled',   'NA',          '3',            'no'],
-   10: [1, 1, 'early', 8, 'angled',   '3',           '3',            'no'],
+   10: [0, 3, 'NA',    8, 'angled',   'NA',          '3',            'no'],
+   11: [1, 1, 'early', 8, 'angled',   '3',           '3',            'no'],
    12: [1, 3, 'early', 8, 'angled',   '3',           '3',            'no'],
    
    14: [1, 3, 'early', 8, 'angled',   '5',           '3',            'no'],
@@ -145,8 +145,8 @@ DESIGN_FEATURES = {
    17: [1, 3, 'early', 8, 'straight', '3',           '3',            'no'],
 
    13: [1, 3, 'early', 8, 'angled',   '3, inlay',    '3',            'no'],
-   20: [1, 3, 'early', 8, 'angled',   '3',           '3',            'yes'],
-   18: [1, 3, 'early', 8, 'angled',   '3',           '3, wide',    'no'],
-   19: [1, 3, 'early', 8, 'angled',   '3',           '1.5, wide',  'no'],
+   18: [1, 3, 'early', 8, 'angled',   '3',           '3',            'yes'],
+   19: [1, 3, 'early', 8, 'angled',   '3',           '3, wide',    'no'],
+   20: [1, 3, 'early', 8, 'angled',   '3',           '1.5, wide',  'no'],
 
 }

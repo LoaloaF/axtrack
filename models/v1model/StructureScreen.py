@@ -15,6 +15,8 @@ class StructureScreen(object):
     def __init__(self, timelapse, directory, axon_detections, 
                  cache_target_distances='from'):
         self.name = timelapse.name
+
+        self.original_design_name = int(self.name[6:8])
         
         self.identifier = (self.name[:4],int(self.name[6:8]),self.name[9:13])
         self.mask = timelapse.mask[0]
@@ -66,12 +68,20 @@ class StructureScreen(object):
     def set_axon_subset(self, which_axons):
         self.axon_subset = which_axons
 
+    def _get_axon_sides(self, axons):
+        axon_xcoos = self.all_dets.loc[axons, (slice(None),'anchor_x')]
+        x_center = self.structure_outputchannel_coo[1]
+        left_axons = (axon_xcoos<x_center)
+        left_axons[axon_xcoos.isna()] = np.nan
+        left_axons = left_axons.sum(1) != 0
+        return left_axons.rename('side').astype(int)
+
     def get_id_lifetime(self):
         return self.all_dets.loc[self.axon_subset, (slice(None), 'conf')].fillna(False).astype(bool).values
     
     def get_distances(self, px2um=True, timepoints2minutes=True, DIV_range=None,
                       add_incubation_time=True, interpolate_missing_det=True,
-                      timeopints2DIV=True, return_DIV_mask=False):
+                      timeopints2DIV=True, return_DIV_mask=False, add_side_dim=False):
         dists = self.distances.loc[self.axon_subset]
         if interpolate_missing_det:
             dists = dists.interpolate(axis=1, limit_area='inside')
@@ -87,6 +97,9 @@ class StructureScreen(object):
                 dists = dists.T[in_range].T.dropna(how='all')
             if timeopints2DIV:
                 dists.columns = dists.columns /(60*24)
+        if add_side_dim:
+            left_axons = self._get_axon_sides(dists.index)
+            dists = pd.concat([dists,left_axons], axis=1).set_index('side', append=True)
         if not return_DIV_mask:
             return dists
         else:
@@ -103,12 +116,16 @@ class StructureScreen(object):
     
     # for lazyness - cache screen again to not need this thing below
     def hacky_adhoc_param_setter(self):
-        self.crossgrowth_speed_thr = 600
-        self.last_growth_trend_n = 10
-        self.stagnating_axon_std_thr = 12
+        # got somehow messed on 
+        if self.identifier == ('tl14', 19, 'G036'):
+            self.identifier = ('tl14', 20, 'G036')
+        if self.identifier == ('tl14', 19, 'G040'):
+            self.identifier = ('tl14', 20, 'G040')
+
+        self.original_design_name = self.identifier[1]
 
         old_d = f'D{self.identifier[1]:0>2}'
-        design_rename = {
+        design_renamer = {
                             'D04':  0,
                             'D21':  1,
                             'D01':  2,
@@ -121,8 +138,8 @@ class StructureScreen(object):
                             'D08':  8,
                             
                             'D09':  9,
-                            'D10': 11,
-                            'D11': 10,
+                            'D10': 10,
+                            'D11': 11,
                             'D12': 12,
 
                             'D17': 13,
@@ -131,21 +148,31 @@ class StructureScreen(object):
                             'D14': 16,
 
                             'D16': 17,
-                            'D19': 18,
-                            'D20': 19,
-                            'D18': 20,
+                            'D18': 18,
+                            'D19': 19,
+                            'D20': 20,
         }
 
-        new_d = design_rename[old_d]
-        self.design_features = config.DESIGN_FEATURES[new_d]
+        new_d = design_renamer[old_d]
         self.identifier = self.identifier[0], new_d, self.identifier[2]
         self.name = self.name.replace(old_d, f'D{new_d:0>2}')
-
-
+        self.design_features = config.DESIGN_FEATURES[new_d]
+        
         self.axons_reached_target = None
         self.axons_crossgrown = None
         self.stagnating_axons = None
         self.growth_direction = None
+        
+
+
+
+
+
+
+        
+        # self.crossgrowth_speed_thr = 600
+        # self.last_growth_trend_n = 10
+        # self.stagnating_axon_std_thr = 12
 
         # if isinstance(self.mask, list):
         #     self.mask = self.mask[0]

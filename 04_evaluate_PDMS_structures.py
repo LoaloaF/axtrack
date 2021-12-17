@@ -246,7 +246,10 @@ def main():
     # where to save the analysis output
     # PDMS_screen_dest_dir = 'tl13_results'
     # PDMS_screen_dest_dir = '../ETZ_drive/biohybrid-signal-p/PDMS_structure_screen_v2/all_results_v6'
-    PDMS_screen_dest_dir = 'all_results_v7'
+    PDMS_screen_dest_dir = 'all_results_figure1'
+    PDMS_screen_dest_dir = 'all_results_figure2'
+    PDMS_screen_dest_dir = 'all_results_figure3'
+
     
     screen = get_PDMSscreen(num_workers, 
                             device, 
@@ -277,15 +280,12 @@ def main():
     # validate_screens(screen, symlink_results, plot_kwargs)
 
 
-
-
-
-    """Results figure `Information obtained through tracking` : 
+    """Results figure 1 `Information obtained through tracking` : 
     Take a first look at single-structure distance over time plots, 
     base line subtr and not"""
-    screen.sss_target_distance_timeline(symlink_results=symlink_results, plot_kwargs=plot_kwargs)
-    _plot_kwargs = {**plot_kwargs, 'subtr_init_dist': False, 'fname_postfix':'_nodelta'}
-    screen.sss_target_distance_timeline(symlink_results=symlink_results, plot_kwargs=_plot_kwargs)
+    # screen.sss_target_distance_timeline(symlink_results=symlink_results, plot_kwargs=plot_kwargs)
+    # _plot_kwargs = {**plot_kwargs, 'subtr_init_dist': False, 'fname_postfix':'_nodelta'}
+    # screen.sss_target_distance_timeline(symlink_results=symlink_results, plot_kwargs=_plot_kwargs)
 
     """Compare the two datasets tl13, and 1l14 wrt growth speed variance & dist to target var"""
     # # structure_names_subset = range(34)  # all timelapse13        |   <-- uncomment one of the two above (line215)
@@ -295,9 +295,95 @@ def main():
     # screen.cs_target_distance_timeline(speed=True, plot_kwargs=_plot_kwargs)
     
     """Quantify the above the two datasets tl13, and 1l14 wrt growth speed variance & dist to target var"""
-    _plot_kwargs = {**plot_kwargs, 'split_by':'timelapse', 'bar_colors':(config.DARK_GRAY, config.DARK_GRAY)}
-    screen.cs_axon_growth(DIV_range=DIV_range, which_metric='speed', plot_kwargs=_plot_kwargs)
-    screen.cs_axon_growth(DIV_range=DIV_range, which_metric='growth_direction', plot_kwargs=_plot_kwargs)
+    # _plot_kwargs = {**plot_kwargs, 'split_by':'timelapse', 'custom_colors':(config.DARK_GRAY, config.DARK_GRAY)}
+    # screen.cs_axon_growth(DIV_range=DIV_range, which_metric='speed', plot_kwargs=_plot_kwargs)
+    # screen.cs_axon_growth(DIV_range=DIV_range, which_metric='growth_direction', plot_kwargs=_plot_kwargs)
+
+
+
+
+
+
+    """Results figure 2 `Growth speed across designs` : 
+    Take a second look at growth speed with highlighting specific feature effects
+    """
+    design_subsets = {
+        'channel width': (2,3,4),
+        'n 2-joints': (9,10,11,12,5,8,6,7),
+        'n rescue loops': (2,9,10,11,12),
+        '2-joint placement': (5,6,7,8),
+        'rescue loop design': (12, 17),
+        'use spiky tracks': (12, 18),
+        'final lane design': (1, 12,19,20),
+        '2-joint design': (12,13,14,15,16),
+    }
+    """all designs"""
+    screen.cs_axon_growth(DIV_range=DIV_range, which_metric='speed', plot_kwargs=plot_kwargs)
+    screen.cs_axon_growth_counted(DIV_range=DIV_range, which_metric='n_axons', plot_kwargs={**plot_kwargs, })
+    
+
+    """subset of designs specifically differing in a design feature"""
+    plot_kwargs['order'] = rank
+    for design_feature in  design_subsets.keys():
+        plot_kwargs['split_by'] = design_feature
+        plot_kwargs['design_subset'] = design_subsets[design_feature]
+        plot_kwargs['mixed_colorbars'] = True
+        
+        # growth speed
+        screen.cs_axon_growth(DIV_range=DIV_range, which_metric='speed', 
+                              plot_kwargs=plot_kwargs)
+        # n axons
+        screen.cs_axon_growth_counted(DIV_range=DIV_range, which_metric='n_axons', 
+                                      plot_kwargs={**plot_kwargs, 'draw_bar_singles':True})
+    
+    
+    
+    
+
+
+
+
+    """Results figure 3 `directionality` : 
+    Take a third look. Now the core directionality. counted v1, v2, and distribution
+    """
+    design_subsets = {
+        'channel width': (2,3,4),
+        'n 2-joints': (9,10,11,12,5,8,6,7),
+        'n rescue loops': (2,9,10,11,12),
+        '2-joint placement': (5,6,7,8),
+        'rescue loop design': (12, 17),
+        'use spiky tracks': (12, 18),
+        'final lane design': (1, 12,19,20),
+        '2-joint design': (12,13,14,15,16),
+    }
+    """all designs"""
+    screen.cs_axon_growth(DIV_range=DIV_range, which_metric='speed', plot_kwargs=plot_kwargs)
+    screen.cs_axon_growth_counted(DIV_range=DIV_range, which_metric='n_axons', plot_kwargs={**plot_kwargs, })
+    
+
+    """subset of designs specifically differing in a design feature"""
+    plot_kwargs['order'] = rank
+    for design_feature in  design_subsets.keys():
+        plot_kwargs['split_by'] = design_feature
+        plot_kwargs['design_subset'] = design_subsets[design_feature]
+        plot_kwargs['mixed_colorbars'] = True
+        
+        # growth speed
+        screen.cs_axon_growth(DIV_range=DIV_range, which_metric='speed', 
+                              plot_kwargs=plot_kwargs)
+        # n axons
+        screen.cs_axon_growth_counted(DIV_range=DIV_range, which_metric='n_axons', 
+                                      plot_kwargs={**plot_kwargs, 'draw_bar_singles':True})
+    
+    
+
+
+
+    """Bonus: Growth direction distribution """
+    # screen.cs_axon_growth(DIV_range=DIV_range, which_metric='growth_direction', plot_kwargs=plot_kwargs)
+    # screen.cs_axon_growth(DIV_range=DIV_range, which_metric='growth_direction', plot_kwargs=plot_kwargs)
+    
+    
 
 
 
@@ -305,13 +391,7 @@ def main():
 
 
 
-
-
-
-
-
-
-    """Results figure 1: structure,- and feature wise comparison of directionality 
+    """Results figure 2: structure,- and feature wise comparison of directionality 
        based on reached target and reached neighbor"""
     # plot_kwargs['fname_postfix'] = 'all_designs'
     # screen.cs_axon_destinations(DIV_range=DIV_range, plot_kwargs=plot_kwargs)
@@ -357,9 +437,6 @@ def main():
     #     plot_kwargs['fname_postfix'] = f'_des_subset_{design_feature}_neg'
     #     screen.cs_axon_destinations(DIV_range=DIV_range, plot_kwargs=plot_kwargs)
     
-
-    """Compare all structures based on n axons detected, growth speed"""
-    # screen.cs_naxons(DIV_range=DIV_range, plot_kwargs=plot_kwargs)
 
 
 

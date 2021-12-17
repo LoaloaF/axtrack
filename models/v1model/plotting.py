@@ -775,6 +775,21 @@ def plot_target_distance_over_time_allscreens(all_delta_dists, dest_dir, speed, 
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 def _draw_designcolorbar(colorbar_axes):
     plt.figure()
     designs = np.arange(1,23)
@@ -815,366 +830,216 @@ def _get_barplot(n_bars, draw_colorbar=True, larger_bottom=False):
         _draw_designcolorbar(cax)
     return fig, ax
 
-def plot_n_axons(n_axons, dest_dir, DIV_range, rank=False, show=False, fname_postfix=''):
-    # average over designs
-    if rank:
-        m = n_axons.unstack(level=('timelapse', 'CLSM_area')).mean(1)
-        n_axons = n_axons.reindex(m.sort_values(ascending=False).index, level=1)
-    n_axons_design_avg = n_axons.unstack(level=('timelapse', 'CLSM_area')).mean(1)
-    n_axons.sort_index(level=1, inplace=True)
-    
-    # x locations of bars
-    xlocs = np.arange(1,n_axons_design_avg.shape[0]+1)
-    
-    designs_idx = n_axons.index.get_level_values(1)
-    x, xlocs_single = 1, []
-    for i in range(len(designs_idx)):
-        xlocs_single.append(x)
-        if i+1<len(designs_idx) and designs_idx[i] != designs_idx[i+1]:
-            x += 1
-    # x_design_avg = n_axons.index.unique(1)
-    # x_design = n_axons.index.get_level_values('design')
-    
-    # get the figure
-    fig, ax = _get_barplot(n_bars=n_axons_design_avg.shape[0])
-    ax.tick_params(labelsize=config.SMALL_FONTS)
 
-    # set ticks
-    ax.set_xlim((xlocs[0]-.75, xlocs[-1]+.75))
-    ax.set_xticks(xlocs)
-    ax.set_xticklabels([f'D{x:0>2}' for x in n_axons_design_avg.index], 
-                       fontsize=config.FONTS)
-    lbl = 'Axons identified'
-    if DIV_range:
-        lbl += f' DIV{DIV_range[0]}-{DIV_range[1]}'
-    ax.set_ylabel(lbl, fontsize=config.FONTS)
-    
-    # finally draw the number of axons
-    ax.bar(xlocs, n_axons_design_avg, color=config.DESIGN_CMAP(n_axons_design_avg.index-1), zorder=1)
-    ax.scatter(xlocs_single, n_axons, marker='1', s=80, color='k', zorder=2)
-    
-    return _save_plot(show, dest_dir, 'naxons', DIV_range, fname_postfix)
-    
-
-
-
-
-
-# sorry for this monster...
-def plot_axon_destinations(destinations, dest_dir, neg_comp_metric, show=False, fname_postfix='', 
-                           order=None, design_subset=None, split_by='design',
-                           draw_bar_singles=False, draw_naxons_counts=True,
-                           which_bars='metric',
-                           shift_bar_singles=True):
-
-    # check that a valid column name was passed
-    if split_by not in destinations.index.names:
-        print(f'Invalid feature to split by: {split_by}. \n Valid are {destinations.index.names}')
-        exit(1)
-
-    # get rid of samples that don't have vlid values for that feature
-    notna = destinations.index.get_level_values(split_by) != 'NA'
-    destinations = destinations[notna]
+def select_designs(data, split_by, design_subset):
+    # get rid of samples that don't have valid values for that feature
+    notna = data[data.index.get_level_values(split_by) != 'NA']
     # limit plot to a subset of designs
     if design_subset:
-        destinations = destinations.loc[(slice(None), design_subset), :]
-    destinations.sort_index(level=split_by, inplace=True)
-
-    # take the mean over the passed dimension
-    destinations_mean = destinations[which_bars].groupby(level=split_by).mean()
-    mean = destinations_mean
-    
-    # define the order in which the bars are drawn, below ranks accornding to mean
-    if order=='rank':
-        order = mean.sort_values(ascending= not(which_bars!='neg_metric')).index
-    # an order of designs passed
-    elif order:
-        order = pd.Index(order)
-    # or just the alphabetical order
-    else:
-        order = destinations.index.unique(split_by)
-    
-    # use the order above the reindex
-    mean = mean.reindex(order)
-    # doesn't work for some reason???
-    # destinations = destinations.reindex(designs_order, level=split_by, axis=0)
-    indexer = tuple([slice(None) if level != split_by else order for level in destinations.index.names])
-    destinations = destinations.loc[indexer]
-
-    # x locations of bars
-    xlocs = np.arange(1,mean.shape[0]+1)
-    
-    # get the c index of the single datapoints 
-    idx = destinations.index.get_level_values(split_by)
-    x, xlocs_single = 1, []
-    for i in range(len(idx)):
-        xlocs_single.append(x)
-        # if the next index is different than the previous increase x by 1
-        if i+1<len(idx) and idx[i] != idx[i+1]:
-            x += 1
-
-    # get the figure
-    fig, ax = _get_barplot(n_bars=len(mean), draw_colorbar=False)
-    ax.tick_params(labelsize=config.SMALL_FONTS)
-
-    # setup title
-    split_by_lbl = split_by
-    if split_by_lbl == 'final lane design' or split_by_lbl == '2-joint design':
-        split_by_lbl += f', opening diameter {config.um}'
-    if split_by_lbl == 'channel width':
-        split_by_lbl += f' {config.um}'
-    ax.set_title(split_by_lbl, fontsize=config.FONTS )
-
-    # setup x axis
-    xmin, xmax = (xlocs[0]-.75, xlocs[-1]+.75)
-    ax.set_xlim(xmin, xmax)
-    ax.set_xticks(xlocs)
-    if split_by == 'design':
-        xtls = [f'D{i:0>2}' for i in mean.index]
-    else:
-        xtls = [i for i in mean.index]
-    ax.set_xticklabels(xtls, fontsize=config.FONTS , rotation=45, ha='right', va='top')
-    
-    # setup y axis
-    if which_bars in ['pos_metric', 'neg_metric']:
-        if neg_comp_metric == 'cross_grown':
-            ymin, ymax = 0, 15
-            yticks = np.arange(0, ymax, 4)
-        elif neg_comp_metric == 'directions':
-            ymin, ymax = 0, 120
-            yticks = np.arange(0,120,30)
-    elif draw_bar_singles:
-        if neg_comp_metric == 'cross_grown':
-            ymin, ymax = 0, 12
-            yticks = [0,1,4,8,]
-        elif neg_comp_metric == 'directions':
-            ymin, ymax = 0, 30
-            yticks = [0,1,10,20,]
-
-    elif which_bars == 'metric':
-        if neg_comp_metric == 'cross_grown':
-            ymin, ymax = 0, 3.5
-            yticks = np.arange(ymin, ymax, 1)
-        elif neg_comp_metric == 'directions':
-            ymin, ymax = 0, 18
-            yticks = np.arange(ymin, ymax, 3)
-
-
-    # y ticks left
-    ax.set_ylim(ymin, ymax)
-    ax.set_yticks(yticks)
-    ax.grid(axis='y', alpha=.6, linewidth=.7)
-
-    # y axis mess..... draw patches 
-    if which_bars == 'metric':
-        lbl = 'directionality ratio'
-        ax.set_ylabel(lbl, fontsize=config.FONTS )
-        ax.hlines([1.66, 1.33, .33, .66], xmin, xmax, linewidth=.5, alpha=.5, zorder=3)
-
-        ax.add_patch(Rectangle((0,1), xmax, ymax, color=config.GREEN, alpha=.1, zorder=1))
-        ax.add_patch(Rectangle((0,1), xmax, -1, color=config.RED, alpha=.1, zorder=1))
-    else:
-        ax.tick_params(axis='y', left=False, labelleft=False, right=True, labelright=True, 
-                       labelcolor='gray', labelsize=config.SMALL_FONTS)
-
-        if which_bars =='pos_metric':
-            text = 'reached\ntarget'
-            col = config.GREEN
-        else:
-            text = 'reached\nneighbour'
-            col = config.RED
-        ax.text(xmax+.2, 2, text, ha='left', va='center', fontsize=config.SMALL_FONTS, color='gray')
-        ax.add_patch(Rectangle((0,ymin), xmax, ymax-ymin, color=col, alpha=.1, zorder=1))
-
-    # get colors for bars, some bars have more than one color
-    main_cols = []
-    cols = []
-    split_by_values = mean.index
-    if split_by == 'design':
-        main_cols = config.DESIGN_CMAP(split_by_values)
-    else:
-        # more than one color
-        for val in split_by_values:
-            designs = destinations.reindex([val], level=split_by).index.unique('design')
-            cols.append(config.DESIGN_CMAP(designs))
-            main_cols.append(cols[-1][0])
-
-    
-    # draw bars
-    bw = .6
-    ax.bar(xlocs, mean, width=bw, zorder=4, color=main_cols)
-    
-    # and points forming bar
-    if draw_bar_singles:
-        # shift by abit to see overlapping points
-        if shift_bar_singles:
-            shift = (np.random.uniform(low=0, high=bw*(2/3), size=(len(xlocs_single)))) -bw*(2/6)
-        else:
-            shift = 0
-        
-        if which_bars == 'metric':
-            ax.scatter(xlocs_single + shift, destinations[which_bars], marker='.', 
-                       s=100, edgecolor='k', facecolor='w', zorder=200, linewidth=1.2,
-                       alpha=.7, clip_on=False)
-        
-        else:
-            # params for 3D plus and minus
-            yrange = abs(ymin)+abs(ymax)
-            x_diam = .18
-            thickness = .09
-            lw = .9
-
-            if which_bars == 'pos_metric':
-                y_diam = yrange*.03
-                patches = [_plus3D((x,y), x_diam, y_diam, lw, thickness) for x,y in zip(xlocs_single + shift, destinations[which_bars])]
-
-            elif which_bars == 'neg_metric':
-                y_diam = yrange*.007
-                patches = [_minus3D((x,y), x_diam, y_diam, lw, thickness) for x,y in zip(xlocs_single + shift, destinations[which_bars])]
-            [ax.add_patch(p) for p in patches]
-
-    # for feature split, bars have more than one color, draw ploygons here
-    if not split_by == 'design':
-        angle = .1
-        # iter bars
-        for i in range(len(mean)):
-            # get basic bar coordinates
-            y, x = mean.iloc[i], xlocs[i]
-            n_sections =  len(cols[i])
-            if n_sections == 1:
-                continue
-            # for bars of more than one color, get the evenly spaced bar segment centers
-            y_centers = np.linspace(0,y, n_sections+1)[1:-1]
-
-            # for each color draw a polygon that becomes higher but has a lower zorder
-            for j in range(n_sections-1):
-                bl = [x-bw/2, 0]
-                br = [x+bw/2, 0]
-                tl = [x-bw/2, y_centers[j]-angle]
-                tr = [x+bw/2, y_centers[j]+angle]
-                ax.add_patch(Polygon([bl,tl,tr,br], color=cols[i][j+1], zorder=100-j))
-    
-    # y axis on the right
-    if draw_naxons_counts:
-        ax2 = ax.twinx()
-        ax2.tick_params(axis='y', labelcolor='gray', labelsize=config.SMALL_FONTS)
-
-        if neg_comp_metric == 'cross_grown':
-            ymin2 = -15
-            ymax2 = ymin2* -2.5
-            yticks = np.arange(ymin2,ymax2, 15, dtype=int) 
-            y_text = (-7.5, 7.5)
-        elif neg_comp_metric == 'directions':
-            ymin2 = -40
-            ymax2 = 120
-            yticks = np.arange(ymin2,ymax2, 40, dtype=int) 
-            y_text = (-20, 20)
-            
-            ax2.hlines(0, xmin, xmax, edgecolor='k')
-        
-        ax2.set_ylim(ymin2, ymax2)
-        ax2.set_yticks(yticks)
-        ax2.set_yticklabels(np.abs(yticks))
-    
-        ax2.text(xmax+.2, y_text[0], 'reached\nneighbour', ha='left', va='center', fontsize=config.SMALL_FONTS, color='gray')
-        ax2.text(xmax+.2, y_text[1], 'reached\ntarget', ha='left', va='center', fontsize=config.SMALL_FONTS, color='gray')
-
-        ax2.scatter(xlocs_single, destinations.pos_metric, marker='+', s=90, color='k',  alpha=.75, zorder=5, linewidth=1.4)
-        ax2.scatter(xlocs_single, -destinations.neg_metric, marker='_', s=90, color='k', alpha=.75, zorder=5, linewidth=1.4)
-    return _save_plot(show, dest_dir, 'destinations', DIV_range=None, fname_postfix=fname_postfix)
+        data = data.loc[(slice(None), design_subset), :]
+    return data.sort_index(level=split_by)
     
 
-
-
-
-
-
-
-
-
-
-# sorry for this monster...
-def plot_axon_distribution(axon_data, dest_dir, which_metric, show=False, fname_postfix='', 
-                           order=None, design_subset=None, split_by='design',
-                           draw_bar_singles=False, mixed_colorbars=False,
-                           shift_bar_singles=True, bar_colors=None):
-
-    print(axon_data)
+def _select_axon_data(axon_data, split_by, order, design_subset):
     # check that a valid column name was passed
     if split_by not in axon_data.index.names:
         print(f'Invalid feature to split by: {split_by}. \n Valid are {axon_data.index.names}')
         exit(1)
 
-    def select_feature(data, split_by, design_subset):
-        # get rid of samples that don't have valid values for that feature
-        notna = data.index.get_level_values(split_by) != 'NA'
-        data = data[notna]
-        # limit plot to a subset of designs
-        if design_subset:
-            data = data.loc[(slice(None), design_subset), :]
-        return data.sort_index(level=split_by)
-    
-    axon_data = select_feature(axon_data, split_by, design_subset)
-
-    # take the mean over the passed dimension
-    
-    medians = axon_data.groupby(level=split_by).apply(lambda dat: dat.stack().median())
-    print(medians)
+    # select a design subset and drop samples for which the feature is NA
+    axon_data = select_designs(axon_data, split_by, design_subset)
+    feature_groups = axon_data.groupby(level=split_by)
+    feature_medians = feature_groups.apply(lambda dat: dat.stack().median())
 
     # define the order in which the bars are drawn, below ranks accornding to mean
-    if order == 'rank':
-        order = medians.sort_values(ascending= not(which_metric.startswith('neg_metric'))).index
+    if isinstance(order, str) and order.startswith('rank'):
+        # take the median over the passed dimension
+        asc = True if order.endswith('asc') else False
+        feature_names = feature_medians.sort_values(ascending=asc).index
     # an order of feature levels passed
     elif order:
-        order = pd.Index(order)
-    # or just the alphabetical order of feature level
+        feature_names = pd.Index(order)
+    # or just the alphabetical order of feature level (sorted by select designs)
     else:
-        order = axon_data.index.unique(split_by)
-    
-    # use the order above the reindex
-    medians = medians.reindex(order)
-    # doesn't work for some reason???
-    # destinations = destinations.reindex(designs_order, level=split_by, axis=0)
-    indexer = tuple([slice(None) if level != split_by else order for level in axon_data.index.names])
-    axon_data = axon_data.loc[indexer]
+        feature_names = feature_medians.index
+    feature_medians = feature_medians.reindex(feature_names)
+    feature_single_vals = [axon_data.loc[feature_groups.groups[fn]] for fn in feature_names]
+    return axon_data, feature_medians, feature_names, feature_single_vals
 
-    # x locations of bars
-    xlocs = np.arange(1,medians.shape[0]+1)
-    
-    # get the x index of the single datapoints 
-    idx = axon_data.index.get_level_values(split_by)
-    x, xlocs_single = 1, []
-    for i in range(len(idx)):
-        xlocs_single.append(x)
-        # if the next index is different than the previous increase x by 1
-        if i+1<len(idx) and idx[i] != idx[i+1]:
-            x += 1
 
-    # get the figure
-    fig, ax = _get_barplot(n_bars=len(medians), draw_colorbar=False)
-    ax.tick_params(labelsize=config.SMALL_FONTS)
 
-    # setup title
+
+def _draw_singles_scatter(ax, xlocs, feature_single_vals, spread=None, alpha=.7):
+    for x, vals in zip(xlocs, feature_single_vals):
+        vals = vals.stack()
+        if not spread:
+            single_xlocs = [x]*len(vals)
+        else:
+            single_xlocs = np.random.normal(x, spread*config.BAR_WIDTH, len(vals))
+        ax.scatter(single_xlocs, vals, marker='.', s=100, edgecolor='k', 
+                   facecolor='w', zorder=110, linewidth=1.2, alpha=alpha, 
+                   clip_on=False)
+
+def _setup_title(ax, split_by):
     split_by_lbl = split_by
     if split_by_lbl == 'final lane design' or split_by_lbl == '2-joint design':
         split_by_lbl += f', opening diameter {config.um}'
     if split_by_lbl == 'channel width':
         split_by_lbl += f' {config.um}'
-    ax.set_title(split_by_lbl, fontsize=config.FONTS )
+    ax.set_title(split_by_lbl, fontsize=config.FONTS)
 
-    # setup x axis
+# setup x axis
+def _setup_xaxis(ax, xlocs, split_by, xticklabels):
     xmin, xmax = (xlocs[0]-.75, xlocs[-1]+.75)
     ax.set_xlim(xmin, xmax)
     ax.set_xticks(xlocs)
-    if split_by == 'design':
-        xtls = [f'D{i:0>2}' for i in medians.index]
-    else:
-        xtls = [i for i in medians.index]
-    ax.set_xticklabels(xtls, fontsize=config.FONTS , rotation=45, ha='right', va='top')
     
-    # setup y axis
-    if which_metric in ['speed']:
-        ymin, ymax = 0, 4000
+    if split_by == 'design':
+        xticklabels = [f'D{i:0>2}' for i in xticklabels]
+    ax.set_xticklabels(xticklabels, fontsize=config.FONTS , rotation=45, 
+                        ha='right', va='top')
+    return xmin, xmax
+
+# get colors for bars, bars may have more than one color
+def _get_bbox_colors(split_by, feature_names, custom_colors, mixed_colorbars, axon_data):
+    main_cols, cols = [], []
+    if custom_colors:
+        main_cols = custom_colors
+    elif split_by == 'design':
+        main_cols = config.DESIGN_CMAP(feature_names)
+    elif mixed_colorbars:
+        # more than one color if mixed_colorbars
+        for val in feature_names:
+            designs = axon_data.reindex([val], level=split_by).index.unique('design')
+            cols.append(config.DESIGN_CMAP(designs))
+            main_cols.append(cols[-1][0])
+    else:
+        main_cols = [config.DEFAULT_COLORS[i] for i in range(len(feature_names))]
+    return cols, main_cols
+
+
+def _draw_distribution(ax, xlocs, feature_single_vals, feature_names, split_by, 
+                        violins, main_cols):
+    testing_data, bbox_coos = {}, []
+    for i, vals in enumerate(feature_single_vals):
+        Y = vals.stack()#.dropna().values
+        testing_data[f'{split_by}-{feature_names[i]}'] = Y
+        
+        if violins:
+            vp = ax.violinplot(Y, positions=(xlocs[i],), showmedians=True, 
+                            widths=config.BAR_WIDTH, showextrema=False)
+            body, median = vp['bodies'][0], vp['cmedians']
+        else:
+            bp = ax.boxplot(Y, widths=config.BAR_WIDTH, positions=(xlocs[i],), 
+                            patch_artist=True, showfliers=False)
+            body, median = bp['boxes'][0], bp['medians'][0]
+            median.set_zorder(120)
+            body.set_zorder(5)
+            bp['whiskers'][0].set_alpha(.7)
+            bp['whiskers'][1].set_alpha(.7)
+            bp['caps'][0].set_alpha(.7)
+            bp['caps'][1].set_alpha(.7)
+            bbox_coos.append(body.get_path().get_extents().get_points())
+
+        median.set_linewidth(2)
+        median.set_color('k')
+        body.set_alpha(1)
+        if split_by == 'design':
+            body.set_color(config.DESIGN_CMAP(feature_names[i]))
+        else:
+            body.set_color(main_cols[i])
+    return testing_data, bbox_coos
+
+
+def _multi_color_boxes(ax, body_coos, diag_height, colors, medians=None):
+    # iter bars
+    for i in range(len(body_coos)):
+        # get basic bar coordinates
+        xstart, ystart, xstop, ystop = body_coos[i].flatten()
+
+        if medians is not None:
+            ax.scatter(xstart+(xstop-xstart)/2, medians.iloc[i], s=50, color='k', 
+                       zorder=120)
+
+        n_sections =  len(colors[i])
+        if n_sections == 1:
+            continue
+        # for bars of more than one color, get the evenly spaced bar segment centers
+        y_centers = np.linspace(ystart, ystop, n_sections+1)[1:-1]
+
+        # for each color draw a polygon that becomes higher but has a lower zorder
+        for j in range(n_sections-1):
+            bl = [xstart, ystart]
+            br = [xstop, ystart]
+            tl = [xstart, y_centers[j]-diag_height]
+            tr = [xstop, y_centers[j]+diag_height]
+            ax.add_patch(Polygon([bl,tl,tr,br], color=colors[i][j+1], zorder=100-j))
+
+
+    
+def _save_plot(show, dest_dir, base_fname, DIV_range, fname_postfix):
+    if show:
+        plt.show()
+    else:
+        fname = f'{dest_dir}/{base_fname}'
+        if DIV_range:
+            fname += f'_DIV{DIV_range[0]}-{DIV_range[1]}'
+        fname = f'{fname}{fname_postfix}.{config.FIGURE_FILETYPE}'
+        print('Saving: ', fname)
+        plt.savefig(fname, dpi=300)
+        plt.close()
+        return fname
+
+def _plus3D(xy_center, x_diameter, y_diameter, linewidth, thickness, facecolor='w', edgecolor='k', zorder=200):
+    top, halftop, halfbottom, bottom = (-y_diameter/2, -y_diameter*thickness, y_diameter*thickness, y_diameter/2)
+    left, halfleft, halfright, right = (-x_diameter/2, -x_diameter*thickness, x_diameter*thickness, x_diameter/2)
+    x = (left, halfleft, halfleft, halfright, halfright, right, right, halfright, halfright, halfleft, halfleft, left)
+    y = (halftop, halftop, top, top, halftop, halftop, halfbottom, halfbottom, bottom, bottom, halfbottom, halfbottom)
+
+    coordinates = np.array((x,y)).T + xy_center
+    plus = Polygon(coordinates, linewidth=linewidth, facecolor=facecolor, 
+                edgecolor=edgecolor, zorder=zorder, clip_on=False, alpha=.8)
+    return plus
+
+def _minus3D(xy_center, x_diameter, y_diameter, linewidth, thickness, facecolor='w', edgecolor='k', zorder=200):
+    top, halftop, halfbottom, bottom = (-y_diameter/2, -y_diameter*thickness, y_diameter*thickness, y_diameter/2)
+    left, halfleft, halfright, right = (-x_diameter/2, -x_diameter*thickness, x_diameter*thickness, x_diameter/2)
+    x = (left, right, right, left)
+    y = (top, top, bottom, bottom)
+
+    coordinates = np.array((x,y)).T + xy_center
+    minus = Polygon(coordinates, linewidth=linewidth, facecolor=facecolor, 
+                edgecolor=edgecolor, zorder=zorder, clip_on=False, alpha=.8)
+    return minus
+
+# add green and red patch
+def _add_color_bg(ax, ymin, ymax, xmin, xmax, ystart=0, labels=True, flip=False, alpha=.12):
+    yshift = (abs(ymax) + abs(ymin)) *.02
+    xshift = (abs(xmax) + abs(xmin)) *.01
+
+    top_col, bottom_col = (config.RED, config.GREEN) if flip else (config.GREEN, config.RED)
+    ax.add_patch(Rectangle((xmin,ystart), xmax, ymax, color=top_col, 
+                    alpha=alpha, zorder=1))
+    ax.add_patch(Rectangle((xmin,ystart), xmax, ymin, color=bottom_col, 
+                    alpha=alpha, zorder=1))
+    if labels is True:
+        green_text, red_text = 'correct direc.', 'incorrect direc.'
+        if flip:
+            green_text, red_text = red_text, green_text
+
+    elif labels:
+        green_text, red_text = labels
+    else:
+        return
+    ax.text(xmax-xshift, ymax-yshift, green_text, ha='right', va='top', 
+            fontsize=config.SMALL_FONTS)
+    ax.text(xmax-xshift, ymin+yshift, red_text, ha='right', va='bottom', 
+            fontsize=config.SMALL_FONTS)
+    
+# setup y axis
+def _setup_yaxis(ax, which_metric):
+    if which_metric == 'speed':
+        ymin, ymax = 0, 4500
         yticks = [0,1500,3000,]
         ylbl = f'Axon growth {config.um_d}'
 
@@ -1182,108 +1047,390 @@ def plot_axon_distribution(axon_data, dest_dir, which_metric, show=False, fname_
         ymin, ymax = -1500, 1500
         yticks = [-1200,-400,0,400,1200]
         ylbl = f'{config.delta} dist. to output ch. {config.um}'
-
-        _add_color_bg(ax, ymin, ymax, xmin, xmax, flip=True)
     
+    elif which_metric == 'n_axons':
+        ymin, ymax = 0, 140
+        yticks = [0, 25,50,100]
+        ylbl = f'n axons'
+
     ax.set_ylim(ymin, ymax)
     ax.set_yticks(yticks)
     ax.set_ylabel(ylbl, fontsize=config.FONTS )
     ax.grid(axis='y', alpha=.6, linewidth=.7)
+    return (ymin, ymax), yticks
 
-    # get colors for bars, bars may have more than one color
-    main_cols = []
-    cols = []
-    split_by_values = medians.index
-    if bar_colors:
-        main_cols = bar_colors
-    elif split_by == 'design':
-        main_cols = config.DESIGN_CMAP(split_by_values)
-    elif mixed_colorbars:
-        # more than one color if mixed_colorbars
-        for val in split_by_values:
-            designs = axon_data.reindex([val], level=split_by).index.unique('design')
-            cols.append(config.DESIGN_CMAP(designs))
-            main_cols.append(cols[-1][0])
-    else:
-        main_cols = [config.DEFAULT_COLORS[i] for i in range(len(split_by_values))]
 
-    bw = config.BAR_WIDTH
+
+
+
+
+
+
+
+def plot_axon_distribution(axon_data, dest_dir, which_metric, show=False, 
+                          fname_postfix='', violins=False,
+                           order=None, design_subset=None, split_by='design',
+                           draw_bar_singles=False, mixed_colorbars=False,
+                           shift_bar_singles=True, custom_colors=None):
+
+    print(axon_data)
+    out = _select_axon_data(axon_data, split_by, order, design_subset)
+    axon_data, feature_medians, feature_names, feature_single_vals = out
+    n_features = len(feature_medians)
+
+    # get the figure
+    fig, ax = _get_barplot(n_bars=n_features, draw_colorbar=False)
+    ax.tick_params(labelsize=config.SMALL_FONTS, bottom=False)
+
+    # x locations of bars
+    xlocs = np.arange(1,n_features+1)
+
+    # setup title
+    _setup_title(ax, split_by)
+
+    # setup x axis
+    xmin, xmax = _setup_xaxis(ax, xlocs, split_by, feature_names)
+
+    # setup yaxis
+    (ymin, ymax), yticks = _setup_yaxis(ax, which_metric)
+    if which_metric == 'growth_direction':
+        _add_color_bg(ax, ymin, ymax, xmin, xmax, flip=True)
+    
+    # colors
+    cols, main_cols = _get_bbox_colors(split_by, feature_names, custom_colors, 
+                                       mixed_colorbars, axon_data)
 
     # finally draw the distributions
-    for i, x in enumerate(xlocs):
-        mask = axon_data.index.get_level_values(split_by) == medians.index[i]
-        Y = axon_data[mask].stack().dropna().values
-        # print(xtl[i], Y.shape, '\n')
-        vp = ax.boxplot(Y, widths=.6, positions=(x,), patch_artist=True, 
-                        whis=(5,95), showfliers=False)
-        vp['medians'][0].set_color('k')
-        vp['medians'][0].set_zorder(6)
-        vp['boxes'][0].set_zorder(5)
-        vp['boxes'][0].set_alpha(1)
-        if split_by == 'design':
-            vp['boxes'][0].set_color(config.DESIGN_CMAP(medians.index[i]))
-        else:
-            vp['boxes'][0].set_color(main_cols[i])
+    testing_data, bbox_coos = _draw_distribution(ax, xlocs, feature_single_vals, 
+                                                 feature_names, split_by, 
+                                                 violins, main_cols)
+    _setup_xaxis(ax, xlocs, split_by, feature_names) # for some reason resets after boxplot drawing, redo
 
-        print(vp['boxes'][0].get_path())
+    if draw_bar_singles:
+        _draw_singles_scatter( ax, xlocs, feature_single_vals, spread=.1, alpha=.2)
 
-    ax.set_xticks(xlocs)
-    ax.set_xticklabels(xtls, fontsize=config.FONTS )
+    if mixed_colorbars and not violins:
+        _multi_color_boxes(ax, bbox_coos, diag_height=.02*(abs(ymin)+ymax), 
+                           colors=cols, medians=feature_medians)
 
+    fname_postfix += f'_sb-{split_by}'
+    _save_plot(show, dest_dir, which_metric, DIV_range=None, 
+               fname_postfix=fname_postfix)    
+    return testing_data
 
     
-    # # and points forming bar
-    # if draw_bar_singles:
-    #     # shift by abit to see overlapping points
-    #     if shift_bar_singles:
-    #         shift = (np.random.uniform(low=0, high=bw*(2/3), size=(len(xlocs_single)))) -bw*(2/6)
-    #     else:
-    #         shift = 0
-        
-    #     if which_metric == 'metric':
-    #         ax.scatter(xlocs_single + shift, axon_data[which_metric], marker='.', 
-    #                    s=100, edgecolor='k', facecolor='w', zorder=200, linewidth=1.2,
-    #                    alpha=.7, clip_on=False)
-        
-    #     else:
-    #         # params for 3D plus and minus
-    #         yrange = abs(ymin)+abs(ymax)
-    #         x_diam = .18
-    #         thickness = .09
-    #         lw = .9
+# sorry for this monster...
+def plot_axon_counts(axon_data, dest_dir, which_metric, show=False, 
+                     fname_postfix='', 
+                     order=None, design_subset=None, split_by='design',
+                     draw_bar_singles=True, mixed_colorbars=False,
+                     shift_bar_singles=True, custom_colors=None):
 
-    #         if which_metric == 'pos_metric':
-    #             y_diam = yrange*.03
-    #             patches = [_plus3D((x,y), x_diam, y_diam, lw, thickness) for x,y in zip(xlocs_single + shift, axon_data[which_metric])]
-
-    #         elif which_metric == 'neg_metric':
-    #             y_diam = yrange*.007
-    #             patches = [_minus3D((x,y), x_diam, y_diam, lw, thickness) for x,y in zip(xlocs_single + shift, axon_data[which_metric])]
-    #         [ax.add_patch(p) for p in patches]
-
-    # for feature split, bars have more than one color, draw ploygons here
-    if not split_by == 'design' and mixed_colorbars:
-        angle = .1
-        # iter bars
-        for i in range(len(medians)):
-            # get basic bar coordinates
-            y, x = medians.iloc[i], xlocs[i]
-            n_sections =  len(cols[i])
-            if n_sections == 1:
-                continue
-            # for bars of more than one color, get the evenly spaced bar segment centers
-            y_centers = np.linspace(0,y, n_sections+1)[1:-1]
-
-            # for each color draw a polygon that becomes higher but has a lower zorder
-            for j in range(n_sections-1):
-                bl = [x-bw/2, 0]
-                br = [x+bw/2, 0]
-                tl = [x-bw/2, y_centers[j]-angle]
-                tr = [x+bw/2, y_centers[j]+angle]
-                ax.add_patch(Polygon([bl,tl,tr,br], color=cols[i][j+1], zorder=100-j))
+    out = _select_axon_data(axon_data, split_by, order, design_subset)
+    axon_data, feature_medians, feature_names, feature_single_vals = out
+    n_features = len(feature_medians)
     
-    return _save_plot(show, dest_dir, which_metric, DIV_range=None, 
-                      fname_postfix=fname_postfix)
+    # get the figure
+    fig, ax = _get_barplot(n_bars=n_features, draw_colorbar=False)
+    ax.tick_params(labelsize=config.SMALL_FONTS)
+    
+    # setup title
+    _setup_title(ax, split_by)
+
+    # x locations of bars
+    xlocs = np.arange(1,n_features+1)
+    _setup_xaxis(ax, xlocs, split_by, xticklabels=feature_names)
+
+    # setup y axis
+    (ymin, ymax), yticks = _setup_yaxis(ax, which_metric)
+
+    # get colors for bars, bars may have more than one color
+    cols, main_cols = _get_bbox_colors(split_by, feature_names, custom_colors, 
+                                       mixed_colorbars, axon_data)
+    
+    # finally draw the medians
+    for i, xloc in enumerate(xlocs):
+        ax.bar(xloc, feature_medians.iloc[i], width=config.BAR_WIDTH, 
+               color=main_cols[i], zorder=2)
+
+    if mixed_colorbars:
+        body_coos = [np.array([(xlocs[i]-config.BAR_WIDTH/2, 0),
+                               (xlocs[i]+config.BAR_WIDTH/2, feature_medians.iloc[i])]) 
+                     for i in range(len(feature_medians))]
+        _multi_color_boxes(ax, body_coos, diag_height=.02*(abs(ymin)+ymax), 
+                           colors=cols)
+
+    # y axis on the right
+    testing = {}
+    if draw_bar_singles:
+        ax2 = ax.twinx()
+        ax2.tick_params(axis='y', labelcolor=config.DARK_GRAY, 
+                        labelsize=config.SMALL_FONTS)
+
+        if which_metric == 'n_axons':
+            axes_scaler = 1
+            ylbl = 'n axons'
+        ax2.set_ylim(ymin*axes_scaler, ymax*axes_scaler)
+        ax2.set_yticks(yticks*axes_scaler)
+        ax2.set_ylabel(ylbl, fontsize=config.FONTS, color=config.DARK_GRAY)
+
+        _draw_singles_scatter(ax2, xlocs, feature_single_vals, spread=.08)
+        testing = {f'{split_by}-{f}': vals for f, vals in zip(feature_names,feature_single_vals)}
+
+    fname_postfix += f'_sb-{split_by}'
+    _save_plot(show, dest_dir, which_metric, DIV_range=None,
+               fname_postfix=fname_postfix)
+    return testing
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# # sorry for this monster...
+# def plot_axon_destinations(destinations, dest_dir, neg_comp_metric, show=False, fname_postfix='', 
+#                            order=None, design_subset=None, split_by='design',
+#                            draw_bar_singles=False, draw_naxons_counts=True,
+#                            which_bars='metric',
+#                            shift_bar_singles=True):
+
+#     # check that a valid column name was passed
+#     if split_by not in destinations.index.names:
+#         print(f'Invalid feature to split by: {split_by}. \n Valid are {destinations.index.names}')
+#         exit(1)
+
+#     # get rid of samples that don't have vlid values for that feature
+#     notna = destinations.index.get_level_values(split_by) != 'NA'
+#     destinations = destinations[notna]
+#     # limit plot to a subset of designs
+#     if design_subset:
+#         destinations = destinations.loc[(slice(None), design_subset), :]
+#     destinations.sort_index(level=split_by, inplace=True)
+
+#     # take the mean over the passed dimension
+#     destinations_mean = destinations[which_bars].groupby(level=split_by).mean()
+#     mean = destinations_mean
+    
+#     # define the order in which the bars are drawn, below ranks accornding to mean
+#     if order=='rank':
+#         order = mean.sort_values(ascending= not(which_bars!='neg_metric')).index
+#     # an order of designs passed
+#     elif order:
+#         order = pd.Index(order)
+#     # or just the alphabetical order
+#     else:
+#         order = destinations.index.unique(split_by)
+    
+#     # use the order above the reindex
+#     mean = mean.reindex(order)
+#     # doesn't work for some reason???
+#     # destinations = destinations.reindex(designs_order, level=split_by, axis=0)
+#     indexer = tuple([slice(None) if level != split_by else order for level in destinations.index.names])
+#     destinations = destinations.loc[indexer]
+
+#     # x locations of bars
+#     xlocs = np.arange(1,mean.shape[0]+1)
+    
+#     # get the c index of the single datapoints 
+#     idx = destinations.index.get_level_values(split_by)
+#     x, xlocs_single = 1, []
+#     for i in range(len(idx)):
+#         xlocs_single.append(x)
+#         # if the next index is different than the previous increase x by 1
+#         if i+1<len(idx) and idx[i] != idx[i+1]:
+#             x += 1
+
+#     # get the figure
+#     fig, ax = _get_barplot(n_bars=len(mean), draw_colorbar=False)
+#     ax.tick_params(labelsize=config.SMALL_FONTS)
+
+#     # setup title
+#     split_by_lbl = split_by
+#     if split_by_lbl == 'final lane design' or split_by_lbl == '2-joint design':
+#         split_by_lbl += f', opening diameter {config.um}'
+#     if split_by_lbl == 'channel width':
+#         split_by_lbl += f' {config.um}'
+#     ax.set_title(split_by_lbl, fontsize=config.FONTS )
+
+#     # setup x axis
+#     xmin, xmax = (xlocs[0]-.75, xlocs[-1]+.75)
+#     ax.set_xlim(xmin, xmax)
+#     ax.set_xticks(xlocs)
+#     if split_by == 'design':
+#         xtls = [f'D{i:0>2}' for i in mean.index]
+#     else:
+#         xtls = [i for i in mean.index]
+#     ax.set_xticklabels(xtls, fontsize=config.FONTS , rotation=45, ha='right', va='top')
+    
+#     # setup y axis
+#     if which_bars in ['pos_metric', 'neg_metric']:
+#         if neg_comp_metric == 'cross_grown':
+#             ymin, ymax = 0, 15
+#             yticks = np.arange(0, ymax, 4)
+#         elif neg_comp_metric == 'directions':
+#             ymin, ymax = 0, 120
+#             yticks = np.arange(0,120,30)
+#     elif draw_bar_singles:
+#         if neg_comp_metric == 'cross_grown':
+#             ymin, ymax = 0, 12
+#             yticks = [0,1,4,8,]
+#         elif neg_comp_metric == 'directions':
+#             ymin, ymax = 0, 30
+#             yticks = [0,1,10,20,]
+
+#     elif which_bars == 'metric':
+#         if neg_comp_metric == 'cross_grown':
+#             ymin, ymax = 0, 3.5
+#             yticks = np.arange(ymin, ymax, 1)
+#         elif neg_comp_metric == 'directions':
+#             ymin, ymax = 0, 18
+#             yticks = np.arange(ymin, ymax, 3)
+
+
+#     # y ticks left
+#     ax.set_ylim(ymin, ymax)
+#     ax.set_yticks(yticks)
+#     ax.grid(axis='y', alpha=.6, linewidth=.7)
+
+#     # y axis mess..... draw patches 
+#     if which_bars == 'metric':
+#         lbl = 'directionality ratio'
+#         ax.set_ylabel(lbl, fontsize=config.FONTS )
+#         ax.hlines([1.66, 1.33, .33, .66], xmin, xmax, linewidth=.5, alpha=.5, zorder=3)
+
+#         ax.add_patch(Rectangle((0,1), xmax, ymax, color=config.GREEN, alpha=.1, zorder=1))
+#         ax.add_patch(Rectangle((0,1), xmax, -1, color=config.RED, alpha=.1, zorder=1))
+#     else:
+#         ax.tick_params(axis='y', left=False, labelleft=False, right=True, labelright=True, 
+#                        labelcolor='gray', labelsize=config.SMALL_FONTS)
+
+#         if which_bars =='pos_metric':
+#             text = 'reached\ntarget'
+#             col = config.GREEN
+#         else:
+#             text = 'reached\nneighbour'
+#             col = config.RED
+#         ax.text(xmax+.2, 2, text, ha='left', va='center', fontsize=config.SMALL_FONTS, color='gray')
+#         ax.add_patch(Rectangle((0,ymin), xmax, ymax-ymin, color=col, alpha=.1, zorder=1))
+
+#     # get colors for bars, some bars have more than one color
+#     main_cols = []
+#     cols = []
+#     split_by_values = mean.index
+#     if split_by == 'design':
+#         main_cols = config.DESIGN_CMAP(split_by_values)
+#     else:
+#         # more than one color
+#         for val in split_by_values:
+#             designs = destinations.reindex([val], level=split_by).index.unique('design')
+#             cols.append(config.DESIGN_CMAP(designs))
+#             main_cols.append(cols[-1][0])
+
+    
+#     # draw bars
+#     bw = .6
+#     ax.bar(xlocs, mean, width=bw, zorder=4, color=main_cols)
+    
+#     # and points forming bar
+#     if draw_bar_singles:
+#         # shift by abit to see overlapping points
+#         if shift_bar_singles:
+#             shift = (np.random.uniform(low=0, high=bw*(2/3), size=(len(xlocs_single)))) -bw*(2/6)
+#         else:
+#             shift = 0
+        
+#         if which_bars == 'metric':
+#             ax.scatter(xlocs_single + shift, destinations[which_bars], marker='.', 
+#                        s=100, edgecolor='k', facecolor='w', zorder=200, linewidth=1.2,
+#                        alpha=.7, clip_on=False)
+        
+#         else:
+#             # params for 3D plus and minus
+#             yrange = abs(ymin)+abs(ymax)
+#             x_diam = .18
+#             thickness = .09
+#             lw = .9
+
+#             if which_bars == 'pos_metric':
+#                 y_diam = yrange*.03
+#                 patches = [_plus3D((x,y), x_diam, y_diam, lw, thickness) for x,y in zip(xlocs_single + shift, destinations[which_bars])]
+
+#             elif which_bars == 'neg_metric':
+#                 y_diam = yrange*.007
+#                 patches = [_minus3D((x,y), x_diam, y_diam, lw, thickness) for x,y in zip(xlocs_single + shift, destinations[which_bars])]
+#             [ax.add_patch(p) for p in patches]
+
+#     # for feature split, bars have more than one color, draw ploygons here
+#     if not split_by == 'design':
+#         angle = .1
+#         # iter bars
+#         for i in range(len(mean)):
+#             # get basic bar coordinates
+#             y, x = mean.iloc[i], xlocs[i]
+#             n_sections =  len(cols[i])
+#             if n_sections == 1:
+#                 continue
+#             # for bars of more than one color, get the evenly spaced bar segment centers
+#             y_centers = np.linspace(0,y, n_sections+1)[1:-1]
+
+#             # for each color draw a polygon that becomes higher but has a lower zorder
+#             for j in range(n_sections-1):
+#                 bl = [x-bw/2, 0]
+#                 br = [x+bw/2, 0]
+#                 tl = [x-bw/2, y_centers[j]-angle]
+#                 tr = [x+bw/2, y_centers[j]+angle]
+#                 ax.add_patch(Polygon([bl,tl,tr,br], color=cols[i][j+1], zorder=100-j))
+    
+#     # y axis on the right
+#     if draw_naxons_counts:
+#         ax2 = ax.twinx()
+#         ax2.tick_params(axis='y', labelcolor='gray', labelsize=config.SMALL_FONTS)
+
+#         if neg_comp_metric == 'cross_grown':
+#             ymin2 = -15
+#             ymax2 = ymin2* -2.5
+#             yticks = np.arange(ymin2,ymax2, 15, dtype=int) 
+#             y_text = (-7.5, 7.5)
+#         elif neg_comp_metric == 'directions':
+#             ymin2 = -40
+#             ymax2 = 120
+#             yticks = np.arange(ymin2,ymax2, 40, dtype=int) 
+#             y_text = (-20, 20)
+            
+#             ax2.hlines(0, xmin, xmax, edgecolor='k')
+        
+#         ax2.set_ylim(ymin2, ymax2)
+#         ax2.set_yticks(yticks)
+#         ax2.set_yticklabels(np.abs(yticks))
+    
+#         ax2.text(xmax+.2, y_text[0], 'reached\nneighbour', ha='left', va='center', fontsize=config.SMALL_FONTS, color='gray')
+#         ax2.text(xmax+.2, y_text[1], 'reached\ntarget', ha='left', va='center', fontsize=config.SMALL_FONTS, color='gray')
+
+#         ax2.scatter(xlocs_single, destinations.pos_metric, marker='+', s=90, color='k',  alpha=.75, zorder=5, linewidth=1.4)
+#         ax2.scatter(xlocs_single, -destinations.neg_metric, marker='_', s=90, color='k', alpha=.75, zorder=5, linewidth=1.4)
+#     return _save_plot(show, dest_dir, 'destinations', DIV_range=None, fname_postfix=fname_postfix)
     
 
 
@@ -1424,63 +1571,3 @@ def plot_axon_distribution(axon_data, dest_dir, which_metric, show=False, fname_
 #     ax.scatter(xlocs_single, directions.n_wrong_direc, marker='_', s=50, color='k', zorder=4, linewidth=1)
     
 #     return _save_plot(show, dest_dir, 'growth_direction_counted', DIV_range=None, fname_postfix=fname_postfix)
-    
-def _save_plot(show, dest_dir, base_fname, DIV_range, fname_postfix):
-    if show:
-        plt.show()
-    else:
-        fname = f'{dest_dir}/{base_fname}'
-        if DIV_range:
-            fname += f'_DIV{DIV_range[0]}-{DIV_range[1]}'
-        fname = f'{fname}{fname_postfix}.{config.FIGURE_FILETYPE}'
-        print('Saving: ', fname)
-        plt.savefig(fname, dpi=300)
-        plt.close()
-        return fname
-
-def _plus3D(xy_center, x_diameter, y_diameter, linewidth, thickness, facecolor='w', edgecolor='k', zorder=200):
-    top, halftop, halfbottom, bottom = (-y_diameter/2, -y_diameter*thickness, y_diameter*thickness, y_diameter/2)
-    left, halfleft, halfright, right = (-x_diameter/2, -x_diameter*thickness, x_diameter*thickness, x_diameter/2)
-    x = (left, halfleft, halfleft, halfright, halfright, right, right, halfright, halfright, halfleft, halfleft, left)
-    y = (halftop, halftop, top, top, halftop, halftop, halfbottom, halfbottom, bottom, bottom, halfbottom, halfbottom)
-
-    coordinates = np.array((x,y)).T + xy_center
-    plus = Polygon(coordinates, linewidth=linewidth, facecolor=facecolor, 
-                edgecolor=edgecolor, zorder=zorder, clip_on=False, alpha=.8)
-    return plus
-
-def _minus3D(xy_center, x_diameter, y_diameter, linewidth, thickness, facecolor='w', edgecolor='k', zorder=200):
-    top, halftop, halfbottom, bottom = (-y_diameter/2, -y_diameter*thickness, y_diameter*thickness, y_diameter/2)
-    left, halfleft, halfright, right = (-x_diameter/2, -x_diameter*thickness, x_diameter*thickness, x_diameter/2)
-    x = (left, right, right, left)
-    y = (top, top, bottom, bottom)
-
-    coordinates = np.array((x,y)).T + xy_center
-    minus = Polygon(coordinates, linewidth=linewidth, facecolor=facecolor, 
-                edgecolor=edgecolor, zorder=zorder, clip_on=False, alpha=.8)
-    return minus
-
-# add green and red patch
-def _add_color_bg(ax, ymin, ymax, xmin, xmax, ystart=0, labels=True, flip=False, alpha=.12):
-    yshift = (abs(ymax) + abs(ymin)) *.02
-    xshift = (abs(xmax) + abs(xmin)) *.01
-
-    top_col, bottom_col = (config.RED, config.GREEN) if flip else (config.GREEN, config.RED)
-    ax.add_patch(Rectangle((xmin,ystart), xmax, ymax, color=top_col, 
-                    alpha=alpha, zorder=1))
-    ax.add_patch(Rectangle((xmin,ystart), xmax, ymin, color=bottom_col, 
-                    alpha=alpha, zorder=1))
-    if labels is True:
-        green_text, red_text = 'correct direc.', 'incorrect direc.'
-        if flip:
-            green_text, red_text = red_text, green_text
-
-    elif labels:
-        green_text, red_text = labels
-    else:
-        return
-    ax.text(xmax-xshift, ymax-yshift, green_text, ha='right', va='top', 
-            fontsize=config.SMALL_FONTS)
-    ax.text(xmax-xshift, ymin+yshift, red_text, ha='right', va='bottom', 
-            fontsize=config.SMALL_FONTS)
-    
