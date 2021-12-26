@@ -1,0 +1,11 @@
+stagnating_2-joint design
+========================================================
+levels:dict_keys(['2-joint design-1.5', '2-joint design-3', '2-joint design-3, inlay', '2-joint design-3, tang.', '2-joint design-5']):
+ Kruskal Wallis t=1.449, p=0.83565
+ --> N.S.
+
+2-joint design-1.5, 2-joint design-1.5: p: 0.46775	2-joint design-1.5, 2-joint design-3: p: 0.46923	2-joint design-1.5, 2-joint design-3, inlay: p: 0.50000	2-joint design-1.5, 2-joint design-3, tang.: p: 0.27999	2-joint design-1.5, 2-joint design-5: p: 0.30016	
+2-joint design-3, 2-joint design-1.5: p: 0.46923	2-joint design-3, 2-joint design-3: p: 0.49917	2-joint design-3, 2-joint design-3, inlay: p: 0.40862	2-joint design-3, 2-joint design-3, tang.: p: 0.24411	2-joint design-3, 2-joint design-5: p: 0.16102	
+2-joint design-3, inlay, 2-joint design-1.5: p: 0.50000	2-joint design-3, inlay, 2-joint design-3: p: 0.40862	2-joint design-3, inlay, 2-joint design-3, inlay: p: 0.47881	2-joint design-3, inlay, 2-joint design-3, tang.: p: 0.35609	2-joint design-3, inlay, 2-joint design-5: p: 0.18424	
+2-joint design-3, tang., 2-joint design-1.5: p: 0.27999	2-joint design-3, tang., 2-joint design-3: p: 0.24411	2-joint design-3, tang., 2-joint design-3, inlay: p: 0.35609	2-joint design-3, tang., 2-joint design-3, tang.: p: 0.47881	2-joint design-3, tang., 2-joint design-5: p: 0.35588	
+2-joint design-5, 2-joint design-1.5: p: 0.30016	2-joint design-5, 2-joint design-3: p: 0.16102	2-joint design-5, 2-joint design-3, inlay: p: 0.18424	2-joint design-5, 2-joint design-3, tang.: p: 0.35588	2-joint design-5, 2-joint design-5: p: 0.47814	

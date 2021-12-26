@@ -1,0 +1,11 @@
+destinations_None_group2
+========================================================
+levels:dict_keys(['design-8-folddiff', 'design-2-folddiff', 'design-7-folddiff', 'design-6-folddiff', 'design-5-folddiff']):
+ Kruskal Wallis t=0.658, p=0.88311
+ --> N.S.
+
+design-8-folddiff, design-8-folddiff: p: 1.00000	design-8-folddiff, design-2-folddiff: p: 0.32736	design-8-folddiff, design-7-folddiff: p: 0.50000	design-8-folddiff, design-6-folddiff: p: 0.50000	design-8-folddiff, design-5-folddiff: p: 0.39952	
+design-2-folddiff, design-8-folddiff: p: 1.00000	design-2-folddiff, design-2-folddiff: p: 0.47410	design-2-folddiff, design-7-folddiff: p: 0.50000	design-2-folddiff, design-6-folddiff: p: 0.43481	design-2-folddiff, design-5-folddiff: p: 0.33260	
+design-7-folddiff, design-8-folddiff: p: 1.00000	design-7-folddiff, design-2-folddiff: p: 0.50000	design-7-folddiff, design-7-folddiff: p: 0.44121	design-7-folddiff, design-6-folddiff: p: 0.35550	design-7-folddiff, design-5-folddiff: p: 0.37382	
+design-6-folddiff, design-8-folddiff: p: 1.00000	design-6-folddiff, design-2-folddiff: p: 0.43481	design-6-folddiff, design-7-folddiff: p: 0.35550	design-6-folddiff, design-6-folddiff: p: 0.45549	design-6-folddiff, design-5-folddiff: p: 0.25399	
+design-5-folddiff, design-8-folddiff: p: 1.00000	design-5-folddiff, design-2-folddiff: p: 0.33260	design-5-folddiff, design-7-folddiff: p: 0.37382	design-5-folddiff, design-6-folddiff: p: 0.25399	design-5-folddiff, design-5-folddiff: p: 0.46679	

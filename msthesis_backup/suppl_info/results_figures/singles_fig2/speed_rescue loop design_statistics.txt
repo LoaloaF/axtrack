@@ -1,0 +1,8 @@
+speed_rescue loop design
+========================================================
+levels:dict_keys(['rescue loop design-angled', 'rescue loop design-straight']):
+ Kruskal Wallis t=2.000, p=0.15731
+ --> N.S.
+
+rescue loop design-angled, rescue loop design-angled: p: 0.49992	rescue loop design-angled, rescue loop design-straight: p: 0.07868	
+rescue loop design-straight, rescue loop design-angled: p: 0.07868	rescue loop design-straight, rescue loop design-straight: p: 0.49995	

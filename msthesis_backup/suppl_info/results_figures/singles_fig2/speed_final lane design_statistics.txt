@@ -1,0 +1,10 @@
+speed_final lane design
+========================================================
+levels:dict_keys(['final lane design-1.5, wide', 'final lane design-3', 'final lane design-3, wide', 'final lane design-neg.Ctrl']):
+ Kruskal Wallis t=8.501, p=0.03672
+ --> ***
+
+final lane design-1.5, wide, final lane design-1.5, wide: p: 0.49985	final lane design-1.5, wide, final lane design-3: p: 0.00462	final lane design-1.5, wide, final lane design-3, wide: p: 0.15822	final lane design-1.5, wide, final lane design-neg.Ctrl: p: 0.45353	
+final lane design-3, final lane design-1.5, wide: p: 0.00462	final lane design-3, final lane design-3: p: 0.49992	final lane design-3, final lane design-3, wide: p: 0.04651	final lane design-3, final lane design-neg.Ctrl: p: 0.01458	
+final lane design-3, wide, final lane design-1.5, wide: p: 0.15822	final lane design-3, wide, final lane design-3: p: 0.04651	final lane design-3, wide, final lane design-3, wide: p: 0.49990	final lane design-3, wide, final lane design-neg.Ctrl: p: 0.22585	
+final lane design-neg.Ctrl, final lane design-1.5, wide: p: 0.45353	final lane design-neg.Ctrl, final lane design-3: p: 0.01458	final lane design-neg.Ctrl, final lane design-3, wide: p: 0.22585	final lane design-neg.Ctrl, final lane design-neg.Ctrl: p: 0.49980	

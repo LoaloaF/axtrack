@@ -1,0 +1,9 @@
+growth_direction_counted_n rescue loops
+========================================================
+levels:dict_keys(['n rescue loops-0-forw', 'n rescue loops-1-forw', 'n rescue loops-3-forw']):
+ Kruskal Wallis t=11.987, p=0.00249
+ --> ***
+
+n rescue loops-0-forw, n rescue loops-0-forw: p: 0.49854	n rescue loops-0-forw, n rescue loops-1-forw: p: 0.14061	n rescue loops-0-forw, n rescue loops-3-forw: p: 0.00232	
+n rescue loops-1-forw, n rescue loops-0-forw: p: 0.14061	n rescue loops-1-forw, n rescue loops-1-forw: p: 0.49081	n rescue loops-1-forw, n rescue loops-3-forw: p: 0.00512	
+n rescue loops-3-forw, n rescue loops-0-forw: p: 0.00232	n rescue loops-3-forw, n rescue loops-1-forw: p: 0.00512	n rescue loops-3-forw, n rescue loops-3-forw: p: 0.49920	

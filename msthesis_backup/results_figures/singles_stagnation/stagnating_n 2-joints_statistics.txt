@@ -1,0 +1,9 @@
+stagnating_n 2-joints
+========================================================
+levels:dict_keys(['n 2-joints-0', 'n 2-joints-1', 'n 2-joints-3']):
+ Kruskal Wallis t=4.271, p=0.11819
+ --> N.S.
+
+n 2-joints-0, n 2-joints-0: p: 0.49755	n 2-joints-0, n 2-joints-1: p: 0.13672	n 2-joints-0, n 2-joints-3: p: 0.03374	
+n 2-joints-1, n 2-joints-0: p: 0.13672	n 2-joints-1, n 2-joints-1: p: 0.49941	n 2-joints-1, n 2-joints-3: p: 0.05090	
+n 2-joints-3, n 2-joints-0: p: 0.03374	n 2-joints-3, n 2-joints-1: p: 0.05090	n 2-joints-3, n 2-joints-3: p: 0.48843	

@@ -1,0 +1,10 @@
+stagnating_final lane design_design_subs
+========================================================
+levels:dict_keys(['final lane design-1.5, wide', 'final lane design-3', 'final lane design-3, wide', 'final lane design-neg.Ctrl']):
+ Kruskal Wallis t=2.887, p=0.40938
+ --> N.S.
+
+final lane design-1.5, wide, final lane design-1.5, wide: p: 0.44121	final lane design-1.5, wide, final lane design-3: p: 0.09898	final lane design-1.5, wide, final lane design-3, wide: p: 0.22709	final lane design-1.5, wide, final lane design-neg.Ctrl: p: 0.50000	
+final lane design-3, final lane design-1.5, wide: p: 0.09898	final lane design-3, final lane design-3: p: 0.47842	final lane design-3, final lane design-3, wide: p: 0.37067	final lane design-3, final lane design-neg.Ctrl: p: 0.11518	
+final lane design-3, wide, final lane design-1.5, wide: p: 0.22709	final lane design-3, wide, final lane design-3: p: 0.37067	final lane design-3, wide, final lane design-3, wide: p: 0.46728	final lane design-3, wide, final lane design-neg.Ctrl: p: 0.19544	
+final lane design-neg.Ctrl, final lane design-1.5, wide: p: 0.50000	final lane design-neg.Ctrl, final lane design-3: p: 0.11518	final lane design-neg.Ctrl, final lane design-3, wide: p: 0.19544	final lane design-neg.Ctrl, final lane design-neg.Ctrl: p: 0.44121	

@@ -1,0 +1,8 @@
+growth_direction_counted_2-joint placement
+========================================================
+levels:dict_keys(['2-joint placement-early-forw', '2-joint placement-late-forw']):
+ Kruskal Wallis t=7.617, p=0.00578
+ --> ***
+
+2-joint placement-early-forw, 2-joint placement-early-forw: p: 0.49937	2-joint placement-early-forw, 2-joint placement-late-forw: p: 0.00293	
+2-joint placement-late-forw, 2-joint placement-early-forw: p: 0.00293	2-joint placement-late-forw, 2-joint placement-late-forw: p: 0.49247	

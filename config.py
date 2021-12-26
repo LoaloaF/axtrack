@@ -38,8 +38,9 @@ elif where.startswith('/home/loaloa/gdrive/'):
     DEFAULT_NUM_WORKERS = 3
     VIDEO_ENCODER = 'ffmpeg'
 
-    OUTPUT_DIR = BASE_DIR + 'tl140_outputdata/'
     OUTPUT_DIR = '/home/loaloa/ETZ_drive/biohybrid-signal-p/model_output/'
+    RAW_TRAINING_DATA_DIR = '/home/loaloa/Documents/'
+    OUTPUT_DIR = BASE_DIR + 'tl140_outputdata/'
 SPACER = '========================================================'
 
 # plotting 
@@ -114,7 +115,7 @@ plt.rcParams["axes.prop_cycle"] = cycler('color', DEFAULT_COLORS)
 #    20: [1, 3, 'early', 8, 'angled',   '3um opening',         'narrower', 'no'],
 # }
 
-MIN_GROWTH_DELTA = 100
+MIN_GROWTH_DELTA = 50
 DESIGN_FEATURE_NAMES = ['n 2-joints', 'n rescue loops', '2-joint placement', 
                         'channel width', 'rescue loop design', '2-joint design', 
                         'final lane design', 'use spiky tracks']

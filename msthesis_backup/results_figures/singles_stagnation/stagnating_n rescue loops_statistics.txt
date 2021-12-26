@@ -1,0 +1,9 @@
+stagnating_n rescue loops
+========================================================
+levels:dict_keys(['n rescue loops-0', 'n rescue loops-1', 'n rescue loops-3']):
+ Kruskal Wallis t=1.195, p=0.55011
+ --> N.S.
+
+n rescue loops-0, n rescue loops-0: p: 0.49854	n rescue loops-0, n rescue loops-1: p: 0.49328	n rescue loops-0, n rescue loops-3: p: 0.16442	
+n rescue loops-1, n rescue loops-0: p: 0.49328	n rescue loops-1, n rescue loops-1: p: 0.49076	n rescue loops-1, n rescue loops-3: p: 0.23557	
+n rescue loops-3, n rescue loops-0: p: 0.16442	n rescue loops-3, n rescue loops-1: p: 0.23557	n rescue loops-3, n rescue loops-3: p: 0.49920	

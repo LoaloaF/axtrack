@@ -1,0 +1,8 @@
+destinations_rescue loop design_design_subs
+========================================================
+levels:dict_keys(['rescue loop design-straight-folddiff', 'rescue loop design-angled-folddiff']):
+ Kruskal Wallis t=0.541, p=0.46214
+ --> N.S.
+
+rescue loop design-straight-folddiff, rescue loop design-straight-folddiff: p: 0.46775	rescue loop design-straight-folddiff, rescue loop design-angled-folddiff: p: 0.25998	
+rescue loop design-angled-folddiff, rescue loop design-straight-folddiff: p: 0.25998	rescue loop design-angled-folddiff, rescue loop design-angled-folddiff: p: 0.45667	

@@ -1,0 +1,70 @@
+timelapse,design,CLSM_area,n 2-joints,n rescue loops,2-joint placement,channel width,rescue loop design,2-joint design,final lane design,use spiky tracks,pos_metric,neg_metric,metric
+tl13,2,G001,0,0,NA,8,NA,NA,3,no,4.0,3.0,1.25
+tl13,2,G005,0,0,NA,8,NA,NA,3,no,12.0,10.0,1.1818181818181819
+tl13,3,G002,0,0,NA,3,NA,NA,3,no,11.0,4.0,2.4
+tl13,3,G006,0,0,NA,3,NA,NA,3,no,4.0,7.0,0.625
+tl13,4,G003,0,0,NA,1.5,NA,NA,3,no,12.0,3.0,3.25
+tl13,4,G007,0,0,NA,1.5,NA,NA,3,no,9.0,3.0,2.5
+tl13,5,G017,1,0,late,8,NA,3,3,no,9.0,3.0,2.5
+tl13,5,G021,1,0,late,8,NA,3,3,no,4.0,1.0,2.5
+tl13,6,G018,3,0,late,8,NA,3,3,no,10.0,0.0,11.0
+tl13,6,G022,3,0,late,8,NA,3,3,no,4.0,8.0,0.5555555555555556
+tl13,7,G019,1,0,early,8,NA,3,3,no,2.0,2.0,1.0
+tl13,7,G023,1,0,early,8,NA,3,3,no,7.0,4.0,1.6
+tl13,9,G016,0,1,NA,8,angled,NA,3,no,6.0,7.0,0.875
+tl13,11,G011,0,3,NA,8,angled,NA,3,no,8.0,3.0,2.25
+tl13,11,G015,0,3,NA,8,angled,NA,3,no,4.0,0.0,5.0
+tl13,10,G010,1,1,early,8,angled,3,3,no,9.0,0.0,10.0
+tl13,10,G014,1,1,early,8,angled,3,3,no,3.0,7.0,0.5
+tl13,12,G009,1,3,early,8,angled,3,3,no,3.0,0.0,4.0
+tl13,12,G013,1,3,early,8,angled,3,3,no,7.0,1.0,4.0
+tl13,14,G025,1,3,early,8,angled,5,3,no,4.0,0.0,5.0
+tl13,14,G029,1,3,early,8,angled,5,3,no,4.0,1.0,2.5
+tl13,16,G030,1,3,early,8,angled,1.5,3,no,3.0,7.0,0.5
+tl13,15,G027,1,3,early,8,angled,"3, tang.",3,no,6.0,4.0,1.4
+tl13,15,G031,1,3,early,8,angled,"3, tang.",3,no,3.0,3.0,1.0
+tl13,17,G028,1,3,early,8,straight,3,3,no,6.0,1.0,3.5
+tl13,17,G032,1,3,early,8,straight,3,3,no,11.0,5.0,2.0
+tl13,13,G033,1,3,early,8,angled,"3, inlay",3,no,2.0,0.0,3.0
+tl13,13,G037,1,3,early,8,angled,"3, inlay",3,no,7.0,1.0,4.0
+tl13,20,G034,1,3,early,8,angled,3,3,yes,9.0,2.0,3.3333333333333335
+tl13,20,G038,1,3,early,8,angled,3,3,yes,7.0,3.0,2.0
+tl13,18,G039,1,3,early,8,angled,3,"3, wide",no,9.0,4.0,2.0
+tl14,2,G001,0,0,NA,8,NA,NA,3,no,8.0,2.0,3.0
+tl14,2,G013,0,0,NA,8,NA,NA,3,no,1.0,0.0,2.0
+tl14,0,G041,NA,NA,NA,NA,NA,NA,NA,no,0.0,7.0,0.125
+tl14,0,G042,NA,NA,NA,NA,NA,NA,NA,no,0.0,1.0,0.5
+tl14,5,G005,1,0,late,8,NA,3,3,no,0.0,0.0,1.0
+tl14,5,G009,1,0,late,8,NA,3,3,no,0.0,2.0,0.3333333333333333
+tl14,6,G006,3,0,late,8,NA,3,3,no,1.0,1.0,1.0
+tl14,6,G010,3,0,late,8,NA,3,3,no,0.0,0.0,1.0
+tl14,7,G007,1,0,early,8,NA,3,3,no,0.0,0.0,1.0
+tl14,7,G011,1,0,early,8,NA,3,3,no,0.0,0.0,1.0
+tl14,8,G008,3,0,early,8,NA,3,3,no,0.0,0.0,1.0
+tl14,8,G012,3,0,early,8,NA,3,3,no,1.0,0.0,2.0
+tl14,9,G017,0,1,NA,8,angled,NA,3,no,6.0,2.0,2.3333333333333335
+tl14,9,G029,0,1,NA,8,angled,NA,3,no,5.0,0.0,6.0
+tl14,11,G018,0,3,NA,8,angled,NA,3,no,2.0,1.0,1.5
+tl14,11,G030,0,3,NA,8,angled,NA,3,no,0.0,1.0,0.5
+tl14,10,G019,1,1,early,8,angled,3,3,no,3.0,1.0,2.0
+tl14,10,G031,1,1,early,8,angled,3,3,no,0.0,1.0,0.5
+tl14,12,G020,1,3,early,8,angled,3,3,no,0.0,2.0,0.3333333333333333
+tl14,12,G032,1,3,early,8,angled,3,3,no,0.0,2.0,0.3333333333333333
+tl14,14,G021,1,3,early,8,angled,5,3,no,0.0,0.0,1.0
+tl14,14,G025,1,3,early,8,angled,5,3,no,3.0,0.0,4.0
+tl14,16,G022,1,3,early,8,angled,1.5,3,no,2.0,1.0,1.5
+tl14,16,G026,1,3,early,8,angled,1.5,3,no,0.0,0.0,1.0
+tl14,15,G023,1,3,early,8,angled,"3, tang.",3,no,0.0,1.0,0.5
+tl14,15,G027,1,3,early,8,angled,"3, tang.",3,no,6.0,4.0,1.4
+tl14,17,G024,1,3,early,8,straight,3,3,no,3.0,0.0,4.0
+tl14,17,G028,1,3,early,8,straight,3,3,no,0.0,1.0,0.5
+tl14,13,G033,1,3,early,8,angled,"3, inlay",3,no,0.0,1.0,0.5
+tl14,13,G037,1,3,early,8,angled,"3, inlay",3,no,5.0,0.0,6.0
+tl14,20,G034,1,3,early,8,angled,3,3,yes,0.0,1.0,0.5
+tl14,20,G038,1,3,early,8,angled,3,3,yes,2.0,0.0,3.0
+tl14,18,G035,1,3,early,8,angled,3,"3, wide",no,0.0,0.0,1.0
+tl14,18,G039,1,3,early,8,angled,3,"3, wide",no,3.0,0.0,4.0
+tl14,19,G036,1,3,early,8,angled,3,"1.5, wide",no,0.0,0.0,1.0
+tl14,19,G040,1,3,early,8,angled,3,"1.5, wide",no,6.0,1.0,3.5
+tl14,1,G004,0,0,NA,8,NA,NA,neg.Ctrl,no,2.0,1.0,1.5
+tl14,1,G016,0,0,NA,8,NA,NA,neg.Ctrl,no,0.0,5.0,0.16666666666666666

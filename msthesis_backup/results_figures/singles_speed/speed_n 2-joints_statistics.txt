@@ -1,0 +1,9 @@
+speed_n 2-joints
+========================================================
+levels:dict_keys(['n 2-joints-0', 'n 2-joints-1', 'n 2-joints-3']):
+ Kruskal Wallis t=22.674, p=0.00001
+ --> ***
+
+n 2-joints-0, n 2-joints-0: p: 0.49998	n 2-joints-0, n 2-joints-1: p: 0.22442	n 2-joints-0, n 2-joints-3: p: 0.00005	
+n 2-joints-1, n 2-joints-0: p: 0.22442	n 2-joints-1, n 2-joints-1: p: 0.49999	n 2-joints-1, n 2-joints-3: p: 0.00000	
+n 2-joints-3, n 2-joints-0: p: 0.00005	n 2-joints-3, n 2-joints-1: p: 0.00000	n 2-joints-3, n 2-joints-3: p: 0.49996	

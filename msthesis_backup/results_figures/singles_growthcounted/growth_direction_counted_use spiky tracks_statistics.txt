@@ -1,0 +1,8 @@
+growth_direction_counted_use spiky tracks
+========================================================
+levels:dict_keys(['use spiky tracks-no-forw', 'use spiky tracks-yes-forw']):
+ Kruskal Wallis t=0.032, p=0.85898
+ --> N.S.
+
+use spiky tracks-no-forw, use spiky tracks-no-forw: p: 0.49967	use spiky tracks-no-forw, use spiky tracks-yes-forw: p: 0.43128	
+use spiky tracks-yes-forw, use spiky tracks-no-forw: p: 0.43128	use spiky tracks-yes-forw, use spiky tracks-yes-forw: p: 0.47894	

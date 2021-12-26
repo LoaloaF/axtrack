@@ -1,0 +1,92 @@
+@article{BN,
+   abstract = {Training Deep Neural Networks is complicated by the fact that the
+distribution of each layer's inputs changes during training, as the parameters
+of the previous layers change. This slows down the training by requiring lower
+learning rates and careful parameter initialization, and makes it notoriously
+hard to train models with saturating nonlinearities. We refer to this
+phenomenon as internal covariate shift, and address the problem by normalizing
+layer inputs. Our method draws its strength from making normalization a part of
+the model architecture and performing the normalization for each training
+mini-batch. Batch Normalization allows us to use much higher learning rates and
+be less careful about initialization. It also acts as a regularizer, in some
+cases eliminating the need for Dropout. Applied to a state-of-the-art image
+classification model, Batch Normalization achieves the same accuracy with 14
+times fewer training steps, and beats the original model by a significant
+margin. Using an ensemble of batch-normalized networks, we improve upon the
+best published result on ImageNet classification: reaching 4.9% top-5
+validation error (and 4.8% test error), exceeding the accuracy of human raters.},
+   author = {Sergey Ioffe and Christian Szegedy},
+   isbn = {9781510810587},
+   journal = {32nd International Conference on Machine Learning, ICML 2015},
+   keywords = {()},
+   month = {2},
+   pages = {448-456},
+   publisher = {International Machine Learning Society (IMLS)},
+   title = {Batch Normalization: Accelerating Deep Network Training by Reducing Internal Covariate Shift},
+   volume = {1},
+   url = {https://arxiv.org/abs/1502.03167v3},
+   year = {2015},
+}
+@article{nms,
+   abstract = {Non-maximum suppression is an integral part of the object detection pipeline. First, it sorts all detection boxes on the basis of their scores. The detection box M with the maximum score is selected and all other detection boxes with a significant overlap (using a pre-defined threshold) with M are suppressed. This process is recursively applied on the remaining boxes. As per the design of the algorithm, if an object lies within the predefined overlap threshold, it leads to a miss. To this end, we propose Soft-NMS, an algorithm which decays the detection scores of all other objects as a continuous function of their overlap with M. Hence, no object is eliminated in this process. Soft-NMS obtains consistent improvements for the coco-style mAP metric on standard datasets like PASCAL VOC 2007 (1.7% for both R-FCN and Faster-RCNN) and MS-COCO (1.3% for R-FCN and 1.1% for Faster-RCNN) by just changing the NMS algorithm without any additional hyper-parameters. Using Deformable-RFCN, Soft-NMS improves state-of-the-art in object detection from 39.8% to 40.9% with a single model. Further, the computational complexity of Soft-NMS is the same as traditional NMS and hence it can be efficiently implemented. Since Soft-NMS does not require any extra training and is simple to implement, it can be easily integrated into any object detection pipeline. Code for Soft-NMS is publicly available on GitHub http://bit.ly/ 2nJLNMu.},
+   author = {Navaneeth Bodla and Bharat Singh and Rama Chellappa and Larry S Davis},
+   title = {Improving Object Detection With One Line of Code},
+   url = {http://bit.ly/},
+}
+@article{forro,
+   abstract = {Theoretical and in vivo neuroscience research suggests that functional information transfer within neuronal networks is influenced by circuit architecture. Due to the dynamic complexities of the brain, it remains a challenge to test the correlation between structure and function of a defined network. Engineering controlled neuronal networks in vitro offers a way to test structural motifs; however, no method has achieved small, multi-node networks with stable, unidirectional connections. Here, we screened ten different microchannel architectures within polydimethylsiloxane (PDMS) devices to test their potential for axonal guidance. The most successful design had a 92% probability of achieving strictly unidirectional connections between nodes. Networks built from this design were cultured on multielectrode arrays and recorded on days in vitro 9, 12, 15 and 18 to investigate spontaneous and evoked bursting activity. Transfer entropy between subsequent nodes showed up to 100 times more directional flow of information compared to the control. Additionally, directed networks produced a greater amount of information flow, reinforcing the importance of directional connections in the brain being critical for reliable communication. By controlling the parameters of network formation, we minimized response variability and achieved functional, directional networks. The technique provides us with a tool to probe the spatio-temporal effects of different network motifs.},
+   author = {Csaba Forró and Greta Thompson-Steckel and Sean Weaver and Serge Weydert and Stephan Ihle and Harald Dermutz and Mathias J. Aebersold and Raphael Pilz and László Demkó and János Vörös},
+   doi = {10.1016/J.BIOS.2018.08.075},
+   issn = {0956-5663},
+   journal = {Biosensors and Bioelectronics},
+   keywords = {Axon guidance,Brains on a chip,Extracellular recordings,Functional connectivity,In vitro neuronal networks,Multi-electrode array,PDMS microstructures},
+   month = {12},
+   pages = {75-87},
+   publisher = {Elsevier},
+   title = {Modular microstructure design to build neuronal networks of defined functional connectivity},
+   volume = {122},
+   year = {2018},
+}
+@article{Sofroniew2021,
+   author = {Nicholas Sofroniew and Talley Lambert and Kira Evans and Juan Nunez-Iglesias and Grzegorz Bokota and Gonzalo Peña-Castellanos and Philip Winston and Kevin Yamauchi and Matthias Bussonnier and Draga Doncila Pop and Ziyang Liu and ACS and Pam and alisterburt and Genevieve Buckley and Andy Sweet and Lorenzo Gaifas and Jaime Rodríguez-Guerra and Lukasz Migas and Volker Hilsenstein and Jordão Bragantini and Gregory R. Lee and Hector and Jeremy Freeman and Peter Boone and Alan R Lowe and Christoph Gohlke and Loic Royer and Andrea PIERRÉ and Hagai Har-Gil},
+   doi = {10.5281/ZENODO.5587893},
+   month = {10},
+   title = {napari/napari: 0.4.12rc2},
+   url = {https://zenodo.org/record/5587893},
+   year = {2021},
+}
+@article{leakyrelu,
+   abstract = {Deep neural network acoustic models produce substantial gains in large vocabulary continuous speech recognition systems. Emerging work with rectified linear (ReL) hidden units demonstrates additional gains in final system performance relative to more commonly used sigmoidal nonlinearities. In this work, we explore the use of deep rectifier networks as acoustic models for the 300 hour Switchboard conversational speech recognition task. Using simple training procedures without pretraining, networks with rectifier nonlinearities produce 2% absolute reductions in word error rates over their sigmoidal counterparts. We analyze hidden layer representations to quantify differences in how ReL units encode inputs as compared to sigmoidal units. Finally, we evaluate a variant of the ReL unit with a gradient more amenable to optimization in an attempt to further improve deep rectifier networks.},
+   author = {Andrew L Maas and Awni Y Hannun and Andrew Y Ng},
+   title = {Rectifier Nonlinearities Improve Neural Network Acoustic Models},
+   year = {2013},
+}
+@article{yolo,
+   abstract = {We present YOLO, a new approach to object detection. Prior work on object
+detection repurposes classifiers to perform detection. Instead, we frame object
+detection as a regression problem to spatially separated bounding boxes and
+associated class probabilities. A single neural network predicts bounding boxes
+and class probabilities directly from full images in one evaluation. Since the
+whole detection pipeline is a single network, it can be optimized end-to-end
+directly on detection performance. Our unified architecture is extremely fast. Our base YOLO model processes
+images in real-time at 45 frames per second. A smaller version of the network,
+Fast YOLO, processes an astounding 155 frames per second while still achieving
+double the mAP of other real-time detectors. Compared to state-of-the-art
+detection systems, YOLO makes more localization errors but is far less likely
+to predict false detections where nothing exists. Finally, YOLO learns very
+general representations of objects. It outperforms all other detection methods,
+including DPM and R-CNN, by a wide margin when generalizing from natural images
+to artwork on both the Picasso Dataset and the People-Art Dataset.},
+   author = {Joseph Redmon and Santosh Divvala and Ross Girshick and Ali Farhadi},
+   doi = {10.1109/CVPR.2016.91},
+   isbn = {9781467388504},
+   issn = {10636919},
+   journal = {Proceedings of the IEEE Computer Society Conference on Computer Vision and Pattern Recognition},
+   month = {6},
+   pages = {779-788},
+   publisher = {IEEE Computer Society},
+   title = {You Only Look Once: Unified, Real-Time Object Detection},
+   volume = {2016-December},
+   url = {https://arxiv.org/abs/1506.02640v5},
+   year = {2015},
+}

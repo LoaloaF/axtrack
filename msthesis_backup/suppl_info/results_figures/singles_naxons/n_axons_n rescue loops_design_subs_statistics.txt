@@ -1,0 +1,9 @@
+n_axons_n rescue loops_design_subs
+========================================================
+levels:dict_keys(['n rescue loops-0', 'n rescue loops-1', 'n rescue loops-3']):
+ Kruskal Wallis t=0.472, p=0.78962
+ --> N.S.
+
+n rescue loops-0, n rescue loops-0: p: 0.47881	n rescue loops-0, n rescue loops-1: p: 0.31617	n rescue loops-0, n rescue loops-3: p: 0.40314	
+n rescue loops-1, n rescue loops-0: p: 0.31617	n rescue loops-1, n rescue loops-1: p: 0.49081	n rescue loops-1, n rescue loops-3: p: 0.28018	
+n rescue loops-3, n rescue loops-0: p: 0.40314	n rescue loops-3, n rescue loops-1: p: 0.28018	n rescue loops-3, n rescue loops-3: p: 0.49247	

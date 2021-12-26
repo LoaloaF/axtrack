@@ -1,0 +1,9 @@
+n_axons_n 2-joints
+========================================================
+levels:dict_keys(['n 2-joints-0', 'n 2-joints-1', 'n 2-joints-3']):
+ Kruskal Wallis t=11.439, p=0.00328
+ --> ***
+
+n 2-joints-0, n 2-joints-0: p: 0.49080	n 2-joints-0, n 2-joints-1: p: 0.00095	n 2-joints-0, n 2-joints-3: p: 0.00231	
+n 2-joints-1, n 2-joints-0: p: 0.00095	n 2-joints-1, n 2-joints-1: p: 0.49732	n 2-joints-1, n 2-joints-3: p: 0.49474	
+n 2-joints-3, n 2-joints-0: p: 0.00231	n 2-joints-3, n 2-joints-1: p: 0.49474	n 2-joints-3, n 2-joints-3: p: 0.48845	

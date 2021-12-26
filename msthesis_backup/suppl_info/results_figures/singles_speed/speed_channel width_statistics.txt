@@ -1,0 +1,9 @@
+speed_channel width
+========================================================
+levels:dict_keys(['channel width-1.5', 'channel width-3.0', 'channel width-8.0']):
+ Kruskal Wallis t=183.791, p=0.00000
+ --> ***
+
+channel width-1.5, channel width-1.5: p: 0.49987	channel width-1.5, channel width-3.0: p: 0.02089	channel width-1.5, channel width-8.0: p: 0.00000	
+channel width-3.0, channel width-1.5: p: 0.02089	channel width-3.0, channel width-3.0: p: 0.49987	channel width-3.0, channel width-8.0: p: 0.00000	
+channel width-8.0, channel width-1.5: p: 0.00000	channel width-8.0, channel width-3.0: p: 0.00000	channel width-8.0, channel width-8.0: p: 0.49995	

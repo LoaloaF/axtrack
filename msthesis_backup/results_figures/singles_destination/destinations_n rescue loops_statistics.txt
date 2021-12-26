@@ -1,0 +1,9 @@
+destinations_n rescue loops
+========================================================
+levels:dict_keys(['n rescue loops-1-folddiff', 'n rescue loops-3-folddiff', 'n rescue loops-0-folddiff']):
+ Kruskal Wallis t=0.389, p=0.82307
+ --> N.S.
+
+n rescue loops-1-folddiff, n rescue loops-1-folddiff: p: 0.48677	n rescue loops-1-folddiff, n rescue loops-3-folddiff: p: 0.45418	n rescue loops-1-folddiff, n rescue loops-0-folddiff: p: 0.27590	
+n rescue loops-3-folddiff, n rescue loops-1-folddiff: p: 0.45418	n rescue loops-3-folddiff, n rescue loops-3-folddiff: p: 0.49857	n rescue loops-3-folddiff, n rescue loops-0-folddiff: p: 0.30331	
+n rescue loops-0-folddiff, n rescue loops-1-folddiff: p: 0.27590	n rescue loops-0-folddiff, n rescue loops-3-folddiff: p: 0.30331	n rescue loops-0-folddiff, n rescue loops-0-folddiff: p: 0.49764	

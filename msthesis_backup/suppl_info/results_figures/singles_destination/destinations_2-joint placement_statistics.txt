@@ -1,0 +1,8 @@
+destinations_2-joint placement
+========================================================
+levels:dict_keys(['2-joint placement-early-folddiff', '2-joint placement-late-folddiff']):
+ Kruskal Wallis t=0.012, p=0.91195
+ --> N.S.
+
+2-joint placement-early-folddiff, 2-joint placement-early-folddiff: p: 0.49883	2-joint placement-early-folddiff, 2-joint placement-late-folddiff: p: 0.45935	
+2-joint placement-late-folddiff, 2-joint placement-early-folddiff: p: 0.45935	2-joint placement-late-folddiff, 2-joint placement-late-folddiff: p: 0.48639	

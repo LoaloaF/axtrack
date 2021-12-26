@@ -1,0 +1,11 @@
+growth_direction_counted_None_group1
+========================================================
+levels:dict_keys(['design-0-forw', 'design-1-forw', 'design-2-forw', 'design-3-forw', 'design-4-forw']):
+ Kruskal Wallis t=2.700, p=0.60921
+ --> N.S.
+
+design-0-forw, design-0-forw: p: 0.44121	design-0-forw, design-1-forw: p: 0.15616	design-0-forw, design-2-forw: p: 0.46616	design-0-forw, design-3-forw: p: 0.44262	design-0-forw, design-4-forw: p: 0.23524	
+design-1-forw, design-0-forw: p: 0.15616	design-1-forw, design-1-forw: p: 0.44121	design-1-forw, design-2-forw: p: 0.27611	design-1-forw, design-3-forw: p: 0.23524	design-1-forw, design-4-forw: p: 0.15616	
+design-2-forw, design-0-forw: p: 0.46616	design-2-forw, design-1-forw: p: 0.27611	design-2-forw, design-2-forw: p: 0.47894	design-2-forw, design-3-forw: p: 0.39945	design-2-forw, design-4-forw: p: 0.13480	
+design-3-forw, design-0-forw: p: 0.44262	design-3-forw, design-1-forw: p: 0.23524	design-3-forw, design-2-forw: p: 0.39945	design-3-forw, design-3-forw: p: 0.44121	design-3-forw, design-4-forw: p: 0.23524	
+design-4-forw, design-0-forw: p: 0.23524	design-4-forw, design-1-forw: p: 0.15616	design-4-forw, design-2-forw: p: 0.13480	design-4-forw, design-3-forw: p: 0.23524	design-4-forw, design-4-forw: p: 0.44121	

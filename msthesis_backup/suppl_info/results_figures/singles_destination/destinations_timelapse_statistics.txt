@@ -1,0 +1,8 @@
+destinations_timelapse
+========================================================
+levels:dict_keys(['timelapse-tl13-folddiff', 'timelapse-tl14-folddiff']):
+ Kruskal Wallis t=2.920, p=0.08751
+ --> N.S.
+
+timelapse-tl13-folddiff, timelapse-tl13-folddiff: p: 0.49892	timelapse-tl13-folddiff, timelapse-tl14-folddiff: p: 0.04409	
+timelapse-tl14-folddiff, timelapse-tl13-folddiff: p: 0.04409	timelapse-tl14-folddiff, timelapse-tl14-folddiff: p: 0.49798	

@@ -1,0 +1,8 @@
+n_axons_use spiky tracks
+========================================================
+levels:dict_keys(['use spiky tracks-no', 'use spiky tracks-yes']):
+ Kruskal Wallis t=0.847, p=0.35732
+ --> N.S.
+
+use spiky tracks-no, use spiky tracks-no: p: 0.49967	use spiky tracks-no, use spiky tracks-yes: p: 0.17985	
+use spiky tracks-yes, use spiky tracks-no: p: 0.17985	use spiky tracks-yes, use spiky tracks-yes: p: 0.47894	

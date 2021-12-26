@@ -99,7 +99,8 @@ class StructureScreen(object):
                 dists.columns = dists.columns /(60*24)
         if add_side_dim:
             left_axons = self._get_axon_sides(dists.index)
-            dists = pd.concat([dists,left_axons], axis=1).set_index('side', append=True)
+            dists.index = left_axons.to_frame().set_index('side', append=True).index
+            
         if not return_DIV_mask:
             return dists
         else:
@@ -242,7 +243,7 @@ class StructureScreen(object):
             self.growth_direction = self.growth_direction_start2end(**kwargs)
         return self.growth_direction
 
-    def detect_axons_final_location(self, dists, DIV_mask=None, crossgrowth_params=None, draw=True):
+    def detect_axons_final_location(self, dists, DIV_mask=None, crossgrowth_params=None, draw=False):
         if draw:
             # one panel shows 100 axons
             panels_needed = dists.shape[0]//100 +1
@@ -359,7 +360,7 @@ class StructureScreen(object):
 
 
 
-    def growth_direction_start2end(self, dists, drop_axon_names=False):
+    def growth_direction_start2end(self, dists, drop_axon_names=False, drop_small_deltas=False):
         start_dist = dists.groupby(level=0).apply(lambda row: row.dropna(axis=1).iloc[:,0])
         end_dist = dists.groupby(level=0).apply(lambda row: row.dropna(axis=1).iloc[:,-1])
         
@@ -368,7 +369,9 @@ class StructureScreen(object):
         growth_direction = pd.Series(end_dist.values-start_dist.values, 
                                         index=dists.index, name='dist_change')
         if drop_axon_names:
-            return growth_direction.T.reset_index(drop=True).T
+            growth_direction = growth_direction.T.reset_index(drop=True).T
+        if drop_small_deltas:
+            growth_direction = growth_direction[growth_direction.abs()>config.MIN_GROWTH_DELTA]
         return growth_direction
     
     def detect_transitions(self, dists, draw=False):

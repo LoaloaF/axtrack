@@ -1,0 +1,9 @@
+stagnating_channel width
+========================================================
+levels:dict_keys(['channel width-1.5', 'channel width-3.0', 'channel width-8.0']):
+ Kruskal Wallis t=19.353, p=0.00006
+ --> ***
+
+channel width-1.5, channel width-1.5: p: 0.42429	channel width-1.5, channel width-3.0: p: 0.09020	channel width-1.5, channel width-8.0: p: 0.00067	
+channel width-3.0, channel width-1.5: p: 0.09020	channel width-3.0, channel width-3.0: p: 0.43805	channel width-3.0, channel width-8.0: p: 0.00099	
+channel width-8.0, channel width-1.5: p: 0.00067	channel width-8.0, channel width-3.0: p: 0.00099	channel width-8.0, channel width-8.0: p: 0.49965	

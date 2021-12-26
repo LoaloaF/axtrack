@@ -1,0 +1,10 @@
+growth_direction_counted_final lane design
+========================================================
+levels:dict_keys(['final lane design-1.5, wide-forw', 'final lane design-3-forw', 'final lane design-3, wide-forw', 'final lane design-neg.Ctrl-forw']):
+ Kruskal Wallis t=2.023, p=0.56755
+ --> N.S.
+
+final lane design-1.5, wide-forw, final lane design-1.5, wide-forw: p: 0.44121	final lane design-1.5, wide-forw, final lane design-3-forw: p: 0.13043	final lane design-1.5, wide-forw, final lane design-3, wide-forw: p: 0.12048	final lane design-1.5, wide-forw, final lane design-neg.Ctrl-forw: p: 0.15616	
+final lane design-3-forw, final lane design-1.5, wide-forw: p: 0.13043	final lane design-3-forw, final lane design-3-forw: p: 0.49963	final lane design-3-forw, final lane design-3, wide-forw: p: 0.43178	final lane design-3-forw, final lane design-neg.Ctrl-forw: p: 0.21625	
+final lane design-3, wide-forw, final lane design-1.5, wide-forw: p: 0.12048	final lane design-3, wide-forw, final lane design-3-forw: p: 0.43178	final lane design-3, wide-forw, final lane design-3, wide-forw: p: 0.46775	final lane design-3, wide-forw, final lane design-neg.Ctrl-forw: p: 0.37456	
+final lane design-neg.Ctrl-forw, final lane design-1.5, wide-forw: p: 0.15616	final lane design-neg.Ctrl-forw, final lane design-3-forw: p: 0.21625	final lane design-neg.Ctrl-forw, final lane design-3, wide-forw: p: 0.37456	final lane design-neg.Ctrl-forw, final lane design-neg.Ctrl-forw: p: 0.44121	

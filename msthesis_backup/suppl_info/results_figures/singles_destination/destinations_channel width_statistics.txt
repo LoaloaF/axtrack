@@ -1,0 +1,9 @@
+destinations_channel width
+========================================================
+levels:dict_keys(['channel width-1.5-folddiff', 'channel width-8.0-folddiff', 'channel width-3.0-folddiff']):
+ Kruskal Wallis t=1.174, p=0.55601
+ --> N.S.
+
+channel width-1.5-folddiff, channel width-1.5-folddiff: p: 0.44121	channel width-1.5-folddiff, channel width-8.0-folddiff: p: 0.21856	channel width-1.5-folddiff, channel width-3.0-folddiff: p: 0.15471	
+channel width-8.0-folddiff, channel width-1.5-folddiff: p: 0.21856	channel width-8.0-folddiff, channel width-8.0-folddiff: p: 0.49940	channel width-8.0-folddiff, channel width-3.0-folddiff: p: 0.24809	
+channel width-3.0-folddiff, channel width-1.5-folddiff: p: 0.15471	channel width-3.0-folddiff, channel width-8.0-folddiff: p: 0.24809	channel width-3.0-folddiff, channel width-3.0-folddiff: p: 0.43805	

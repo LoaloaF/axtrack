@@ -1,0 +1,11 @@
+n_axons_None_group2
+========================================================
+levels:dict_keys(['design-2', 'design-5', 'design-6', 'design-7', 'design-8']):
+ Kruskal Wallis t=3.926, p=0.41609
+ --> N.S.
+
+design-2, design-2: p: 0.47881	design-2, design-5: p: 0.14646	design-2, design-6: p: 0.33699	design-2, design-7: p: 0.09447	design-2, design-8: p: 0.07406	
+design-5, design-2: p: 0.14646	design-5, design-5: p: 0.47894	design-5, design-6: p: 0.35660	design-5, design-7: p: 0.45815	design-5, design-8: p: 0.30488	
+design-6, design-2: p: 0.33699	design-6, design-5: p: 0.35660	design-6, design-6: p: 0.47894	design-6, design-7: p: 0.17210	design-6, design-8: p: 0.07442	
+design-7, design-2: p: 0.09447	design-7, design-5: p: 0.45815	design-7, design-6: p: 0.17210	design-7, design-7: p: 0.47894	design-7, design-8: p: 0.27611	
+design-8, design-2: p: 0.07406	design-8, design-5: p: 0.30488	design-8, design-6: p: 0.07442	design-8, design-7: p: 0.27611	design-8, design-8: p: 0.44121	

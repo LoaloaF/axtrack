@@ -1,0 +1,9 @@
+destinations_n 2-joints
+========================================================
+levels:dict_keys(['n 2-joints-1-folddiff', 'n 2-joints-3-folddiff', 'n 2-joints-0-folddiff']):
+ Kruskal Wallis t=0.399, p=0.81904
+ --> N.S.
+
+n 2-joints-1-folddiff, n 2-joints-1-folddiff: p: 0.49897	n 2-joints-1-folddiff, n 2-joints-3-folddiff: p: 0.32151	n 2-joints-1-folddiff, n 2-joints-0-folddiff: p: 0.35973	
+n 2-joints-3-folddiff, n 2-joints-1-folddiff: p: 0.32151	n 2-joints-3-folddiff, n 2-joints-3-folddiff: p: 0.46679	n 2-joints-3-folddiff, n 2-joints-0-folddiff: p: 0.29304	
+n 2-joints-0-folddiff, n 2-joints-1-folddiff: p: 0.35973	n 2-joints-0-folddiff, n 2-joints-3-folddiff: p: 0.29304	n 2-joints-0-folddiff, n 2-joints-0-folddiff: p: 0.49672	

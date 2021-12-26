@@ -1,0 +1,11 @@
+destinations_2-joint design
+========================================================
+levels:dict_keys(['2-joint design-5-folddiff', '2-joint design-3, inlay-folddiff', '2-joint design-3-folddiff', '2-joint design-1.5-folddiff', '2-joint design-3, tang.-folddiff']):
+ Kruskal Wallis t=4.406, p=0.35380
+ --> N.S.
+
+2-joint design-5-folddiff, 2-joint design-5-folddiff: p: 0.45280	2-joint design-5-folddiff, 2-joint design-3, inlay-folddiff: p: 0.50000	2-joint design-5-folddiff, 2-joint design-3-folddiff: p: 0.16183	2-joint design-5-folddiff, 2-joint design-1.5-folddiff: p: 0.02284	2-joint design-5-folddiff, 2-joint design-3, tang.-folddiff: p: 0.09498	
+2-joint design-3, inlay-folddiff, 2-joint design-5-folddiff: p: 0.50000	2-joint design-3, inlay-folddiff, 2-joint design-3, inlay-folddiff: p: 0.46679	2-joint design-3, inlay-folddiff, 2-joint design-3-folddiff: p: 0.29200	2-joint design-3, inlay-folddiff, 2-joint design-1.5-folddiff: p: 0.12066	2-joint design-3, inlay-folddiff, 2-joint design-3, tang.-folddiff: p: 0.13830	
+2-joint design-3-folddiff, 2-joint design-5-folddiff: p: 0.16183	2-joint design-3-folddiff, 2-joint design-3, inlay-folddiff: p: 0.29200	2-joint design-3-folddiff, 2-joint design-3-folddiff: p: 0.49843	2-joint design-3-folddiff, 2-joint design-1.5-folddiff: p: 0.12468	2-joint design-3-folddiff, 2-joint design-3, tang.-folddiff: p: 0.13370	
+2-joint design-1.5-folddiff, 2-joint design-5-folddiff: p: 0.02284	2-joint design-1.5-folddiff, 2-joint design-3, inlay-folddiff: p: 0.12066	2-joint design-1.5-folddiff, 2-joint design-3-folddiff: p: 0.12468	2-joint design-1.5-folddiff, 2-joint design-1.5-folddiff: p: 0.40974	2-joint design-1.5-folddiff, 2-joint design-3, tang.-folddiff: p: 0.50000	
+2-joint design-3, tang.-folddiff, 2-joint design-5-folddiff: p: 0.09498	2-joint design-3, tang.-folddiff, 2-joint design-3, inlay-folddiff: p: 0.13830	2-joint design-3, tang.-folddiff, 2-joint design-3-folddiff: p: 0.13370	2-joint design-3, tang.-folddiff, 2-joint design-1.5-folddiff: p: 0.50000	2-joint design-3, tang.-folddiff, 2-joint design-3, tang.-folddiff: p: 0.47410	

@@ -1,0 +1,11 @@
+stagnating_None_group3
+========================================================
+levels:dict_keys(['design-2', 'design-9', 'design-10', 'design-11', 'design-12']):
+ Kruskal Wallis t=4.168, p=0.38375
+ --> N.S.
+
+design-2, design-2: p: 0.47814	design-2, design-9: p: 0.47407	design-2, design-10: p: 0.03234	design-2, design-11: p: 0.43709	design-2, design-12: p: 0.35496	
+design-9, design-2: p: 0.47407	design-9, design-9: p: 0.46728	design-9, design-10: p: 0.21853	design-9, design-11: p: 0.25791	design-9, design-12: p: 0.32442	
+design-10, design-2: p: 0.03234	design-10, design-9: p: 0.21853	design-10, design-10: p: 0.47881	design-10, design-11: p: 0.04548	design-10, design-12: p: 0.08514	
+design-11, design-2: p: 0.43709	design-11, design-9: p: 0.25791	design-11, design-10: p: 0.04548	design-11, design-11: p: 0.47881	design-11, design-12: p: 0.50000	
+design-12, design-2: p: 0.35496	design-12, design-9: p: 0.32442	design-12, design-10: p: 0.08514	design-12, design-11: p: 0.50000	design-12, design-12: p: 0.47842	

@@ -1,0 +1,9 @@
+speed_n rescue loops
+========================================================
+levels:dict_keys(['n rescue loops-0', 'n rescue loops-1', 'n rescue loops-3']):
+ Kruskal Wallis t=24.032, p=0.00001
+ --> ***
+
+n rescue loops-0, n rescue loops-0: p: 0.49995	n rescue loops-0, n rescue loops-1: p: 0.01632	n rescue loops-0, n rescue loops-3: p: 0.02834	
+n rescue loops-1, n rescue loops-0: p: 0.01632	n rescue loops-1, n rescue loops-1: p: 0.49998	n rescue loops-1, n rescue loops-3: p: 0.00000	
+n rescue loops-3, n rescue loops-0: p: 0.02834	n rescue loops-3, n rescue loops-1: p: 0.00000	n rescue loops-3, n rescue loops-3: p: 0.49998	

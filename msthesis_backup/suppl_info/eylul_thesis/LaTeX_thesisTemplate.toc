@@ -1,0 +1,62 @@
+\contentsline {chapter}{\numberline {1}Introduction}{1}{chapter.1}%
+\contentsline {section}{\numberline {1.1}Vision: How do we see?}{1}{section.1.1}%
+\contentsline {subsection}{\numberline {1.1.1}Retina}{2}{subsection.1.1.1}%
+\contentsline {subsection}{\numberline {1.1.2}Signal Transmission to the Visual Cortex}{3}{subsection.1.1.2}%
+\contentsline {subsection}{\numberline {1.1.3}Visual Processing and Perception}{4}{subsection.1.1.3}%
+\contentsline {section}{\numberline {1.2}Causes of Blindness and Impact of Vision Loss }{4}{section.1.2}%
+\contentsline {section}{\numberline {1.3}Restoring Vision - State of Art}{5}{section.1.3}%
+\contentsline {subsection}{\numberline {1.3.1}Electrical Stimulation}{5}{subsection.1.3.1}%
+\contentsline {subsection}{\numberline {1.3.2}Visual Prostheses}{5}{subsection.1.3.2}%
+\contentsline {subsubsection}{i) Retinal Prostheses}{6}{section*.10}%
+\contentsline {subsubsection}{ii) Intracranial Stimulation Devices}{7}{section*.12}%
+\contentsline {subsection}{\numberline {1.3.3}Regenerative Medicine and Cell Transplantation}{8}{subsection.1.3.3}%
+\contentsline {subsection}{\numberline {1.3.4}Alternative Approaches}{8}{subsection.1.3.4}%
+\contentsline {section}{\numberline {1.4}Neural Interfaces and Stretchable Electronics}{8}{section.1.4}%
+\contentsline {section}{\numberline {1.5}Biohybrid Implants}{9}{section.1.5}%
+\contentsline {section}{\numberline {1.6}Aim of the thesis}{11}{section.1.6}%
+\contentsline {chapter}{\numberline {2}Materials and Methods}{13}{chapter.2}%
+\contentsline {section}{\numberline {2.1}Micro-structure Design and Fabrication}{13}{section.2.1}%
+\contentsline {section}{\numberline {2.2}PDMS:Hexane Glue for Bonding}{14}{section.2.2}%
+\contentsline {subsection}{\numberline {2.2.1}PDMS:Hexane Dilution Ratio Preparations}{14}{subsection.2.2.1}%
+\contentsline {subsection}{\numberline {2.2.2}Mounting using the diluted glue}{14}{subsection.2.2.2}%
+\contentsline {subsection}{\numberline {2.2.3}Testing of the bonding for leakage and clogged channels}{15}{subsection.2.2.3}%
+\contentsline {subsection}{\numberline {2.2.4}Bonding Strength}{15}{subsection.2.2.4}%
+\contentsline {section}{\numberline {2.3}Coating Procedures and Preparation of the Dishes}{16}{section.2.3}%
+\contentsline {subsection}{\numberline {2.3.1}Preperation of Dishes}{16}{subsection.2.3.1}%
+\contentsline {subsection}{\numberline {2.3.2}Coating Conditions}{17}{subsection.2.3.2}%
+\contentsline {subsubsection}{O2 Plasma}{17}{section*.20}%
+\contentsline {subsubsection}{PDL Coating}{17}{section*.21}%
+\contentsline {subsubsection}{Laminin Coating}{18}{section*.22}%
+\contentsline {subsubsection}{Coating by Desiccation }{18}{section*.23}%
+\contentsline {section}{\numberline {2.4}Microstructure Gluing and Mounting}{18}{section.2.4}%
+\contentsline {section}{\numberline {2.5}Coatings Troubleshooting Experiment}{19}{section.2.5}%
+\contentsline {section}{\numberline {2.6}Coating Uniformity after Desiccation}{19}{section.2.6}%
+\contentsline {section}{\numberline {2.7}Primary Cell Culture}{20}{section.2.7}%
+\contentsline {subsection}{\numberline {2.7.1}Retina Dissections}{20}{subsection.2.7.1}%
+\contentsline {subsection}{\numberline {2.7.2}AggreWell\textsuperscript {\texttrademark } Preparation and Cell Dissociation}{20}{subsection.2.7.2}%
+\contentsline {section}{\numberline {2.8}Stretchable Microelectrode Arrays}{21}{section.2.8}%
+\contentsline {subsection}{\numberline {2.8.1}Fabrication}{21}{subsection.2.8.1}%
+\contentsline {subsection}{\numberline {2.8.2}Microstructure Alignment and Mounting on (MEA) Electrodes}{22}{subsection.2.8.2}%
+\contentsline {subsection}{\numberline {2.8.3}Mounting PDMS rings and coating of electrodes}{24}{subsection.2.8.3}%
+\contentsline {section}{\numberline {2.9}Cell Seeding and Primary Neuronal Cell Culture}{25}{section.2.9}%
+\contentsline {section}{\numberline {2.10}Image Acquisition}{25}{section.2.10}%
+\contentsline {section}{\numberline {2.11}Image Analysis}{25}{section.2.11}%
+\contentsline {section}{\numberline {2.12}Statistical Analysis}{27}{section.2.12}%
+\contentsline {section}{\numberline {2.13}Re-using the microstructure-electrodes assembly}{28}{section.2.13}%
+\contentsline {section}{\numberline {2.14}RGC Growth Medium Preparation}{28}{section.2.14}%
+\contentsline {chapter}{\numberline {3}Results}{29}{chapter.3}%
+\contentsline {section}{\numberline {3.1}PDMS:Hexane Glue}{29}{section.3.1}%
+\contentsline {subsection}{\numberline {3.1.1}PDMS:Hexane Glue Dilution Ratio Optimisation}{29}{subsection.3.1.1}%
+\contentsline {subsection}{\numberline {3.1.2}Reproducibility of the 1:40 dilution}{30}{subsection.3.1.2}%
+\contentsline {subsection}{\numberline {3.1.3}Bonding Strength of the 1:40 dilution}{30}{subsection.3.1.3}%
+\contentsline {section}{\numberline {3.2}Coatings}{31}{section.3.2}%
+\contentsline {section}{\numberline {3.3}Bundling Analysis of Formation of Nerve Fascicles}{37}{section.3.3}%
+\contentsline {section}{\numberline {3.4}Uniformity of Coating After Desiccation}{40}{section.3.4}%
+\contentsline {section}{\numberline {3.5}Electrode Alignments}{41}{section.3.5}%
+\contentsline {section}{\numberline {3.6}Electrode Assembly}{41}{section.3.6}%
+\contentsline {section}{\numberline {3.7}Axonal Growth on Electrodes}{42}{section.3.7}%
+\contentsline {section}{\numberline {3.8}Re-using Microstructure-MEA Assemblies}{44}{section.3.8}%
+\contentsline {chapter}{\numberline {4}Discussion}{45}{chapter.4}%
+\contentsline {subsection}{\numberline {4.0.1}Significance and Interpretation of Results}{45}{subsection.4.0.1}%
+\contentsline {subsection}{\numberline {4.0.2}Limitations and Future Work}{49}{subsection.4.0.2}%
+\contentsline {chapter}{\numberline {5}Conclusion and Outlook}{51}{chapter.5}%

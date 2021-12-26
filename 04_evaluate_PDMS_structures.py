@@ -214,7 +214,7 @@ def main():
     structure_names_subset = None
     # structure_names_subset = range(34)  # all timelapse13 
     # structure_names_subset = range(34, 75)  # all timelapse14
-    # structure_names_subset = range(25,45)
+    # structure_names_subset = range(25,45) # for fast testing
     exclude_names = ['tl13_D04_G004', 'tl13_D19_G035', # training data
                      'tl14_D02_G002', 'tl14_D02_G014', 'tl14_D03_G015', # bad detections
                      'tl13_D20_G036'] # only one exists for D20.... changed on 2nd wafer....
@@ -249,8 +249,12 @@ def main():
     PDMS_screen_dest_dir = 'all_results_figure1'
     PDMS_screen_dest_dir = 'all_results_figure2'
     PDMS_screen_dest_dir = 'all_results_figure3'
+    PDMS_screen_dest_dir = 'all_results_figure3_naxons'
+    PDMS_screen_dest_dir = 'all_results_figure3_speed'
+    # PDMS_screen_dest_dir = 'all_results_figure3_stagnation'
+    PDMS_screen_dest_dir = 'all_results_figure3_counted'
+    # PDMS_screen_dest_dir = 'all_results_figure3_destinations'
 
-    
     screen = get_PDMSscreen(num_workers, 
                             device, 
                             exp_name, 
@@ -269,7 +273,7 @@ def main():
                             PDMS_screen_dest_dir
     )
 
-    rank = False
+    rank = 'rank'
     show = True if config.BASE_DIR.startswith('/home/loaloa/') else False # on server, show is always False
     # show = False
     symlink_results = False
@@ -304,139 +308,439 @@ def main():
 
 
 
-    """Results figure 2 `Growth speed across designs` : 
-    Take a second look at growth speed with highlighting specific feature effects
+    # """Results figure 2 `Growth speed across designs` : 
+    # Take a second look at growth speed with highlighting specific feature effects
+    # """
+    # which_metric = 'n_axons'
+    # plot_kwargs = {**plot_kwargs, 'draw_bar_singles':True}
+
+    # plot_kwargs['design_subset'] = [0,1,2,3,4]                                  # * x
+    # plot_kwargs['fname_postfix'] = '_group1'
+    # screen.cs_axon_growth_counted(DIV_range=DIV_range, which_metric=which_metric,
+    #                     plot_kwargs=plot_kwargs)
+
+    # plot_kwargs['design_subset'] = [2,5,6,7,8]                                  # NS
+    # plot_kwargs['fname_postfix'] = '_group2'
+    # screen.cs_axon_growth_counted(DIV_range=DIV_range, which_metric=which_metric,
+    #                     plot_kwargs=plot_kwargs)
+    # plot_kwargs['design_subset'] = [2,9,10,11,12]                               # NS
+    # plot_kwargs['fname_postfix'] = '_group3'
+    # screen.cs_axon_growth_counted(DIV_range=DIV_range, which_metric=which_metric,
+    #                     plot_kwargs=plot_kwargs)
+    # plot_kwargs['design_subset'] = list(range(12,21))                                  # NS
+    # plot_kwargs['fname_postfix'] = '_group4'
+    # screen.cs_axon_growth_counted(DIV_range=DIV_range, which_metric=which_metric,
+    #                     plot_kwargs=plot_kwargs)
+
+    # plot_kwargs['fname_postfix'] = 'all_designs'                                  # NS
+    # plot_kwargs['design_subset'] = None
+    # screen.cs_axon_growth_counted(DIV_range=DIV_range, which_metric=which_metric,
+    #                     plot_kwargs=plot_kwargs)
+
+    # design_subsets = {
+    #     'timelapse': slice(None),                                  # ***
+    #     'channel width': (2,3,4),                                  # NS
+    #     'n 2-joints': (9,10,11,12,5,8,6,7),                        # * 0,1    0,3
+    #     'n rescue loops': (2,9,10,11,12),                                  # NS
+    #     '2-joint placement': (5,6,7,8),                                  # NS
+    #     'rescue loop design': (12, 17),                                  # NS
+    #     'use spiky tracks': (12, 18),                                  # NS
+    #     'final lane design': (1, 12,19,20),                                  # NS
+    #     '2-joint design': (12,13,14,15,16),                                  # NS
+    # }
+    # """all designs"""
+    # screen.cs_axon_growth_counted(DIV_range=DIV_range, which_metric=which_metric, plot_kwargs=plot_kwargs)
+    
+    # """subset of designs specifically differing in a design feature"""
+    # plot_kwargs['order'] = rank
+    # for design_feature in  design_subsets.keys():
+    #     plot_kwargs['split_by'] = design_feature
+    #     plot_kwargs['design_subset'] = None
+    #     plot_kwargs['fname_postfix'] = ''
+    #     screen.cs_axon_growth_counted(DIV_range=DIV_range, which_metric=which_metric, 
+    #                             plot_kwargs=plot_kwargs)
+    #     plot_kwargs['fname_postfix'] = '_design_subs'
+    #     plot_kwargs['design_subset'] = design_subsets[design_feature]
+    #     screen.cs_axon_growth_counted(DIV_range=DIV_range, which_metric=which_metric, 
+    #                             plot_kwargs=plot_kwargs)
+    
+
+
+
+
+
+
+
+
+
+
+
+    # # """SPEED/ growth direction?"""
+
+    # which_metric = 'growth_direction'
+    # plot_kwargs = {**plot_kwargs, 'draw_bar_singles':False}
+    # plot_kwargs = {**plot_kwargs, 'order':rank}
+
+    # # plot_kwargs['design_subset'] = [0,1,2,3,4]                                  # ***                              
+    # # plot_kwargs['fname_postfix'] = '_group1'
+    # # screen.cs_axon_growth(DIV_range=DIV_range, which_metric=which_metric,
+    # #                     plot_kwargs=plot_kwargs)
+
+    # # plot_kwargs['design_subset'] = [2,5,6,7,8]                                  # ***
+    # # plot_kwargs['fname_postfix'] = '_group2'
+    # # screen.cs_axon_growth(DIV_range=DIV_range, which_metric=which_metric,
+    # #                     plot_kwargs=plot_kwargs)
+    # # plot_kwargs['design_subset'] = [2,9,10,11,12]                                  # ***
+    # # plot_kwargs['fname_postfix'] = '_group3'
+    # # screen.cs_axon_growth(DIV_range=DIV_range, which_metric=which_metric,
+    # #                     plot_kwargs=plot_kwargs)
+    # # plot_kwargs['design_subset'] = list(range(12,21))                                  # ***
+    # # plot_kwargs['fname_postfix'] = '_group4'
+    # # screen.cs_axon_growth(DIV_range=DIV_range, which_metric=which_metric,
+    #                     # plot_kwargs=plot_kwargs)
+
+    # plot_kwargs['fname_postfix'] = 'all_designs'                                  # ***
+    # plot_kwargs['design_subset'] = None
+    # screen.cs_axon_growth(DIV_range=DIV_range, which_metric=which_metric,
+    #                     plot_kwargs=plot_kwargs)
+
+    # design_subsets = {
+    #     'timelapse': slice(None),
+    #     'channel width': (2,3,4),                                  # ***
+    #     'n 2-joints': (9,10,11,12,5,8,6,7),                                  # ***
+    #     'n rescue loops': (2,9,10,11,12),                                  # ***
+    #     '2-joint placement': (5,6,7,8),                                  # *** (not subset)
+    #     'rescue loop design': (12, 17),                                  # NS
+    #     'use spiky tracks': (12, 18),                                  # NS
+    #     'final lane design': (1, 12,19,20),                                  # ***
+    #     '2-joint design': (12,13,14,15,16),                                  # *** (not subset)
+    # }
+    # """all designs"""
+    # screen.cs_axon_growth(DIV_range=DIV_range, which_metric=which_metric, plot_kwargs=plot_kwargs)
+    
+    # """subset of designs specifically differing in a design feature"""
+    # plot_kwargs['order'] = rank
+    # for design_feature in  design_subsets.keys():
+    #     plot_kwargs['split_by'] = design_feature
+    #     plot_kwargs['design_subset'] = None
+    #     plot_kwargs['fname_postfix'] = ''
+    #     screen.cs_axon_growth(DIV_range=DIV_range, which_metric=which_metric, 
+    #                             plot_kwargs=plot_kwargs)
+    #     plot_kwargs['fname_postfix'] = '_design_subs'
+    #     plot_kwargs['design_subset'] = design_subsets[design_feature]
+    #     screen.cs_axon_growth(DIV_range=DIV_range, which_metric=which_metric, 
+    #                             plot_kwargs=plot_kwargs)
+    
+    
+
+
+
+
+
+
+    
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    
+
+    """Results figure 2.1 `stagnation` : 
     """
-    design_subsets = {
-        'channel width': (2,3,4),
-        'n 2-joints': (9,10,11,12,5,8,6,7),
-        'n rescue loops': (2,9,10,11,12),
-        '2-joint placement': (5,6,7,8),
-        'rescue loop design': (12, 17),
-        'use spiky tracks': (12, 18),
-        'final lane design': (1, 12,19,20),
-        '2-joint design': (12,13,14,15,16),
-    }
-    """all designs"""
-    screen.cs_axon_growth(DIV_range=DIV_range, which_metric='speed', plot_kwargs=plot_kwargs)
-    screen.cs_axon_growth_counted(DIV_range=DIV_range, which_metric='n_axons', plot_kwargs={**plot_kwargs, })
-    
+    # plot_kwargs['draw_bar_singles'] = True
+    # which_metric = 'stagnating'
 
-    """subset of designs specifically differing in a design feature"""
-    plot_kwargs['order'] = rank
-    for design_feature in  design_subsets.keys():
-        plot_kwargs['split_by'] = design_feature
-        plot_kwargs['design_subset'] = design_subsets[design_feature]
-        plot_kwargs['mixed_colorbars'] = True
-        
-        # growth speed
-        screen.cs_axon_growth(DIV_range=DIV_range, which_metric='speed', 
-                              plot_kwargs=plot_kwargs)
-        # n axons
-        screen.cs_axon_growth_counted(DIV_range=DIV_range, which_metric='n_axons', 
-                                      plot_kwargs={**plot_kwargs, 'draw_bar_singles':True})
-    
-    
-    
-    
-
-
-
-
-    """Results figure 3 `directionality` : 
-    Take a third look. Now the core directionality. counted v1, v2, and distribution
-    """
-    design_subsets = {
-        'channel width': (2,3,4),
-        'n 2-joints': (9,10,11,12,5,8,6,7),
-        'n rescue loops': (2,9,10,11,12),
-        '2-joint placement': (5,6,7,8),
-        'rescue loop design': (12, 17),
-        'use spiky tracks': (12, 18),
-        'final lane design': (1, 12,19,20),
-        '2-joint design': (12,13,14,15,16),
-    }
-    """all designs"""
-    screen.cs_axon_growth(DIV_range=DIV_range, which_metric='speed', plot_kwargs=plot_kwargs)
-    screen.cs_axon_growth_counted(DIV_range=DIV_range, which_metric='n_axons', plot_kwargs={**plot_kwargs, })
-    
-
-    """subset of designs specifically differing in a design feature"""
-    plot_kwargs['order'] = rank
-    for design_feature in  design_subsets.keys():
-        plot_kwargs['split_by'] = design_feature
-        plot_kwargs['design_subset'] = design_subsets[design_feature]
-        plot_kwargs['mixed_colorbars'] = True
-        
-        # growth speed
-        screen.cs_axon_growth(DIV_range=DIV_range, which_metric='speed', 
-                              plot_kwargs=plot_kwargs)
-        # n axons
-        screen.cs_axon_growth_counted(DIV_range=DIV_range, which_metric='n_axons', 
-                                      plot_kwargs={**plot_kwargs, 'draw_bar_singles':True})
-    
-    
-
-
-
-    """Bonus: Growth direction distribution """
-    # screen.cs_axon_growth(DIV_range=DIV_range, which_metric='growth_direction', plot_kwargs=plot_kwargs)
-    # screen.cs_axon_growth(DIV_range=DIV_range, which_metric='growth_direction', plot_kwargs=plot_kwargs)
-    
-    
-
-
-
-
-
-
-
-    """Results figure 2: structure,- and feature wise comparison of directionality 
-       based on reached target and reached neighbor"""
-    # plot_kwargs['fname_postfix'] = 'all_designs'
-    # screen.cs_axon_destinations(DIV_range=DIV_range, plot_kwargs=plot_kwargs)
     # plot_kwargs['design_subset'] = [0,1,2,3,4]
     # plot_kwargs['fname_postfix'] = '_group1'
-    # screen.cs_axon_destinations(DIV_range=DIV_range, plot_kwargs=plot_kwargs)
+    # screen.cs_axon_growth_counted(DIV_range=DIV_range, which_metric=which_metric,
+    #                       plot_kwargs=plot_kwargs)
+
     # plot_kwargs['design_subset'] = [2,5,6,7,8]
     # plot_kwargs['fname_postfix'] = '_group2'
-    # screen.cs_axon_destinations(DIV_range=DIV_range, plot_kwargs=plot_kwargs)
+    # screen.cs_axon_growth_counted(DIV_range=DIV_range, which_metric=which_metric,
+    #                       plot_kwargs=plot_kwargs)
     # plot_kwargs['design_subset'] = [2,9,10,11,12]
     # plot_kwargs['fname_postfix'] = '_group3'
-    # screen.cs_axon_destinations(DIV_range=DIV_range, plot_kwargs=plot_kwargs)
+    # screen.cs_axon_growth_counted(DIV_range=DIV_range, which_metric=which_metric,
+    #                       plot_kwargs=plot_kwargs)
+    # plot_kwargs['design_subset'] = list(range(12,21))
     # plot_kwargs['fname_postfix'] = '_group4'
-    # screen.cs_axon_destinations(DIV_range=DIV_range, plot_kwargs=plot_kwargs)
+    # screen.cs_axon_growth_counted(DIV_range=DIV_range, which_metric=which_metric,
+    #                       plot_kwargs=plot_kwargs)
+
+    # plot_kwargs['fname_postfix'] = 'all_designs'
     # plot_kwargs['design_subset'] = None
+    # screen.cs_axon_growth_counted(DIV_range=DIV_range, which_metric=which_metric,
+    #                       plot_kwargs=plot_kwargs)
+    
+    # plot_kwargs['fname_postfix'] = ''
+    # design_subsets = {
+    #     'timelapse': slice(None),
+    #     'channel width': (2,3,4),
+    #     'n 2-joints': (9,10,11,12,5,8,6,7),
+    #     'n rescue loops': (2,9,10,11,12),
+    #     '2-joint placement': (5,6,7,8),
+    #     'rescue loop design': (12, 17),
+    #     'use spiky tracks': (12, 18),
+    #     'final lane design': (1, 12,19,20),
+    #     '2-joint design': (12,13,14,15,16),
+    # }
+    # """subset of designs specifically differing in a design feature"""
+    # for design_feature in  design_subsets.keys():
+    #     plot_kwargs['split_by'] = design_feature
+    #     plot_kwargs['design_subset'] = None
+    #     plot_kwargs['fname_postfix'] = ''
+    #     screen.cs_axon_growth_counted(DIV_range=DIV_range, which_metric=which_metric, 
+    #                           plot_kwargs=plot_kwargs)
+        # plot_kwargs['fname_postfix'] = '_design_subs'
+        # plot_kwargs['design_subset'] = design_subsets[design_feature]
+        # screen.cs_axon_growth_counted(DIV_range=DIV_range, which_metric=which_metric, 
+        #                       plot_kwargs=plot_kwargs)
+    
     
 
+
+
+
+
+
+
+
+
+    
+
+
+
+
+    """Results figure 3 `directionality growth distr (old)` : 
+    Take a third look. Now the core directionality. counted v1, v2, and distribution
+    """
+    # plot_kwargs['mixed_colorbars'] = True
+    # plot_kwargs['design_subset'] = [0,1,2,3,4]
+    # plot_kwargs['fname_postfix'] = '_group1'
+    # screen.cs_axon_growth(DIV_range=DIV_range, which_metric='growth_direction_capped',
+    #                       plot_kwargs=plot_kwargs)
+    # plot_kwargs['design_subset'] = [2,5,6,7,8]
+    # plot_kwargs['fname_postfix'] = '_group2'
+    # screen.cs_axon_growth(DIV_range=DIV_range, which_metric='growth_direction_capped',
+    #                       plot_kwargs=plot_kwargs)
+    # plot_kwargs['design_subset'] = [2,9,10,11,12]
+    # plot_kwargs['fname_postfix'] = '_group3'
+    # screen.cs_axon_growth(DIV_range=DIV_range, which_metric='growth_direction_capped',
+    #                       plot_kwargs=plot_kwargs)
+    # plot_kwargs['design_subset'] = list(range(12,21))
+    # plot_kwargs['fname_postfix'] = '_group4'
+    # screen.cs_axon_growth(DIV_range=DIV_range, which_metric='growth_direction_capped',
+    #                       plot_kwargs=plot_kwargs)
+
+    # plot_kwargs['order'] = rank
+    # plot_kwargs['fname_postfix'] = 'all_designs'
+    # plot_kwargs['design_subset'] = None
+    # screen.cs_axon_growth(DIV_range=DIV_range, which_metric='growth_direction_capped',
+    #                       plot_kwargs=plot_kwargs)
+
+    # plot_kwargs['fname_postfix'] = ''
     # design_subsets = {
     #     'channel width': (2,3,4),
     #     'n 2-joints': (9,10,11,12,5,8,6,7),
     #     'n rescue loops': (2,9,10,11,12),
     #     '2-joint placement': (5,6,7,8),
     #     'rescue loop design': (12, 17),
-    #     'use spiky tracks': (12, 20),
-    #     'final lane design': (1, 12,18,19),
+    #     'use spiky tracks': (12, 18),
+    #     'final lane design': (1, 12,19,20),
     #     '2-joint design': (12,13,14,15,16),
     # }
-    # plot_kwargs['order'] = 'rank'
-    # plot_kwargs['draw_bar_singles'] = True
-    # plot_kwargs['draw_naxons_counts'] = False
-    # for design_feature in  ['timelapse'] + config.DESIGN_FEATURE_NAMES:
+    """subset of designs specifically differing in a design feature"""
+    # for design_feature in  design_subsets.keys():
     #     plot_kwargs['split_by'] = design_feature
-    #     if design_feature != 'timelapse':
-    #         plot_kwargs['design_subset'] = design_subsets[design_feature]
-        
-    #     plot_kwargs['which_bars'] = 'metric'
-    #     plot_kwargs['fname_postfix'] = f'_des_subset_{design_feature}'
-    #     screen.cs_axon_destinations(DIV_range=DIV_range, plot_kwargs=plot_kwargs)
-    #     plot_kwargs['which_bars'] = 'pos_metric'
-    #     plot_kwargs['fname_postfix'] = f'_des_subset_{design_feature}_pos'
-    #     screen.cs_axon_destinations(DIV_range=DIV_range, plot_kwargs=plot_kwargs)
-    #     plot_kwargs['which_bars'] = 'neg_metric'
-    #     plot_kwargs['fname_postfix'] = f'_des_subset_{design_feature}_neg'
-    #     screen.cs_axon_destinations(DIV_range=DIV_range, plot_kwargs=plot_kwargs)
+    #     plot_kwargs['design_subset'] = design_subsets[design_feature]
+    #     screen.cs_axon_growth(DIV_range=DIV_range, which_metric='growth_direction_capped', 
+    #                           plot_kwargs=plot_kwargs)
     
+    
+
+
+
+    """Results figure 3 `directionality growth distr counted (significant)` : 
+    Take a third look. Now the core directionality. counted v1, v2, and distribution
+    """
+    # plot_kwargs['mixed_colorbars'] = True
+    # plot_kwargs['draw_bar_singles'] = True
+    # plot_kwargs['draw_distribution'] = True
+    # which_metric = 'growth_direction_counted'
+
+    # plot_kwargs['design_subset'] = [0,1,2,3,4]                                  # NS
+    # plot_kwargs['fname_postfix'] = '_group1'
+    # screen.cs_axon_growth_counted(DIV_range=DIV_range, 
+    #                               which_metric=which_metric,
+    #                               plot_kwargs=plot_kwargs)
+    # plot_kwargs['design_subset'] = [2,5,6,7,8]                                  # NS
+    # plot_kwargs['fname_postfix'] = '_group2'
+    # screen.cs_axon_growth_counted(DIV_range=DIV_range, 
+    #                               which_metric=which_metric,
+    #                               plot_kwargs=plot_kwargs)
+    # plot_kwargs['design_subset'] = [2,9,10,11,12]                                  # NS
+    # plot_kwargs['fname_postfix'] = '_group3'
+    # screen.cs_axon_growth_counted(DIV_range=DIV_range, 
+    #                               which_metric=which_metric,
+    #                               plot_kwargs=plot_kwargs)
+    # plot_kwargs['design_subset'] = list(range(12,21))                                  # NS
+    # plot_kwargs['fname_postfix'] = '_group4'
+    # screen.cs_axon_growth_counted(DIV_range=DIV_range, 
+    #                               which_metric=which_metric,
+    #                               plot_kwargs=plot_kwargs)
+
+    # plot_kwargs['fname_postfix'] = 'all_designs'                                  # backward *, forward NS
+    # plot_kwargs['design_subset'] = None
+    # screen.cs_axon_growth_counted(DIV_range=DIV_range, 
+    #                               which_metric=which_metric,
+    #                               plot_kwargs=plot_kwargs)
+    
+    # plot_kwargs['fname_postfix'] = ''
+    # design_subsets = {
+    #     'timelapse': slice(None),                                  # backward ***, forward NS
+    #     'channel width': (2,3,4),                                  # backward * 8vs1.5, * 8vs3 , forward NS
+    #     'n 2-joints': (9,10,11,12,5,8,6,7),                         # backward 1vs0 *** 3vs0 *, forward NS
+    #     'n rescue loops': (2,9,10,11,12),                         # backward 0vs3 ** 1v3 ***, forward 0vs3 ** 1vs3 *
+    #     '2-joint placement': (5,6,7,8),                         # forward **
+    #     'rescue loop design': (12, 17),                         # NS
+    #     'use spiky tracks': (12, 18),                         # NS
+    #     'final lane design': (1, 12,19,20),                         # NS
+    #     '2-joint design': (12,13,14,15,16),                         # forward * but x
+    # }
+    # """subset of designs specifically differing in a design feature"""
+    # for design_feature in  design_subsets.keys():
+    #     plot_kwargs['split_by'] = design_feature
+    #     plot_kwargs['design_subset'] = None
+    #     plot_kwargs['fname_postfix'] = ''
+    #     screen.cs_axon_growth_counted(DIV_range=DIV_range, which_metric=which_metric, 
+    #                           plot_kwargs=plot_kwargs)
+    #     plot_kwargs['fname_postfix'] = '_design_subs'
+    #     plot_kwargs['design_subset'] = design_subsets[design_feature]
+    #     screen.cs_axon_growth_counted(DIV_range=DIV_range, which_metric=which_metric, 
+    #                           plot_kwargs=plot_kwargs)
+    """
+    p/8 = .00625
+    p/7 = .0071
+    p/6 = .0083
+    p/5 = .01
+    p/4 = .0125
+    p/3 = .0166
+    p/2 = .0250
+    p = 0.05 -> *
+    p = 0,005 -> **
+    p = 0.0005 -> ***
+    """
+    
+
+
+
+    """Results figure 4 `directionality destinations (lsat one)` : 
+    Take a final look. Now the core directionality. destinations
+    """
+    plot_kwargs['mixed_singles_colors'] = True
+    plot_kwargs['draw_metric'] = 'folddiff'
+    plot_kwargs['order'] = 'rank'
+    plot_kwargs['draw_distribution'] = False
+    plot_kwargs['draw_bar_singles'] = True
+    which_metric = 'destinations'
+
+    # plot_kwargs['design_subset'] = [0,1,2,3,4]
+    # plot_kwargs['fname_postfix'] = '_group1'
+    # screen.cs_axon_growth_counted(DIV_range=DIV_range, which_metric=which_metric,
+    #                       plot_kwargs=plot_kwargs)
+
+    # plot_kwargs['design_subset'] = [2,5,6,7,8]
+    # plot_kwargs['fname_postfix'] = '_group2'
+    # screen.cs_axon_growth_counted(DIV_range=DIV_range, which_metric=which_metric,
+    #                       plot_kwargs=plot_kwargs)
+    # plot_kwargs['design_subset'] = [2,9,10,11,12]
+    # plot_kwargs['fname_postfix'] = '_group3'
+    # screen.cs_axon_growth_counted(DIV_range=DIV_range, which_metric=which_metric,
+    #                       plot_kwargs=plot_kwargs)
+    # plot_kwargs['design_subset'] = list(range(12,21))
+    # plot_kwargs['fname_postfix'] = '_group4'
+    # screen.cs_axon_growth_counted(DIV_range=DIV_range, which_metric=which_metric,
+    #                       plot_kwargs=plot_kwargs)
+
+    plot_kwargs['fname_postfix'] = 'all_designs'
+    plot_kwargs['design_subset'] = None
+    screen.cs_axon_growth_counted(DIV_range=DIV_range, which_metric=which_metric,
+                          plot_kwargs=plot_kwargs)
+    
+    plot_kwargs['fname_postfix'] = ''
+    design_subsets = {
+        'timelapse': slice(None),
+        'channel width': (2,3,4),
+        'n 2-joints': (9,10,11,12,5,8,6,7),
+        'n rescue loops': (2,9,10,11,12),
+        '2-joint placement': (5,6,7,8),
+        'rescue loop design': (12, 17),
+        'use spiky tracks': (12, 18),
+        'final lane design': (1, 12,19,20),
+        '2-joint design': (12,13,14,15,16),
+    }
+    """subset of designs specifically differing in a design feature"""
+    for design_feature in  design_subsets.keys():
+        plot_kwargs['split_by'] = design_feature
+        plot_kwargs['design_subset'] = None
+        plot_kwargs['fname_postfix'] = ''
+        screen.cs_axon_growth_counted(DIV_range=DIV_range, which_metric=which_metric, 
+                              plot_kwargs=plot_kwargs)
+        plot_kwargs['fname_postfix'] = '_design_subs'
+        plot_kwargs['design_subset'] = design_subsets[design_feature]
+        screen.cs_axon_growth_counted(DIV_range=DIV_range, which_metric=which_metric, 
+                              plot_kwargs=plot_kwargs)
+    
+    
+    """
+    p/8 = .00625
+    p/7 = .0071
+    p/6 = .0083
+    p/5 = .01
+    p/4 = .0125
+    p/3 = .0166
+    p/2 = .0250
+    p = .05
+    
+    0,1,2,3,4           * x
+    2,5,6,7,8           NS
+    2,9,10,11,12        NS
+    list(range(12,21)   NS
+
+    'fold diff':                * x
+    'channel width':            b*1.5-8, 1.5-8
+    'n 2-joints':               * 0-1        
+    'n rescue loops':           
+    '2-joint placement':
+    'rescue loop design':
+    'use spiky tracks':
+    'final lane design':
+    '2-joint design':           * x (+subs)
+    
+    """
+
+
+
+
+
+
+
+
+
+
 
 
 

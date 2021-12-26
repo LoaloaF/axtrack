@@ -1,0 +1,10 @@
+destinations_final lane design
+========================================================
+levels:dict_keys(['final lane design-1.5, wide-folddiff', 'final lane design-3, wide-folddiff', 'final lane design-3-folddiff', 'final lane design-neg.Ctrl-folddiff']):
+ Kruskal Wallis t=2.277, p=0.51702
+ --> N.S.
+
+final lane design-1.5, wide-folddiff, final lane design-1.5, wide-folddiff: p: 0.33250	final lane design-1.5, wide-folddiff, final lane design-3, wide-folddiff: p: 0.40848	final lane design-1.5, wide-folddiff, final lane design-3-folddiff: p: 0.37723	final lane design-1.5, wide-folddiff, final lane design-neg.Ctrl-folddiff: p: 0.31930	
+final lane design-3, wide-folddiff, final lane design-1.5, wide-folddiff: p: 0.40848	final lane design-3, wide-folddiff, final lane design-3, wide-folddiff: p: 0.44121	final lane design-3, wide-folddiff, final lane design-3-folddiff: p: 0.45649	final lane design-3, wide-folddiff, final lane design-neg.Ctrl-folddiff: p: 0.12269	
+final lane design-3-folddiff, final lane design-1.5, wide-folddiff: p: 0.37723	final lane design-3-folddiff, final lane design-3, wide-folddiff: p: 0.45649	final lane design-3-folddiff, final lane design-3-folddiff: p: 0.49938	final lane design-3-folddiff, final lane design-neg.Ctrl-folddiff: p: 0.07476	
+final lane design-neg.Ctrl-folddiff, final lane design-1.5, wide-folddiff: p: 0.31930	final lane design-neg.Ctrl-folddiff, final lane design-3, wide-folddiff: p: 0.12269	final lane design-neg.Ctrl-folddiff, final lane design-3-folddiff: p: 0.07476	final lane design-neg.Ctrl-folddiff, final lane design-neg.Ctrl-folddiff: p: 0.44121	

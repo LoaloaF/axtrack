@@ -1,0 +1,12 @@
+﻿@article{2008Enger, Bjørn Christian and Lødeng, Rune and Holmen, Anders
+   author = "Enger, Bjørn Christian and Lødeng, Rune and Holmen, Anders",
+   title = "A review of catalytic partial oxidation of methane to synthesis gas with emphasis on reaction mechanisms over transition metal catalysts",
+   journal = "Applied Catalysis A: General",
+   volume = "346",
+   number = "1",
+   pages = "1-27",
+   ISSN = "0926-860X",
+   year = "2008",
+   type = "Journal Article"
+}
+

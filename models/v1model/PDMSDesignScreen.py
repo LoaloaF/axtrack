@@ -144,34 +144,69 @@ class PDMSDesignScreen(object):
     # compare structures 
     def cs_axon_growth_counted(self, which_metric, DIV_range=None, plot_kwargs={}):
         all_metrics = []
+        columns = [which_metric]
         for ss in self:
-            dists = ss.get_distances(DIV_range=DIV_range, add_side_dim=True)
+            dists, DIV_mask = ss.get_distances(DIV_range=DIV_range, add_side_dim=True, 
+                                               return_DIV_mask=True)
             
             # n axons metric
             if which_metric == 'n_axons':
                 metric_left = dists.index.get_level_values('side').values.sum()
                 metric_right = dists.shape[0] - metric_left
+                
+            if which_metric == 'stagnating':
+                left_dists = dists.loc(0)[(slice(None),0)].droplevel('side')
+                right_dists = dists.loc(0)[(slice(None),1)].droplevel('side')
+                metric_left = ss.detect_axons_final_location(dists=left_dists, DIV_mask=DIV_mask)
+                metric_right = ss.detect_axons_final_location(dists=right_dists, DIV_mask=DIV_mask)
+                
+                metric_left = len(metric_left[2]),
+                metric_right = len(metric_right[2]),
+            
+            
+            elif which_metric == 'growth_direction_counted':
+                directions = ss.get_growth_directions({'dists':dists})
+                n_left, n_right = np.unique(directions.index.get_level_values('side'), return_counts=True)[1]
+                neg_deltas = directions<-config.MIN_GROWTH_DELTA
+                pos_deltas = directions>config.MIN_GROWTH_DELTA
+                
+                metric_left = neg_deltas.loc[(slice(None),0)].sum(), pos_deltas.loc[(slice(None),0)].sum()
+                metric_right = neg_deltas.loc[(slice(None),1)].sum(), pos_deltas.loc[(slice(None),1)].sum()
+                metric_left = np.array(metric_left) /n_left
+                metric_right = np.array(metric_right) /n_right
+                columns = ['n_right_dir', 'n_wrong_dir']
+            
+            elif which_metric == 'destinations':
+                left_dists = dists.loc(0)[(slice(None),0)].droplevel('side')
+                right_dists = dists.loc(0)[(slice(None),1)].droplevel('side')
+                n_left, n_right = left_dists.shape[0], right_dists.shape[0]
+                metric_left = ss.detect_axons_final_location(dists=left_dists, DIV_mask=DIV_mask)
+                metric_right = ss.detect_axons_final_location(dists=right_dists, DIV_mask=DIV_mask)
+                
+                metric_left = len(metric_left[0]), len(metric_left[1])
+                metric_left = metric_left if metric_left[0] or metric_left[1] else (np.nan, np.nan)
+
+                metric_right = len(metric_right[0]), len(metric_right[1])
+                metric_right = metric_right if metric_right[0] or metric_right[1] else (np.nan, np.nan)
+                columns = ['target', 'neighbor']
             
             idx = [(list(ss.identifier) + [s] + ss.design_features) for s in ('left', 'right')]
             idx = pd.MultiIndex.from_tuples(idx, names=['timelapse','design','CLSM_area', 'side'] 
                                                         + config.DESIGN_FEATURE_NAMES)
             metric = pd.DataFrame([metric_left, metric_right], index=idx,
-                                  columns=[which_metric])
+                                  columns=columns)
             all_metrics.append(metric)
         all_metrics = pd.concat(all_metrics)
         
         testing_data = plotting.plot_axon_distribution(all_metrics, self.dir, 
                                        which_metric=which_metric, **plot_kwargs)
-        self.test(testing_data, name=f'{which_metric}_{plot_kwargs.get("split_by")}',
+        name=f'{which_metric}_{plot_kwargs.get("split_by")}{plot_kwargs.get("fname_postfix")}'
+        self.test(testing_data, name=name,
                   dest_dir=self.dir)
 
-
-
-
-
-    # compare structures 
+    # compare structures v
     def cs_axon_growth(self, DIV_range=None, which_metric='speed', plot_kwargs={}):
-        # print('Plotting number of axons identified in each structure.')
+        print(f'\n\n\n\n\nPlotting: {plot_kwargs}...')
 
         all_metrics = []
         for ss in self:
@@ -180,6 +215,9 @@ class PDMSDesignScreen(object):
                 metric = ss.get_growth_speed(dists, average=True, absolute=True).reset_index(drop=True)
             elif which_metric == 'growth_direction':
                 metric = ss.growth_direction_start2end(dists, drop_axon_names=True)
+            elif which_metric == 'growth_direction_capped':
+                metric = ss.growth_direction_start2end(dists, drop_axon_names=True, 
+                                                       drop_small_deltas=True)
             
             identifier = tuple(list(ss.identifier) + ss.design_features)
             all_metrics.append(metric.rename(identifier))
@@ -191,45 +229,54 @@ class PDMSDesignScreen(object):
 
         testing_data = plotting.plot_axon_distribution(all_metrics, self.dir, 
                                         which_metric=which_metric, **plot_kwargs)
-        self.test(testing_data, name=f'{which_metric}_{plot_kwargs.get("split_by")}',
-                  dest_dir=self.dir)
         
-
+        self.test(testing_data, name=f'{which_metric}_{plot_kwargs.get("split_by")}',
+                    dest_dir=self.dir)
 
     def test(self, testing_data, name, dest_dir, parametric=False):
-        if not parametric:
-            t_stat, p = kruskal(*testing_data.values())
-            which_test = 'Kruskal Wallis'
-        else:
-            t_stat, p = f_oneway(*testing_data.values())
-            which_test = 'ANOVA'
-            var_homog = sorted([np.var(gv) for gv in testing_data.values()])
-            var_homog = max(var_homog)/min(var_homog)
-            normal = [normaltest(gv).pvalue if len(gv) > 7 else 0 for gv in testing_data.values()]
-            normal = [p>.05 if p != 0 else 'too few samples' for p in normal]
-            
-        sig = '***' if p <.05 else 'N.S.'
-        lbl = (f'{name}\n{config.SPACER}\nlevels:{testing_data.keys()}:\n {which_test} '
-            f't={t_stat:.3f}, p={p:.5f}\n --> {sig}\n\n')
-        if parametric:
-            lbl += f'Within group normal distr: {normal}\n'
-            lbl += f'Variance homogeneity (max(group_var)/min(group_var)): {var_homog}\n'
-        
-        lbl = self.compute_singles(testing_data.values(), testing_data.keys(), 
-                                   parametric, lbl)
-        print(lbl)
-        with open(f'{dest_dir}/{name}_statistics.txt', "w") as text_file:
-            text_file.write(lbl)
+        if not isinstance(testing_data, tuple):
+            testing_data = testing_data,
 
+        output = ''
+        for testing_dat in testing_data:
+            if not parametric:
+                values = [vals for vals in testing_dat.values() if len(np.unique(vals))>1] 
+                t_stat, p = kruskal(*values)
+                which_test = 'Kruskal Wallis'
+            else:
+                t_stat, p = f_oneway(*testing_dat.values())
+                which_test = 'ANOVA'
+                var_homog = sorted([np.var(gv) for gv in testing_dat.values()])
+                var_homog = max(var_homog)/min(var_homog)
+                normal = [normaltest(gv).pvalue if len(gv) > 7 else 0 for gv in testing_dat.values()]
+                normal = [p>.05 if p != 0 else 'too few samples' for p in normal]
+                
+            sig = '***' if p <.05 else 'N.S.'
+            lbl = (f'{name}\n{config.SPACER}\nlevels:{testing_dat.keys()}:\n {which_test} '
+                f't={t_stat:.3f}, p={p:.5f}\n --> {sig}\n\n')
+            if parametric:
+                lbl += f'Within group normal distr: {normal}\n'
+                lbl += f'Variance homogeneity (max(group_var)/min(group_var)): {var_homog}\n'
+            
+            lbl = self.compute_singles(testing_dat.values(), testing_dat.keys(), 
+                                    parametric, lbl)
+            print('\n\n')
+            print(lbl)
+            with open(f'{dest_dir}/{name}_statistics.txt', "w") as text_file:
+                text_file.write(lbl)
             
     def compute_singles(self, group_values, group_levels, parametric, lbl):
         mwu_pvalues = []
         for x, x_name in zip(group_values, group_levels):
             mwu_pvals = []
             for y, y_name in zip(group_values, group_levels):
-                p = mannwhitneyu(x, y).pvalue if not parametric else ttest_ind(x, y).pvalue
+                if len(np.unique(y))>1:
+                    p = mannwhitneyu(x, y).pvalue if not parametric else ttest_ind(x, y).pvalue
+                else:
+                    p = 1
                 mwu_pvals.append(p)
                 lbl += f'{x_name}, {y_name}: p: {p:.5f}\t'
+
             mwu_pvalues.append(mwu_pvals)
             lbl += '\n'
         mwu_pvalues = np.array(mwu_pvalues)
