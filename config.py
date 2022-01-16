@@ -23,7 +23,7 @@ if where.startswith('/home/ssteffens'):
 
 # local
 elif where.startswith('/home/loaloa/gdrive/'):
-    BASE_DIR = '/home/loaloa/gdrive/projects/biohybrid MEA/'
+    BASE_DIR = '/home/loaloa/gdrive/cur_projects/biohybrid MEA/'
     RAW_TRAINING_DATA_DIR = '/home/loaloa/Documents/training_data/'
     RAW_TRAINING_DATA_DIR = '/home/loaloa/Documents/'
     
@@ -31,7 +31,7 @@ elif where.startswith('/home/loaloa/gdrive/'):
     LOCAL_SCREENING_DIR = '/home/loaloa/Documents/PDMS_structure_screen/'
     
     SCREENING_DIR = '/home/loaloa/ETZ_drive/biohybrid-signal-p/PDMS_structure_screen_v2/'
-    SCREENING_DIR = '/home/loaloa/PDMS_structure_screen_v2/'
+    # SCREENING_DIR = '/home/loaloa/PDMS_structure_screen_v2/'
     RAW_INFERENCE_DATA_DIR = '/home/loaloa/ETZ_drive/biohybrid-signal-p/tl13_tl14_all/'
     
     DEFAULT_DEVICE = 'cpu'
@@ -151,3 +151,46 @@ DESIGN_FEATURES = {
    20: [1, 3, 'early', 8, 'angled',   '3',           '1.5, wide',  'no'],
 
 }
+
+
+
+
+
+
+
+
+
+        # H24_designs = ['W:0.5um - H:24um',
+        #                 'W:0.75um - H:24um',
+        #                 'W:1um - H:24um',
+        #                 'W:1.25um - H:24um',
+        #                 'W:1.5um - H:24um',
+        #                 'W:1.75um - H:24um',
+        #                 'W:2um - H:24um',
+        #                 'W:3um - H:24um',
+        #                 'W:4um - H:24um',
+        #                 'W:6um - H:24um',
+        #                 'W:8um - H:24um',
+        #                 'W:10um - H:24um',
+        #                 'W:14um - H:24um',
+        #                 'W:18um - H:24um',
+        #                 'W:22um - H:24um',
+        #                 'W:26um - H:24um']
+
+        # H6_designs = ['W:0.5um - H:6um',
+        # 'W:0.75um - H:6um',
+        # 'W:1um - H:6um',
+        # 'W:1.25um - H:6um',
+        # 'W:1.5um - H:6um',
+        # 'W:1.75um - H:6um',
+        # 'W:2um - H:6um',
+        # 'W:3um - H:6um',
+        # 'W:4um - H:6um',
+        # 'W:6um - H:6um',
+        # 'W:8um - H:6um',
+        # 'W:10um - H:6um',
+        # 'W:14um - H:6um',
+        # 'W:18um - H:6um',
+        # 'W:22um - H:6um',
+        # 'W:26um - H:6um',]
+        
