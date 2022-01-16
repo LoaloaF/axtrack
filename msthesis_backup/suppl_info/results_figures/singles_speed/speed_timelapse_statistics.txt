@@ -1,8 +1,0 @@
-speed_timelapse
-========================================================
-levels:dict_keys(['timelapse-tl13', 'timelapse-tl14']):
- Kruskal Wallis t=1082.420, p=0.00000
- --> ***
-
-timelapse-tl13, timelapse-tl13: p: 0.50000	timelapse-tl13, timelapse-tl14: p: 0.00000	
-timelapse-tl14, timelapse-tl13: p: 0.00000	timelapse-tl14, timelapse-tl14: p: 0.50000	

@@ -1,8 +1,0 @@
-n_axons_2-joint placement
-========================================================
-levels:dict_keys(['2-joint placement-early', '2-joint placement-late']):
- Kruskal Wallis t=1.191, p=0.27509
- --> N.S.
-
-2-joint placement-early, 2-joint placement-early: p: 0.48845	2-joint placement-early, 2-joint placement-late: p: 0.14272	
-2-joint placement-late, 2-joint placement-early: p: 0.14272	2-joint placement-late, 2-joint placement-late: p: 0.49247	

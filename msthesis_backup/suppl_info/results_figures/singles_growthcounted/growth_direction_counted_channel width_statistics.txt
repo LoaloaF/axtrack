@@ -1,9 +1,0 @@
-growth_direction_counted_channel width
-========================================================
-levels:dict_keys(['channel width-1.5-forw', 'channel width-3.0-forw', 'channel width-8.0-forw']):
- Kruskal Wallis t=2.086, p=0.35240
- --> N.S.
-
-channel width-1.5-forw, channel width-1.5-forw: p: 0.44121	channel width-1.5-forw, channel width-3.0-forw: p: 0.23524	channel width-1.5-forw, channel width-8.0-forw: p: 0.09098	
-channel width-3.0-forw, channel width-1.5-forw: p: 0.23524	channel width-3.0-forw, channel width-3.0-forw: p: 0.44121	channel width-3.0-forw, channel width-8.0-forw: p: 0.29252	
-channel width-8.0-forw, channel width-1.5-forw: p: 0.09098	channel width-8.0-forw, channel width-3.0-forw: p: 0.29252	channel width-8.0-forw, channel width-8.0-forw: p: 0.49966	

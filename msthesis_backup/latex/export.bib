@@ -1,3 +1,129 @@
+@article{cnn_generalization,
+   abstract = {Convolutional Neural Networks (CNNs) are commonly assumed to be invariant to
+small image transformations: either because of the convolutional architecture
+or because they were trained using data augmentation. Recently, several authors
+have shown that this is not the case: small translations or rescalings of the
+input image can drastically change the network's prediction. In this paper, we
+quantify this phenomena and ask why neither the convolutional architecture nor
+data augmentation are sufficient to achieve the desired invariance.
+Specifically, we show that the convolutional architecture does not give
+invariance since architectures ignore the classical sampling theorem, and data
+augmentation does not give invariance because the CNNs learn to be invariant to
+transformations only for images that are very similar to typical images from
+the training set. We discuss two possible solutions to this problem: (1)
+antialiasing the intermediate representations and (2) increasing data
+augmentation and show that they provide only a partial solution at best. Taken
+together, our results indicate that the problem of insuring invariance to small
+image transformations in neural networks while preserving high accuracy remains
+unsolved.},
+   author = {Aharon Azulay and Yair Weiss},
+   journal = {arXiv},
+   month = {5},
+   title = {Why do deep convolutional networks generalize so poorly to small image transformations?},
+   url = {https://arxiv.org/abs/1805.12177},
+   year = {2018},
+}
+@article{rcnn,
+   abstract = {Object detection performance, as measured on the canonical PASCAL VOC
+dataset, has plateaued in the last few years. The best-performing methods are
+complex ensemble systems that typically combine multiple low-level image
+features with high-level context. In this paper, we propose a simple and
+scalable detection algorithm that improves mean average precision (mAP) by more
+than 30% relative to the previous best result on VOC 2012---achieving a mAP of
+53.3%. Our approach combines two key insights: (1) one can apply high-capacity
+convolutional neural networks (CNNs) to bottom-up region proposals in order to
+localize and segment objects and (2) when labeled training data is scarce,
+supervised pre-training for an auxiliary task, followed by domain-specific
+fine-tuning, yields a significant performance boost. Since we combine region
+proposals with CNNs, we call our method R-CNN: Regions with CNN features. We
+also compare R-CNN to OverFeat, a recently proposed sliding-window detector
+based on a similar CNN architecture. We find that R-CNN outperforms OverFeat by
+a large margin on the 200-class ILSVRC2013 detection dataset. Source code for
+the complete system is available at http://www.cs.berkeley.edu/~rbg/rcnn.},
+   author = {Ross Girshick and Jeff Donahue and Trevor Darrell and Jitendra Malik},
+   journal = {arXiv},
+   month = {11},
+   title = {Rich feature hierarchies for accurate object detection and semantic segmentation},
+   url = {https://arxiv.org/abs/1311.2524},
+   year = {2013},
+}
+@article{gc_tracking,
+   abstract = {The isolation and purification of axon guidance molecules has enabled in vitro studies of the effects of axon guidance molecule gradients on numerous neuronal cell types. In a typical experiment, cultured neurons are exposed to a chemotactic gradient and their growth is recorded by manual identification of the axon tip position from two or more micrographs. Detailed and statistically valid quantification of axon growth requires evaluation of a large number of neurons at closely spaced time points (e.g. using a time-lapse microscopy setup). However, manual tracing becomes increasingly impractical for recording axon growth as the number of time points and/or neurons increases. We present a software tool that automatically identifies and records the axon tip position in each phase-contrast image of a time-lapse series with minimal user involvement. The software outputs several quantitative measures of axon growth, and allows users to develop custom measurements. For, example analysis of growth velocity for a dissociated E13 mouse cortical neuron revealed frequent extension and retraction events with an average growth velocity of 0.05 ± 0.14 μm/min. Comparison of software-identified axon tip positions with manually identified axon tip positions shows that the software's performance is indistinguishable from that of skilled human users. © 2005 Elsevier B.V. All rights reserved.},
+   author = {Thomas M. Keenan and Andrew Hooker and Mary E. Spilker and Nianzhen Li and Gregory J. Boggy and Paolo Vicini and Albert Folch},
+   doi = {10.1016/J.JNEUMETH.2005.07.010},
+   issn = {01650270},
+   issue = {2},
+   journal = {Journal of neuroscience methods},
+   keywords = {Automated,Axon guidance,Image analysis,Neuron,Time-lapse,Tracking},
+   month = {3},
+   pages = {232-238},
+   pmid = {16174535},
+   publisher = {NIH Public Access},
+   title = {Automated identification of axonal growth cones in time-lapse image sequences},
+   volume = {151},
+   url = {/pmc/articles/PMC3848907/ /pmc/articles/PMC3848907/?report=abstract https://www.ncbi.nlm.nih.gov/pmc/articles/PMC3848907/},
+   year = {2006},
+}
+@article{seg_track,
+   abstract = {To study how axon growth is affected by the local environment biologists perform extensive experiments, watching the axons develop on different substrates. As axons grow from the neuron cell body they form tree-like structures, with branches forming and withering as they explore their surroundings. In this paper, we propose a system which can track individual axons as they grow and branch over time, enabling quantitative evaluation of different aspects of the axon behaviour. The system includes a novel segmentation network with Gabor kernels. It uses less than 0.5% of the number of parameters required in an equivalent U-Net or other related CNN but gives better overall performance on a standard test set. We evaluate the complete axon tracking system and demonstrating that it achieves results comparable to a human annotator, but gives a far richer description and is much faster.},
+   author = {Zewen Liu and Timothy Cootes and Christoph Ballestrem},
+   doi = {10.1007/978-3-030-59861-7_46},
+   isbn = {9783030598600},
+   issn = {16113349},
+   journal = {Lecture Notes in Computer Science (including subseries Lecture Notes in Artificial Intelligence and Lecture Notes in Bioinformatics)},
+   keywords = {Axon tracking,Microscopy image analysis,Vessel segmentation},
+   month = {10},
+   pages = {455-464},
+   publisher = {Springer, Cham},
+   title = {An End to End System for Measuring Axon Growth},
+   volume = {12436 LNCS},
+   url = {https://link.springer.com/chapter/10.1007/978-3-030-59861-7_46},
+   year = {2020},
+}
+@article{3D_seg_1,
+   abstract = {We present a method combining affinity prediction with region agglomeration, which improves significantly upon the state of the art of neuron segmentation from electron microscopy (EM) in accuracy and scalability. Our method consists of a 3D U-Net, trained to predict affinities between voxels, followed by iterative region agglomeration. We train using a structured loss based on Malis, encouraging topologically correct segmentations obtained from affinity thresholding. Our extension consists of two parts: First, we present a quasi-linear method to compute the loss gradient, improving over the original quadratic algorithm. Second, we compute the gradient in two separate passes to avoid spurious gradient contributions in early training stages. Our predictions are accurate enough that simple learning-free percentile-based agglomeration outperforms more involved methods used earlier on inferior predictions. We present results on three diverse EM datasets, achieving relative improvements over previous results of 27, 15, and 250 percent. Our findings suggest that a single method can be applied to both nearly isotropic block-face EM data and anisotropic serial sectioned EM data. The runtime of our method scales linearly with the size of the volume and achieves a throughput of $\sim$∼ 2.6 seconds per megavoxel, qualifying our method for the processing of very large datasets.},
+   author = {Jan Funke and Fabian Tschopp and William Grisaitis and Arlo Sheridan and Chandan Singh and Stephan Saalfeld and Srinivas C. Turaga},
+   doi = {10.1109/TPAMI.2018.2835450},
+   issn = {1939-3539},
+   issue = {7},
+   journal = {IEEE transactions on pattern analysis and machine intelligence},
+   keywords = {Algorithms,Animals,Cerebral Cortex / cytology,Cerebral Cortex / diagnostic imaging,Computer-Assisted / methods*,Connectome / methods*,Deep Learning*,Drosophila,Electron,Fabian Tschopp,Image Processing,Imaging,Jan Funke,MEDLINE,Mice,Microscopy,NCBI,NIH,NLM,National Center for Biotechnology Information,National Institutes of Health,National Library of Medicine,Nerve Net / diagnostic imaging*,Neurons / cytology,PubMed Abstract,Srinivas C Turaga,Three-Dimensional,doi:10.1109/TPAMI.2018.2835450,pmid:29993708},
+   month = {7},
+   pages = {1669-1680},
+   pmid = {29993708},
+   publisher = {IEEE Trans Pattern Anal Mach Intell},
+   title = {Large Scale Image Segmentation with Structured Loss Based Deep Learning for Connectome Reconstruction},
+   volume = {41},
+   url = {https://pubmed.ncbi.nlm.nih.gov/29993708/ https://pubmed.ncbi.nlm.nih.gov/29993708/?dopt=Abstract},
+   year = {2019},
+}
+@article{3D_seg_2,
+   abstract = {Tracing the entirety of ultrastructures in large three-dimensional electron microscopy (3D-EM) images of the brain tissue requires automated segmentation techniques. Current segmentation techniques use deep convolutional neural networks (DCNNs) and rely on high-contrast cellular membranes and high-resolution EM volumes. On the other hand, segmenting low-resolution, large EM volumes requires methods to account for severe membrane discontinuities inescapable. Therefore, we developed DeepACSON, which performs DCNN-based semantic segmentation and shape-decomposition-based instance segmentation. DeepACSON instance segmentation uses the tubularity of myelinated axons and decomposes under-segmented myelinated axons into their constituent axons. We applied DeepACSON to ten EM volumes of rats after sham-operation or traumatic brain injury, segmenting hundreds of thousands of long-span myelinated axons, thousands of cell nuclei, and millions of mitochondria with excellent evaluation scores. DeepACSON quantified the morphology and spatial aspects of white matter ultrastructures, capturing nanoscopic morphological alterations five months after the injury. With DeepACSON, Abdollahzadeh et al. combines existing deep learning-based methods for semantic segmentation and a novel shape decomposition technique for the instance segmentation. The pipeline is used to segment low-resolution 3D-EM datasets allowing quantification of white matter morphology in large fields-of-view.},
+   author = {Ali Abdollahzadeh and Ilya Belevich and Eija Jokitalo and Alejandra Sierra and Jussi Tohka},
+   doi = {10.1038/s42003-021-01699-w},
+   issn = {2399-3642},
+   issue = {1},
+   journal = {Communications Biology 2021 4:1},
+   keywords = {Computational neuroscience,Image processing,Machine learning},
+   month = {2},
+   pages = {1-14},
+   pmid = {33568775},
+   publisher = {Nature Publishing Group},
+   title = {DeepACSON automated segmentation of white matter in 3D electron microscopy},
+   volume = {4},
+   url = {https://www.nature.com/articles/s42003-021-01699-w},
+   year = {2021},
+}
+@inproceedings{alexnet,
+   author = {Alex Krizhevsky and Ilya Sutskever and Geoffrey E Hinton},
+   editor = {F Pereira and C J C Burges and L Bottou and K Q Weinberger},
+   journal = {Advances in Neural Information Processing Systems},
+   publisher = {Curran Associates, Inc.},
+   title = {ImageNet Classification with Deep Convolutional Neural Networks},
+   volume = {25},
+   url = {https://proceedings.neurips.cc/paper/2012/file/c399862d3b9d6b76c8436e924a68c45b-Paper.pdf},
+   year = {2012},
+}
 @article{hungarian,
    author = {Harold W Kuhn},
    doi = {10.1002/nav.3800020109},
@@ -97,25 +223,6 @@ https://bit.ly/motsolv .},
    title = {Learning a Neural Solver for Multiple Object Tracking},
    url = {https://arxiv.org/abs/1912.07515v2},
    year = {2019},
-}
-@article{alexnet,
-   abstract = {We trained a large, deep convolutional neural network to classify the 1.2 million high-resolution images in the ImageNet LSVRC-2010 contest into the 1000 different classes. On the test data, we ach...},
-   author = {Alex Krizhevsky and Ilya Sutskever and Geoffrey E. Hinton},
-   doi = {10.1145/3065386},
-   issn = {15577317},
-   issue = {6},
-   journal = {Communications of the ACM},
-   month = {5},
-   pages = {84-90},
-   publisher = {
-		ACM
-		PUB27
-		New York, NY, USA
-	},
-   title = {ImageNet classification with deep convolutional neural networks},
-   volume = {60},
-   url = {https://dl.acm.org/doi/abs/10.1145/3065386},
-   year = {2017},
 }
 @article{yolo5,
    abstract = {Object detection is one of the most important areas in computer vision, which plays a key role in various practical scenarios. Due to limitation of hardware, it is often necessary to sacrifice accuracy to ensure the infer speed of the detector in practice. Therefore, the balance between effectiveness and efficiency of object detector must be considered. The goal of this paper is to implement an object detector with relatively balanced effectiveness and efficiency that can be directly applied in actual application scenarios, rather than propose a novel detection model. Considering that YOLOv3 has been widely used in practice, we develop a new object detector based on YOLOv3. We mainly try to combine various existing tricks that almost not increase the number of model parameters and FLOPs, to achieve the goal of improving the accuracy of detector as much as possible while ensuring that the speed is almost unchanged. Since all experiments in this paper are conducted based on PaddlePaddle, we call it PP-YOLO. By combining multiple tricks, PP-YOLO can achieve a better balance between effectiveness (45.2% mAP) and efficiency (72.9 FPS), surpassing the existing state-of-the-art detectors such as EfficientDet and YOLOv4.Source code is at https://github.com/PaddlePaddle/PaddleDetection.},
@@ -454,7 +561,7 @@ performance at high frame rates.},
    author = {Warren M. Grill and Sharon E. Norman and Ravi V. Bellamkonda},
    doi = {10.1146/ANNUREV-BIOENG-061008-124927},
    issn = {15239829},
-   journal = {http://dx.doi.org/10.1146/annurev-bioeng-061008-124927},
+   journal = {Annual Review of Biomedical Engineering},
    keywords = {brain-machine interface,electrical stimulation,electrode,neural prostheses,neural recording,neural stimulation},
    month = {7},
    pages = {1-24},
@@ -974,7 +1081,7 @@ performance at high frame rates.},
    url = {https://pubs.rsc.org/en/content/articlehtml/2019/lc/c9lc00078j https://pubs.rsc.org/en/content/articlelanding/2019/lc/c9lc00078j},
    year = {2019},
 }
-@article{mot_benchmark,
+@article{mot_benchmark_2015,
    abstract = {In the recent past, the computer vision community has developed centralized
 benchmarks for the performance evaluation of a variety of tasks, including
 generic object and pedestrian detection, 3D reconstruction, optical flow,
@@ -994,6 +1101,7 @@ creating a unified evaluation system. With MOTChallenge we aim to pave the way
 toward a unified evaluation framework for a more meaningful quantification of
 multi-target tracking.},
    author = {Laura Leal-Taixé and Taix´ Taixé and Anton Milan and Ian Reid and Stefan Roth and Konrad Schindler},
+   journal = {ArXiv},
    keywords = {Index Terms-multiple people tracking,benchmark,dataset !,evaluation metrics},
    month = {4},
    title = {MOTChallenge 2015: Towards a Benchmark for Multi-Target Tracking},

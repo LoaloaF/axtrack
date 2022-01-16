@@ -1,9 +1,0 @@
-n_axons_channel width
-========================================================
-levels:dict_keys(['channel width-1.5', 'channel width-3.0', 'channel width-8.0']):
- Kruskal Wallis t=2.939, p=0.23009
- --> N.S.
-
-channel width-1.5, channel width-1.5: p: 0.44121	channel width-1.5, channel width-3.0: p: 0.33250	channel width-1.5, channel width-8.0: p: 0.14032	
-channel width-3.0, channel width-1.5: p: 0.33250	channel width-3.0, channel width-3.0: p: 0.44121	channel width-3.0, channel width-8.0: p: 0.08874	
-channel width-8.0, channel width-1.5: p: 0.14032	channel width-8.0, channel width-3.0: p: 0.08874	channel width-8.0, channel width-8.0: p: 0.49966	

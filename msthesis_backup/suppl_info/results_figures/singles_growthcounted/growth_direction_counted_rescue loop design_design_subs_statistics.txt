@@ -1,8 +1,0 @@
-growth_direction_counted_rescue loop design_design_subs
-========================================================
-levels:dict_keys(['rescue loop design-angled-forw', 'rescue loop design-straight-forw']):
- Kruskal Wallis t=0.224, p=0.63625
- --> N.S.
-
-rescue loop design-angled-forw, rescue loop design-angled-forw: p: 0.47894	rescue loop design-angled-forw, rescue loop design-straight-forw: p: 0.33710	
-rescue loop design-straight-forw, rescue loop design-angled-forw: p: 0.33710	rescue loop design-straight-forw, rescue loop design-straight-forw: p: 0.47894	

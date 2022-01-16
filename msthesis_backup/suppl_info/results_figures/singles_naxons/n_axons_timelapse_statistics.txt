@@ -1,8 +1,0 @@
-n_axons_timelapse
-========================================================
-levels:dict_keys(['timelapse-tl13', 'timelapse-tl14']):
- Kruskal Wallis t=18.004, p=0.00002
- --> ***
-
-timelapse-tl13, timelapse-tl13: p: 0.49900	timelapse-tl13, timelapse-tl14: p: 0.00001	
-timelapse-tl14, timelapse-tl13: p: 0.00001	timelapse-tl14, timelapse-tl14: p: 0.49926	

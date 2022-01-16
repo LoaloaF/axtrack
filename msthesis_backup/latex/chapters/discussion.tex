@@ -1,9 +1,414 @@
 \section{Discussion}
 
+\subsection{Summary}
+This work set out to identify PDMS micro structures that directionally connect
+multiple source nodes with a common target. Solving this problem would not only
+be highly beneficial for biohybrid brain interfacing technology as described in
+the introduction, but also for functionally more sophisticated neural network
+models. To screen the 21 previously designed PDMS micro structures at high
+throughput, we resorted to a computationally aided anatomical readout. Our
+deep-learning based growth cone tracking model is able to accurately detect
+growth cones of various morphologies and successfully link them to long living
+axon identities. The obtained axon tracks allowed us to derive information on
+the degree of directional growth, growth velocity and the number of outgrowing
+axons. By virtue of the systematically parameterized 21 designs, we were further
+able to identify trends between these metrics and specific design features. \\
 
-\subsection{Model architecture and generalization}
+Compared to 8 $\upmu$m wide channels, we find that narrow channel widths such as
+1.5 and 3 $\upmu$m eliminate axon stagnation and significantly increase axonal
+growth velocity by almost two folds. Conversely, introducing more sophisticated
+design motifs such as 2-joints or rescue loops reduced growth velocity, with the
+number of 2-joints additionally reducing the frequency of axonal outgrowth. When
+comparing the relative proportion of backwards growing axons across the 21
+designs, we find a significant relationship, but forward growth does not differ
+significantly. Various features such as channel width, the number of 2-joints
+and the number of rescue loops significantly affect backwards directionality.
+Forward growth differs in designs varying in 2-joint placement and number of
+rescue loops. Next, to find the best performing design and assign an
+interpretable directionality metric, we calculated a ratio of target-grown and
+cross-grown axons. With a fold directionality between almost 4 and 2.5, this
+metric identified Design 20, 14, 13, 19 and 18 implementing one 2-joint, three
+rescue loops and altered final lanes and 2-joints as the best performing ones. \\
 
-treating numerical variables as categoric ones 
+While the tracking of growth cones through PDMS micro structures revealed highly
+directional designs, the experimental resolution was insufficient to disentangle
+more settle factors such as specific 2-joint motif designs. For this reason, we
+designed new PDMS micro structures that systematically investigate axon guidance
+primitives. Due to many group variants, low sample sizes, and high variance,
+single comparisons were rarely significant after multiple testing correction.
+Still, these experiments revealed interesting trends that enabled us to make
+predictions about successful followup designs. The following discusses the above
+in more detail.
 
-concern with viability results for n 2-joints: design 8 only in Dataset4, which
-has generally lower growth. 
+\subsection{Growth cone tracking}
+The implemented growth cone tracking model follows the common approach of
+splitting the tracking problem into instance detection and identity association.
+On test data, the model achieves detection F1 scores of 0.76. Subsequent
+identity association reduces performances marginally by 0.05 to 0.71.
+Intuitively speaking, 7 out of 10 growth cone identifications will be correct, 3
+will either be false positives, false negatives or wrongly associated. \\
+
+The tracker shows good generalization from train,- to test datasets, however,
+meaningful model performance evaluation needs to incorporate generalization from
+test,- to inference data as well. To expose the model to various growth cone
+location contexts, the model was trained on three different PDMS micro structure
+designs. This showed vastly improved generalization versus training on datasets
+with a single PDMS micro structure design. Based on extensive qualitative
+checking, with minor exceptions, we can report a solid overall generalization
+ability to various PDMS micro structure designs. These exceptions include
+out-of-focus timelapse recordings, and, limited to one experiment, detection of
+growth cones in 1.5, and 3 $\upmu$m wide channels. We also observe that growth
+cones are tracked less well in structures that are rarely present in the
+training data, including rescue loops and the output channel. As commonly
+observed in deep learning models \parencite{cnn_generalization}, the method is
+highly sensitive to
+deviating pixel intensity distributions. For new datasets, it is therefore
+essential to carefully replicate the confocal image acquisition settings. \\
+
+Not many solutions exist for the specific problem of growth cone tracking.
+Relying on classical computer vision tools, \cite{gc_tracking} presented a
+method that requires human assistance and clearly separated axons for successful
+growth cone tracking. This early method did not fullfil our requirements in
+terms of experimental throughput. An indirect approach inferring axonal growth
+patterns from segmented and associated video frames also showed results
+restricted to predominantly well separated axons \parencite{seg_track}. Compared
+to a classical \textit{in vitro} setup, segmenting single axons in densely
+packed PDMS micro channels is additionally challenging, since axons show heavy
+overlap. Also, \cite{seg_track} did not publish an implementation for
+open-source use. Another alternative relying on segmentation based tracking are
+commercial solutions such as Incucyte by Sartorius, but they likely suffer from
+the same problem. Classical non-machine learning based particle tracking tools
+bundled in the Imaris imaging software (Oxford Instruments) did non perform
+comparable to our method either. Another view on tracking growth cones in
+timelapse image sequences is to treat the temporal dimension as a spatial one.
+Targeting mainly connectomics, extensive work exists on axon segmentation in 3D
+microscopy slices (\cite{3D_seg_1}, \cite{3D_seg_2}), however the z-dimension in
+these datasets does not comprehensively translate to the temporal dimension in
+video tracking. The specific objects of interest, growth cones, are rarely
+present in 3D microscopy slices. For the reasons mentioned above, benchmarking
+our method is not straight forward. Since, to our knowledge, no MOTA performance
+scores have been reported on growth cone tracking, we looked into the reported
+MOTA scores on the cell tracking with mitosis detection (CTMC) dataset
+\parencite{organelltracking}. Here, state of the art performance reaches MOTA
+scores of 0.5, whereas our tracker has a MOTA of 0.61. Of course, this may be
+due to the CMTC dataset being far more challenging, but still, this crude
+comparison indicates at least decent performance of our tracker. \\
+
+A collection of model modifications could be made to potentially improve
+tracking performance. First, the implemented YOLO detector would likely be
+outperformed by the well established Faster R-CNN architecture
+(\cite{fasterrcnn} and Introduction). The YOLO detecter was implemented because
+of its wide adoption, but the advantage of fast online detection is not a
+relevant feature in our offline detection use case. The model performance would
+also likely increase with more training data including morphological growth cone
+outliers and less common PDMS design motifs. Lastly, for long timelapse
+recordings, the \verb|PyTorch| based video leading needs to be reimplemented as
+currently, the entire image sequence is put in system memory.
+
+\subsection{Directional PDMS micro structures}
+The degree of directional growth through PDMS micro structures was screened by
+growth cone tracking in 21 many-to-one designs, and by performing axon growth
+experiments investigating lower level guidance primitives. While the tracking in
+multiple-source to single-target PDMS micro structures aimed to find the best
+performing design, the investigation of axon guidance primitives took a
+conceptual step back, answering specific design optimization questions. \\
+
+\subsubsection{Micro channel width}
+Besides information on directional growth, tracking provided insights into axon
+growth velocity and outgrowth frequency, revealing a strong relationship between
+channel width and axon growth velocity. By reducing the channel width from 8 to
+3 or 1.5 $\upmu$m, we observe an increase in median growth velocity from 750 to
+1600 $\upmu$m per day (DIV 3.5-6.5). For aggregated cortical neurons grown in
+agarose microcolumns, \cite{cullenrecent} presented similar growth velocities
+peaking at DIV 3. Classifying stagnating axons in PDMS micro structures revealed
+that designs utilizing narrow channels showed significantly fewer stagnating
+axons than wide-channel counter parts. Based on the observation that growth
+stagnation mostly occurs during the first 200 $\upmu$m, one hypothesis could be
+that dentritic structures selectively enter and cloak channels wider than 3
+$\upmu$m. \\
+These high velocities do not necessarily lead to the conclusion, that the
+majority of axons will cover distances of 3 mm in 2-4 days. First, it should be
+considered the growth velocity is likely to drop over time as shown in
+\cite{cullenrecent}. Second, fast, short living axon identities may achieve
+growth velocities beyond 2 mm per day, yet only cover a few hundred $\upmu$m. On
+top of that, similar to the discrepancy between 8 and 1.5 $\upmu$m channels,
+growth velocity declines when axons enter the 75 x 75 $\upmu$m output channel.
+For these reasons, we only see RGCs reaching the 3-4 mm distant target after
+approximately 12 days (see Figure \ref{I_thal_innervation}). \\
+Through the strong forward convergence, Design 3 implementing 3 $\upmu$m wide
+channels achieved $\delta$ fold directionality above one, indicating a positive
+effect of smaller channels on directionality. While these narrow channel designs
+could be highly interesting for guidance motifs relying on high growth
+velocities, the long time neural viability and signal transmission efficacy
+would first need to be validated. \\
+
+\subsubsection{Merging channels}
+Any design that aims to guide multiple source nodes towards a common target node
+inevitably needs to merge channels. Crucially, these merging elements also
+present the opportunity for axons to cross-grow towards a neighboring node.
+Thus, achieving directional merging is the central problem to solve for
+engineering directional many-to-one PDMS micro structures. \\
+Our 21 designs broadly implement three approaches to merging: (i) merging
+channels using 2-joints, (ii) merging channels in a final lane, and the outlier
+approach (iii), collecting axons in a large container. Design 00 solely follows
+approach (iii), Designs 01-04 rely only on (ii) and the Designs 05-20 implement
+both (i) and (ii). An illustration of 2-joints and final lanes is shown in
+Figure \ref{R_designs}. \\
+Guiding channels in an axon collection container with a diode-like geometry
+(iii) does not yield high directionality, as seen in Design 00. Due to missing
+edges, axons entering the container compartment slow down significantly and
+frequently enter neighboring nodes regardless of the diode-like entry geometry
+(see \verb|D00_tracking.mp4|). \\
+In contrast, the addition of 2-joints significantly reduces the degree of
+backwards growth in PDMS designs, albeit that no significant difference is
+observed between the use of one or three 2-joints. Additionally, placing them
+early, and thus closer to source nodes yields significantly higher forward
+growth. This positive effect may be due to neighboring nodes emitting growth
+promoting chemical cues. While the addition of at least one 2-joints
+significantly reduces backwards growth, it seems to negatively affect the
+frequency and velocity of axonal outgrowth. Designs omitting 2-joints exhibit a
+median number of 65 axons per micro structure half, while designs with one or
+three 2-joints, showed only 50 and 40 axons, respectively. This may be caused by
+a thalamic cue diffusion bottleneck introduced by joining lanes together. The
+growth velocity may be reduced due to deceased edge attachment within
+2-joints.\\
+
+As mentioned above, we do not observe a significant directionality difference
+between designs implementing one or three 2-joints. However, assuming that final
+lane merging (ii) does not outperform 2-joint merging (i) by a large degree,
+there exists a theoretical advantage of using 2-joints over final lane joints,
+especially when scaling up the number of source nodes. As a function of the
+number of source nodes $x$, consider the integer $n(x)$ referring to the number
+of directional axon transitions needed to obtain a completely directional
+culture. For example, following approach (i), four source nodes merged with
+three stacked 2-joints evaluate to $n_{(i)}(4) = 2 + 2 + 2 + 2 = 8$, since each
+source channel passes two growth decision points. Interestingly, for an
+increasing number of source nodes $x$, designs joining through final lanes
+require vastly more favorable axon transitions $n_{(ii)}$ than designs relying
+on 2-joints $n_{(i)}$ (see equation \ref{i_merging}, \ref{ii_merging}, and
+$x=32$). Final lanes may still be competitive if merging directionality is
+vastly higher than in 2-joints, however, since we do not observe exceptional
+directionality in designs relying solely on final lane merging, we may assume
+that 2-joints merge at least as directional as final lanes. Final lane joining
+seems to positively impact axonal outgrowth frequency and velocity, but for
+maximally directional cultures integrating many source nodes, stacked 2-joints
+are likely preferred. The Designs 06 and 08 integrating three stacked 2-joints
+did perhaps not outperform one 2-joint counter parts, because they did not
+integrate rescue loops. \\
+
+\vspace{5mm}
+\hspace{1cm}
+\begin{minipage}{0.3\textwidth}
+    \hspace{5cm}
+    \begin{tabular}{@{}rrrrr@{}}
+        \toprule
+        $x$ && 8 & 16 & 32 \\
+        \midrule
+        \vspace{2mm}
+        $n_{(i)}(x)$ && 24 & 64 & 160 \\
+        $n_{(ii)}(x)$ && 35 & 135 & 527 \\
+    \end{tabular}
+% \caption[Example]{Example}
+\end{minipage}%
+\hfill
+\begin{minipage}{0.6\textwidth}
+    \begin{equation}
+        n_{(i)}(x) = x \log_2{x} \hspace{4.1cm}
+        \label{i_merging}
+    \end{equation}
+
+    \begin{equation}
+        n_{(ii)}(x) = x-1 + \sum_{j=1}^{x-1} j \quad \approx \frac{1}{2}x^2 \hspace{1.5cm}
+        \label{ii_merging}
+    \end{equation}
+\end{minipage}%
+\vspace{5mm}
+
+An intuitive next step for improving directional merging was to investigate
+optimal 2-joint merging designs. Since directionality performance of Designs
+12-15 did not differ significantly, we designed a PDMS micro structure
+specifically testing various 2-joint designs. Although the Kruskal-Wallis test
+identified the 2-joint designs as originating from different distributions, only
+a design implementing angled joint entries significantly underperformed versus
+the control. The control joint showed a median merging bias $\beta$ of 0.6,
+whereas we expect $\beta$ to be 0 for non-directional 2-joint designs. This
+surprisingly high performance raised the bar for reaching significance. The
+non-significant trends of merging performance we see in these primitive
+experiments and the Designs 12-15 do not coincide. Wheres tangential joint
+entries, doubling the 2-joint size, and 3 $\upmu$m joint entries perform well in
+the isolated 2-joint screen, Designs 13 and 14 using 2-joints with inlays and 5
+$\upmu$m entries respectively tended to be more directional in tracking
+experiments. One issue reducing the experimental resolution of the primitive
+screen was that successfully merged axons occasionally turned 180 degrees within
+the diffusion well, and grew backwards into the 2-joint, therefore confounding
+the measured directionality. To avoid this and find significant differences,
+more replicates are required at a preferably early timepoint such as DIV 7. 
+
+\subsubsection{Grwoth direction rescue loops}
+% mention stomach
+% angled, straight
+% los res in primitive
+
+The evaluation of $n_{(i)}(x)$ for 32 source nodes aptly highlights the
+difficulty of engineering directional many-to-one PDMS micro structures
+(equation \ref{i_merging}). Even when merging with 99\% directionality, the
+joint event of entirely correct transitions within a culture occurs only with a
+probability of $0.99^{160}=0.2$. One approach to alleviate the impact of merging
+is to introduce rescue structures that selectively redirect wrongly growing
+axons. Thereby, transitions within a 2-joint can be mitigated by preventing
+axons from reaching neighboring nodes. As mentioned in the introduction, a
+multitude of PDMS geometries have been published to impose growth
+directionality. Stomach structures showed directionality of up to 95\% for
+connecting two nodes \parencite{forro}, however their design is not directly
+transferable to multiple source nodes converging on a common target. For this
+reason, we designed new growth-rescuing loop structures that are small and
+easily stackable. Importantly, the forward growth is not impaired, but even
+increased in designs implementing three instead of one or zero rescue loops.
+Although we observe lower axonal growth velocity when three of these rescue
+loops are added prior to merging, the relative number of backwards growing axons
+is significantly reduced. One caveat to this is that, although not statistically
+significant, one rescue loop designs seem to be less directional and promote
+faster growth than zero rescue loop designs. Analyzing the feature of \textit{n
+rescue loops} as a numerical,- instead of categorical variable may result in a
+different conclusion. \\
+
+To investigate settle design variations between rescue loops, and to compare
+them to previously published stomach structures, we performed an additional
+experiment specifically targeting directional growth. The setup consisted of two
+GFP, and RFP labelled nodes connected through channels with,- and without
+directionality imposing motifs. Similar to 2-joint comparisons, the results were
+impaired by many axons growing a loop from the target back to the source node,
+using the non-directional control channels. Discerning if a GFP labelled axons
+originated from the source or target node was thus often not possible. To
+prevent an over,- and underestimation of forward and backwards growth
+respectively, a second iteration of this experiment should only test a single
+design between two nodes. \\
+Though not significant, we see that stomachs successfully prevent backwards
+growth, angled rescue loops tend to be more directional than straight ones, and
+forward growth is unimpaired across the board. Between Design 12 using angled
+rescue loops and Design 16 using straight ones, no significant difference is
+observed.
+
+\subsubsection{Bias of between dataset variance}
+One of the most dominant trends in the axon tracking data was found between
+Datasets 3 and 4, which originated from two independently conducted experiments.
+Dataset 4 showed significantly less frequent axonal outgrowth, lower growth
+velocity, and more stagnating axons. On top of this, due to the majority of
+axons not reaching critical merging regions, the directionality performance
+differed only marginally between designs. This resulted in an overestimation of
+directionality scores when only the growth direction was evaluated. To address
+this bias, we additionally looked into the fold directionality defined as the
+ratio of target,- and neighbor reaching axons. Here, samples from Dataset 4
+showed significantly lower performance than those of Dataset 3. \\
+This discrepancy needs to be discussed because a subset of designs were only
+included in one of the two datasets. Designs 03 and 04 using narrower channels
+were dropped from Dataset 4 due to poor tracking accuracy. Importantly, the
+relationship between narrow channels and increased growth velocity was
+qualitatively observed in Dataset 4 as well. Designs present only in Dataset 4
+included 00, 08, and 20. For these designs, the dataset-wide bias on for example
+growth velocity and directionality needs to be carefully considered when
+interpreting the results. The negative negative relationship between number of
+2-joints and growth velocity is one such example. This trend might be
+biased since one of the two three 2-joint designs, Design 08, carries the low
+growth velocity bias present in Dataset 4. \\
+
+A multitude of factors might have caused diminished axonal viability in Dataset
+4. PDL or Laminin coatings may have been of inferior quality, the retinal tissue
+might have stayed in Hibernate medium for too long, or problems during
+dissociation could have harmed the RGCs. Another hypothesis is that the slightly
+differing experimental setups between the two experiments caused the significant
+deviations. While Dataset 3 used free floating thalamic tissue pieces enclosed
+by a PDMS frame for chemical attraction, in Dataset 4, 3 mm distant stomach
+target structures were seeded with a thalamus spheroid. This may have resulted
+in significantly lower attractor cue concentration. 
+
+\subsubsection{Axon guidance primitives}
+% for the above, you treat numerical variables as categoric ones
+Both merging and rescue loop motif designs are based on axon growth bias towards
+edge attachment and the avoidance of sharp turning. However the details of these
+growth biases are poorly characterized. To find elucidate these primitives of
+axon guidance, we performed a range of experiments. Addressing chemical
+guidance, we designed PDMS micro structures integrating growth decisions points
+with varying channel distances towards a chemical attractor. Even when one
+channel was 6x longer than the other, we did find biased growth into the shorter
+channel. It is conceivable that too little thalamic attractor entered channels
+in general, creating negligible cue gradients at the decision point.
+Also, the experimental setup may be flawed because, at chemical equilibrium, the
+growth decision region may not exhibit a differential attractor cue gradient
+between the two channels. Since the cultures were imaged at DIV 7 and 14, the
+chemical gradient may have been insufficient. To avoid the necessity of axons
+reaching growth decision points before chemical equilibrium, a new experiment
+could investigate the growth bias between different tissues. Such a micro
+structure would more closely resemble final lane joints where thalamic attractor
+concentration is expected to be higher than competing cues emitted by
+neighboring RGC source nodes. \\
+
+Besides experiments on chemical guidance, we tested the impact of specific PDMS
+geometries on mechanical axon guidance, specifically on edge attachment and edge
+transitioning. For concave edge transition motifs, both the radius r and opening
+diameter d were identified as significant factors for guiding axons from one
+edge to another. We see a non-significant trend indicating the benefit of large
+radii and small opening diameters of 2 $\upmu$m. While 2-joints integrating 1.5
+$\upmu$m wide entries did not achieve particuarly high directionality, small
+entries into a wide final lane as used by Design 20 resulted in the highest fold
+directionality out of all designs (see \verb|D20_tracking.mp4|). \\
+Instead of integrating concave detachment from an unpreferred edge, we also
+considered convex or radial detachment utilized i.a. in stomach structures.
+Surprisingly, we don't find a relation between small radii and an edge
+detachment bias promoting directional growth. Considering that only few axons
+reached the decision area in these micro structures, the results may be due to
+an insufficient sample size. \\
+Lastly, we considered biasing the growth on the preferred edge a priori by
+adding spike,- or hill like features to the unpreferred edge. This was found to
+be a significant factor effecting the growth bias at a decision point. However,
+again, single comparisons against the control with Holm-Bonferroni correction
+were not significant. Using hill-like features with a radius of 4 $\upmu$m, or
+spike features with a radius of 6 $\upmu$m showed a tendency towards biasing
+axonal growth. Design 18 implementing spiky tracks did not perform significantly
+better than designs omitting spikes. This result is in accordance with the
+primitive experiment, since Design 18 implemented spikes of radius 2-3 $\upmu$m.
+These features did likely did not resolve during micro fabrication, and
+therefore failed to bias growth direction.
+
+\subsection{Conclusion \& Outlook}
+In this work, we screened 21 many-to-one PDMS micro structure designs for
+directional growth towards an output channel. To do this at high-throughput, we
+build a machine learning based growth cone tracking model enabling us to
+identify correctly,- and incorrectly growing axons. The best performing design
+exhibited a median fold directionality of almost 4, which translates into this
+design exhibiting 4 times as many axons in the output channel, as in neighboring
+RGC wells. To further optimize design primitives such as merging structures and
+rescue loops, we designed followup experiments investigating axon guidance at a
+lower abstraction level. While these experiments did not reveal clearly optimal
+2-joint designs, they indicated the advantage of spikes on unpreferred edges and
+small between-edge distances when transitioning to preferred edges. \\
+Using Design 20 showing a directionality bias of nearly 4 fold, ensuing
+iterations of biohybrid neural implants will benefit from fast convergence
+towards the final lane while cross growth to neighboring seeding wells is
+minimized. \\
+
+A crucially important followup to this work is the functional confirmation of
+directional connectivity within PDMS micro structure designs. While anatomical
+directionality screens have the advantage of high throughput, the final metric
+of interest is the number of functionally independent electrical channels
+driving activity in the target tissue. Since all of the 21 micro structures were
+designed to fit electrode patterns on glass multi electrode arrays (glass
+MEAs), this data can be acquired without difficulty. \\
+
+Although a subset of the 21 designs showed already impressive directionality,
+there is likely room for further improvement. Future designs should integrate
+narrow channels for higher growth velocities and potential benefits on channel
+merging. Primitive experiments testing the performance of 2-joints should be
+repeated to identify significant performance differences. Using optimal
+2-joints, new designs should try to integrate as many angled rescue loops as
+possible. Further, the potential advantage of using closely positioned thalamic
+tissue pieces as chemical attractors should be investigated more rigorously. \\
+
+Lastly, another interesting avenue of future research could be a
+super-high-resolution screen of axonal growth behavior, using the growth cone
+tracking model. This could reveal exact dynamics of edge transitioning and
+attachment, growth cone stagnation and collapse, and turning,- retraction and
+exploration behavior. From this low level knowledge, we could design PDMS micro
+structures specifically tailored to growth cone dynamics. Growth cone tracking
+at scale could also be used for studying branching behavior and target tissue
+innervation.

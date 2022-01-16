@@ -1,9 +1,9 @@
-This is BibTeX, Version 0.99d (TeX Live 2020/Arch Linux)
-Capacity: max_strings=100000, hash_size=100000, hash_prime=85009
+This is BibTeX, Version 0.99d (TeX Live 2021/Arch Linux)
+Capacity: max_strings=200000, hash_size=200000, hash_prime=170003
 The top-level auxiliary file: main.aux
 The style file: biblatex.bst
 Reallocated glb_str_ptr (elt_size=8) to 20 items from 10.
-Reallocated global_strs (elt_size=20001) to 20 items from 10.
+Reallocated global_strs (elt_size=200001) to 20 items from 10.
 Reallocated glb_str_end (elt_size=8) to 20 items from 10.
 Reallocated singl_function (elt_size=8) to 100 items from 50.
 Reallocated singl_function (elt_size=8) to 100 items from 50.
@@ -17,58 +17,51 @@ Reallocated singl_function (elt_size=8) to 100 items from 50.
 Reallocated singl_function (elt_size=8) to 100 items from 50.
 Reallocated singl_function (elt_size=8) to 100 items from 50.
 Reallocated singl_function (elt_size=8) to 100 items from 50.
-Reallocated field_info (elt_size=8) to 13680 items from 5000.
+Reallocated field_info (elt_size=8) to 14660 items from 5000.
 Database file #1: main-blx.bib
 Database file #2: export.bib
 Reallocated str_pool (elt_size=1) to 130000 items from 65000.
-Biblatex version: 3.15
+Biblatex version: 3.16
 Reallocated wiz_functions (elt_size=8) to 9000 items from 6000.
-Warning--you've exceeded 250, the entry-string-size, for entry blindnesssux
-while executing--line 2697 of file biblatex.bst
-*Please notify the bibstyle designer*
-Warning--you've exceeded 250, the entry-string-size, for entry blindnesssux
-while executing--line 2725 of file biblatex.bst
-*Please notify the bibstyle designer*
 Reallocated singl_function (elt_size=8) to 100 items from 50.
-You've used 62 entries,
+You've used 69 entries,
             6393 wiz_defined-function locations,
-            1813 strings with 105113 characters,
-and the built_in function-call counts, 948726 in all, are:
-= -- 83784
-> -- 10160
-< -- 2588
-+ -- 26525
-- -- 4107
-* -- 74832
-:= -- 117299
+            1874 strings with 116852 characters,
+and the built_in function-call counts, 1019297 in all, are:
+= -- 89503
+> -- 11078
+< -- 2820
++ -- 28573
+- -- 4467
+* -- 80118
+:= -- 125758
 add.period$ -- 0
-call.type$ -- 62
-change.case$ -- 1814
-chr.to.int$ -- 234
-cite$ -- 122
-duplicate$ -- 88909
-empty$ -- 81511
-format.name$ -- 7666
-if$ -- 185596
+call.type$ -- 69
+change.case$ -- 1958
+chr.to.int$ -- 258
+cite$ -- 136
+duplicate$ -- 96466
+empty$ -- 87597
+format.name$ -- 8328
+if$ -- 199358
 int.to.chr$ -- 0
-int.to.str$ -- 176
+int.to.str$ -- 195
 missing$ -- 0
-newline$ -- 4715
-num.names$ -- 3753
-pop$ -- 26569
+newline$ -- 5130
+num.names$ -- 4117
+pop$ -- 29354
 preamble$ -- 1
-purify$ -- 2879
+purify$ -- 3105
 quote$ -- 0
-skip$ -- 15067
+skip$ -- 16479
 stack$ -- 0
-substring$ -- 170152
-swap$ -- 16696
-text.length$ -- 1757
-text.prefix$ -- 0
+substring$ -- 180656
+swap$ -- 18227
+text.length$ -- 1937
+text.prefix$ -- 2
 top$ -- 1
-type$ -- 2096
+type$ -- 2334
 warning$ -- 0
-while$ -- 15001
+while$ -- 16210
 width$ -- 0
-write$ -- 4654
-(There were 2 warnings)
+write$ -- 5062

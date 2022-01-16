@@ -847,7 +847,7 @@
     \verb 24927
     \endverb
     \field{volume}{11}
-  \field{journaltitle}{http://dx.doi.org/10.1146/annurev-bioeng-061008-124927}
+    \field{journaltitle}{Annual Review of Biomedical Engineering}
     \field{month}{07}
     \field{year}{2009}
   \endentry
@@ -2708,7 +2708,7 @@
   Gov't,Vision,Visual
   Acuity*,affs=[]),doi:10.1016/S2214-109X(20)30425-3,investigators=[],pmid:33275950}
     \strng{namehash}{BRR+1}
-  \strng{fullhash}{BRRSJDFSBPSTHRRSCRJAAAGEAAAHAYAAAAWAASAVAEWASAJAAAMBEBAABTWPMBBASBNBPBKBABMBMBTBAMBZACCYCDTCMVCJMDBDXDRDLDRMMADDJPDDDSDLEEJRELBEMHFAGFFFDSFJMGAMGSGGGBGRGAGMHSHBRHMERHRKHSIHGHHCHCLHMISEIIMIMDIADISSNJRPKRKHKASKJHKMKMKEAKRCKMNKJEKYJKAKSKAKOPLVCLJLLNLHMM}
+  \strng{fullhash}{BRRSJDFSBPSTHRRSCRJAAAGEAAAHAYAAAAWAASAVAEWASAJAAAMBEBAABTWPMBBASBNBPBKBABMBMBTBAMBZACCYCDTCMVCJMDBDXDRDLDRMMADDJPDDDSDLEEJRELBEMHFAGFFFDSFJMGAMGSGGGBGRGAGMHSHBRHMERHRKHSIHGHHCHCLHMISEIIMIMDIADISSNJRPKRKHKASKJHKMKMKEAKRCKMNKJEKYJKAKSKAKOPLVCLJLLNLHMMMNMKMCMSFMHAMRMAHMDMARNMNKSNVNCTNHLTOKOATOSMPJSPKPTSZQRMHURPYRDLRSRNRALRLSSSASAMSDSJBSMASTTSKSJISJCSASJASDSRSSESVSASRASEESDTBWTEGTNTMITFTBXTRSTMKVRVGWNWYXWSKWTYZZZKAJJBVT1}
     \field{labelnamesource}{author}
     \field{labeltitlesource}{title}
     \field{labelyear}{2021}
@@ -4399,7 +4399,7 @@
     \field{year}{2019}
   \endentry
 
-  \entry{alexnet}{article}{}
+  \entry{alexnet}{inproceedings}{}
     \name{author}{3}{}{%
       {{hash=KA}{%
          family={Krizhevsky},
@@ -4416,39 +4416,117 @@
       {{hash=HGE}{%
          family={Hinton},
          familyi={H\bibinitperiod},
-         given={Geoffrey\bibnamedelima E.},
+         given={Geoffrey\bibnamedelima E},
          giveni={G\bibinitperiod\bibinitdelim E\bibinitperiod},
       }}%
     }
+    \name{editor}{4}{}{%
+      {{hash=PF}{%
+         family={Pereira},
+         familyi={P\bibinitperiod},
+         given={F},
+         giveni={F},
+      }}%
+      {{hash=BCJC}{%
+         family={Burges},
+         familyi={B\bibinitperiod},
+         given={C\bibnamedelima J\bibnamedelima C},
+         giveni={C\bibinitperiod\bibinitdelim J\bibinitperiod\bibinitdelim
+  C\bibinitperiod},
+      }}%
+      {{hash=BL}{%
+         family={Bottou},
+         familyi={B\bibinitperiod},
+         given={L},
+         giveni={L},
+      }}%
+      {{hash=WKQ}{%
+         family={Weinberger},
+         familyi={W\bibinitperiod},
+         given={K\bibnamedelima Q},
+         giveni={K\bibinitperiod\bibinitdelim Q\bibinitperiod},
+      }}%
+    }
     \list{publisher}{1}{%
-      {ACM PUB27 New York, NY, USA}%
+      {Curran Associates, Inc.}%
     }
     \strng{namehash}{KASIHGE1}
     \strng{fullhash}{KASIHGE1}
     \field{labelnamesource}{author}
     \field{labeltitlesource}{title}
-    \field{labelyear}{2017}
+    \field{labelyear}{2012}
+    \field{labeldatesource}{}
+    \field{title}{ImageNet Classification with Deep Convolutional Neural
+  Networks}
+    \verb{url}
+    \verb https://proceedings.neurips.cc/paper/2012/file/c399862d3b9d6b76c8436e
+    \verb 924a68c45b-Paper.pdf
+    \endverb
+    \field{volume}{25}
+    \field{journaltitle}{Advances in Neural Information Processing Systems}
+    \field{year}{2012}
+  \endentry
+
+  \entry{rcnn}{article}{}
+    \name{author}{4}{}{%
+      {{hash=GR}{%
+         family={Girshick},
+         familyi={G\bibinitperiod},
+         given={Ross},
+         giveni={R\bibinitperiod},
+      }}%
+      {{hash=DJ}{%
+         family={Donahue},
+         familyi={D\bibinitperiod},
+         given={Jeff},
+         giveni={J\bibinitperiod},
+      }}%
+      {{hash=DT}{%
+         family={Darrell},
+         familyi={D\bibinitperiod},
+         given={Trevor},
+         giveni={T\bibinitperiod},
+      }}%
+      {{hash=MJ}{%
+         family={Malik},
+         familyi={M\bibinitperiod},
+         given={Jitendra},
+         giveni={J\bibinitperiod},
+      }}%
+    }
+    \strng{namehash}{GR+1}
+    \strng{fullhash}{GRDJDTMJ1}
+    \field{labelnamesource}{author}
+    \field{labeltitlesource}{title}
+    \field{labelyear}{2013}
     \field{labeldatesource}{}
     \field{abstract}{%
-    We trained a large, deep convolutional neural network to classify the 1.2
-  million high-resolution images in the ImageNet LSVRC-2010 contest into the
-  1000 different classes. On the test data, we ach...%
+    Object detection performance, as measured on the canonical PASCAL VOC
+  dataset, has plateaued in the last few years. The best-performing methods are
+  complex ensemble systems that typically combine multiple low-level image
+  features with high-level context. In this paper, we propose a simple and
+  scalable detection algorithm that improves mean average precision (mAP) by
+  more than 30% relative to the previous best result on VOC 2012---achieving a
+  mAP of 53.3%. Our approach combines two key insights: (1) one can apply
+  high-capacity convolutional neural networks (CNNs) to bottom-up region
+  proposals in order to localize and segment objects and (2) when labeled
+  training data is scarce, supervised pre-training for an auxiliary task,
+  followed by domain-specific fine-tuning, yields a significant performance
+  boost. Since we combine region proposals with CNNs, we call our method R-CNN:
+  Regions with CNN features. We also compare R-CNN to OverFeat, a recently
+  proposed sliding-window detector based on a similar CNN architecture. We find
+  that R-CNN outperforms OverFeat by a large margin on the 200-class ILSVRC2013
+  detection dataset. Source code for the complete system is available at
+  http://www.cs.berkeley.edu/~rbg/rcnn.%
     }
-    \verb{doi}
-    \verb 10.1145/3065386
-    \endverb
-    \field{issn}{15577317}
-    \field{issue}{6}
-    \field{pages}{84\bibrangedash 90}
-    \field{title}{ImageNet classification with deep convolutional neural
-  networks}
+    \field{title}{Rich feature hierarchies for accurate object detection and
+  semantic segmentation}
     \verb{url}
-    \verb https://dl.acm.org/doi/abs/10.1145/3065386
+    \verb https://arxiv.org/abs/1311.2524
     \endverb
-    \field{volume}{60}
-    \field{journaltitle}{Communications of the ACM}
-    \field{month}{05}
-    \field{year}{2017}
+    \field{journaltitle}{arXiv}
+    \field{month}{11}
+    \field{year}{2013}
   \endentry
 
   \entry{fastrcnn}{article}{}
@@ -5729,6 +5807,474 @@
     \field{volume}{4}
     \field{journaltitle}{IEEE Transactions on Systems Science and Cybernetics}
     \field{year}{1968}
+  \endentry
+
+  \entry{mot_benchmark_2015}{article}{}
+    \name{author}{6}{}{%
+      {{hash=LTL}{%
+         family={Leal-Taixé},
+         familyi={L\bibinithyphendelim T\bibinitperiod},
+         given={Laura},
+         giveni={L\bibinitperiod},
+      }}%
+      {{hash=TT}{%
+         family={Taixé},
+         familyi={T\bibinitperiod},
+         given={Taix´},
+         giveni={T\bibinitperiod},
+      }}%
+      {{hash=MA}{%
+         family={Milan},
+         familyi={M\bibinitperiod},
+         given={Anton},
+         giveni={A\bibinitperiod},
+      }}%
+      {{hash=RI}{%
+         family={Reid},
+         familyi={R\bibinitperiod},
+         given={Ian},
+         giveni={I\bibinitperiod},
+      }}%
+      {{hash=RS}{%
+         family={Roth},
+         familyi={R\bibinitperiod},
+         given={Stefan},
+         giveni={S\bibinitperiod},
+      }}%
+      {{hash=SK}{%
+         family={Schindler},
+         familyi={S\bibinitperiod},
+         given={Konrad},
+         giveni={K\bibinitperiod},
+      }}%
+    }
+    \keyw{Index Terms-multiple people tracking,benchmark,dataset !,evaluation
+  metrics}
+    \strng{namehash}{LTL+1}
+    \strng{fullhash}{LTLTTMARIRSSK1}
+    \field{labelnamesource}{author}
+    \field{labeltitlesource}{title}
+    \field{labelyear}{2015}
+    \field{labeldatesource}{}
+    \field{abstract}{%
+    In the recent past, the computer vision community has developed centralized
+  benchmarks for the performance evaluation of a variety of tasks, including
+  generic object and pedestrian detection, 3D reconstruction, optical flow,
+  single-object short-term tracking, and stereo estimation. Despite potential
+  pitfalls of such benchmarks, they have proved to be extremely helpful to
+  advance the state of the art in the respective area. Interestingly, there has
+  been rather limited work on the standardization of quantitative benchmarks
+  for multiple target tracking. One of the few exceptions is the well-known
+  PETS dataset, targeted primarily at surveillance applications. Despite being
+  widely used, it is often applied inconsistently, for example involving using
+  different subsets of the available data, different ways of training the
+  models, or differing evaluation scripts. This paper describes our work toward
+  a novel multiple object tracking benchmark aimed to address such issues. We
+  discuss the challenges of creating such a framework, collecting existing and
+  new data, gathering state-of-the-art methods to be tested on the datasets,
+  and finally creating a unified evaluation system. With MOTChallenge we aim to
+  pave the way toward a unified evaluation framework for a more meaningful
+  quantification of multi-target tracking.%
+    }
+    \field{title}{MOTChallenge 2015: Towards a Benchmark for Multi-Target
+  Tracking}
+    \verb{url}
+    \verb https://arxiv.org/abs/1504.01942v1
+    \endverb
+    \field{journaltitle}{ArXiv}
+    \field{month}{04}
+    \field{year}{2015}
+  \endentry
+
+  \entry{cnn_generalization}{article}{}
+    \name{author}{2}{}{%
+      {{hash=AA}{%
+         family={Azulay},
+         familyi={A\bibinitperiod},
+         given={Aharon},
+         giveni={A\bibinitperiod},
+      }}%
+      {{hash=WY}{%
+         family={Weiss},
+         familyi={W\bibinitperiod},
+         given={Yair},
+         giveni={Y\bibinitperiod},
+      }}%
+    }
+    \strng{namehash}{AAWY1}
+    \strng{fullhash}{AAWY1}
+    \field{labelnamesource}{author}
+    \field{labeltitlesource}{title}
+    \field{labelyear}{2018}
+    \field{labeldatesource}{}
+    \field{abstract}{%
+    Convolutional Neural Networks (CNNs) are commonly assumed to be invariant
+  to small image transformations: either because of the convolutional
+  architecture or because they were trained using data augmentation. Recently,
+  several authors have shown that this is not the case: small translations or
+  rescalings of the input image can drastically change the network's
+  prediction. In this paper, we quantify this phenomena and ask why neither the
+  convolutional architecture nor data augmentation are sufficient to achieve
+  the desired invariance. Specifically, we show that the convolutional
+  architecture does not give invariance since architectures ignore the
+  classical sampling theorem, and data augmentation does not give invariance
+  because the CNNs learn to be invariant to transformations only for images
+  that are very similar to typical images from the training set. We discuss two
+  possible solutions to this problem: (1) antialiasing the intermediate
+  representations and (2) increasing data augmentation and show that they
+  provide only a partial solution at best. Taken together, our results indicate
+  that the problem of insuring invariance to small image transformations in
+  neural networks while preserving high accuracy remains unsolved.%
+    }
+    \field{title}{Why do deep convolutional networks generalize so poorly to
+  small image transformations?}
+    \verb{url}
+    \verb https://arxiv.org/abs/1805.12177
+    \endverb
+    \field{journaltitle}{arXiv}
+    \field{month}{05}
+    \field{year}{2018}
+  \endentry
+
+  \entry{gc_tracking}{article}{}
+    \name{author}{7}{}{%
+      {{hash=KTM}{%
+         family={Keenan},
+         familyi={K\bibinitperiod},
+         given={Thomas\bibnamedelima M.},
+         giveni={T\bibinitperiod\bibinitdelim M\bibinitperiod},
+      }}%
+      {{hash=HA}{%
+         family={Hooker},
+         familyi={H\bibinitperiod},
+         given={Andrew},
+         giveni={A\bibinitperiod},
+      }}%
+      {{hash=SME}{%
+         family={Spilker},
+         familyi={S\bibinitperiod},
+         given={Mary\bibnamedelima E.},
+         giveni={M\bibinitperiod\bibinitdelim E\bibinitperiod},
+      }}%
+      {{hash=LN}{%
+         family={Li},
+         familyi={L\bibinitperiod},
+         given={Nianzhen},
+         giveni={N\bibinitperiod},
+      }}%
+      {{hash=BGJ}{%
+         family={Boggy},
+         familyi={B\bibinitperiod},
+         given={Gregory\bibnamedelima J.},
+         giveni={G\bibinitperiod\bibinitdelim J\bibinitperiod},
+      }}%
+      {{hash=VP}{%
+         family={Vicini},
+         familyi={V\bibinitperiod},
+         given={Paolo},
+         giveni={P\bibinitperiod},
+      }}%
+      {{hash=FA}{%
+         family={Folch},
+         familyi={F\bibinitperiod},
+         given={Albert},
+         giveni={A\bibinitperiod},
+      }}%
+    }
+    \list{publisher}{1}{%
+      {NIH Public Access}%
+    }
+    \keyw{Automated,Axon guidance,Image analysis,Neuron,Time-lapse,Tracking}
+    \strng{namehash}{KTM+1}
+    \strng{fullhash}{KTMHASMELNBGJVPFA1}
+    \field{labelnamesource}{author}
+    \field{labeltitlesource}{title}
+    \field{labelyear}{2006}
+    \field{labeldatesource}{}
+    \field{abstract}{%
+    The isolation and purification of axon guidance molecules has enabled in
+  vitro studies of the effects of axon guidance molecule gradients on numerous
+  neuronal cell types. In a typical experiment, cultured neurons are exposed to
+  a chemotactic gradient and their growth is recorded by manual identification
+  of the axon tip position from two or more micrographs. Detailed and
+  statistically valid quantification of axon growth requires evaluation of a
+  large number of neurons at closely spaced time points (e.g. using a
+  time-lapse microscopy setup). However, manual tracing becomes increasingly
+  impractical for recording axon growth as the number of time points and/or
+  neurons increases. We present a software tool that automatically identifies
+  and records the axon tip position in each phase-contrast image of a
+  time-lapse series with minimal user involvement. The software outputs several
+  quantitative measures of axon growth, and allows users to develop custom
+  measurements. For, example analysis of growth velocity for a dissociated E13
+  mouse cortical neuron revealed frequent extension and retraction events with
+  an average growth velocity of 0.05 ± 0.14 μm/min. Comparison of
+  software-identified axon tip positions with manually identified axon tip
+  positions shows that the software's performance is indistinguishable from
+  that of skilled human users. © 2005 Elsevier B.V. All rights reserved.%
+    }
+    \verb{doi}
+    \verb 10.1016/J.JNEUMETH.2005.07.010
+    \endverb
+    \field{issn}{01650270}
+    \field{issue}{2}
+    \field{pages}{232\bibrangedash 238}
+    \field{title}{Automated identification of axonal growth cones in time-lapse
+  image sequences}
+    \verb{url}
+    \verb /pmc/articles/PMC3848907/ /pmc/articles/PMC3848907/?report=abstract h
+    \verb ttps://www.ncbi.nlm.nih.gov/pmc/articles/PMC3848907/
+    \endverb
+    \field{volume}{151}
+    \field{journaltitle}{Journal of neuroscience methods}
+    \field{month}{03}
+    \field{year}{2006}
+  \endentry
+
+  \entry{seg_track}{article}{}
+    \name{author}{3}{}{%
+      {{hash=LZ}{%
+         family={Liu},
+         familyi={L\bibinitperiod},
+         given={Zewen},
+         giveni={Z\bibinitperiod},
+      }}%
+      {{hash=CT}{%
+         family={Cootes},
+         familyi={C\bibinitperiod},
+         given={Timothy},
+         giveni={T\bibinitperiod},
+      }}%
+      {{hash=BC}{%
+         family={Ballestrem},
+         familyi={B\bibinitperiod},
+         given={Christoph},
+         giveni={C\bibinitperiod},
+      }}%
+    }
+    \list{publisher}{1}{%
+      {Springer, Cham}%
+    }
+    \keyw{Axon tracking,Microscopy image analysis,Vessel segmentation}
+    \strng{namehash}{LZCTBC1}
+    \strng{fullhash}{LZCTBC1}
+    \field{labelnamesource}{author}
+    \field{labeltitlesource}{title}
+    \field{labelyear}{2020}
+    \field{labeldatesource}{}
+    \field{abstract}{%
+    To study how axon growth is affected by the local environment biologists
+  perform extensive experiments, watching the axons develop on different
+  substrates. As axons grow from the neuron cell body they form tree-like
+  structures, with branches forming and withering as they explore their
+  surroundings. In this paper, we propose a system which can track individual
+  axons as they grow and branch over time, enabling quantitative evaluation of
+  different aspects of the axon behaviour. The system includes a novel
+  segmentation network with Gabor kernels. It uses less than 0.5% of the number
+  of parameters required in an equivalent U-Net or other related CNN but gives
+  better overall performance on a standard test set. We evaluate the complete
+  axon tracking system and demonstrating that it achieves results comparable to
+  a human annotator, but gives a far richer description and is much faster.%
+    }
+    \verb{doi}
+    \verb 10.1007/978-3-030-59861-7_46
+    \endverb
+    \field{isbn}{9783030598600}
+    \field{issn}{16113349}
+    \field{pages}{455\bibrangedash 464}
+    \field{title}{An End to End System for Measuring Axon Growth}
+    \verb{url}
+    \verb https://link.springer.com/chapter/10.1007/978-3-030-59861-7_46
+    \endverb
+    \field{volume}{12436 LNCS}
+    \field{journaltitle}{Lecture Notes in Computer Science (including subseries
+  Lecture Notes in Artificial Intelligence and Lecture Notes in
+  Bioinformatics)}
+    \field{month}{10}
+    \field{year}{2020}
+  \endentry
+
+  \entry{3D_seg_1}{article}{}
+    \name{author}{7}{}{%
+      {{hash=FJ}{%
+         family={Funke},
+         familyi={F\bibinitperiod},
+         given={Jan},
+         giveni={J\bibinitperiod},
+      }}%
+      {{hash=TF}{%
+         family={Tschopp},
+         familyi={T\bibinitperiod},
+         given={Fabian},
+         giveni={F\bibinitperiod},
+      }}%
+      {{hash=GW}{%
+         family={Grisaitis},
+         familyi={G\bibinitperiod},
+         given={William},
+         giveni={W\bibinitperiod},
+      }}%
+      {{hash=SA}{%
+         family={Sheridan},
+         familyi={S\bibinitperiod},
+         given={Arlo},
+         giveni={A\bibinitperiod},
+      }}%
+      {{hash=SC}{%
+         family={Singh},
+         familyi={S\bibinitperiod},
+         given={Chandan},
+         giveni={C\bibinitperiod},
+      }}%
+      {{hash=SS}{%
+         family={Saalfeld},
+         familyi={S\bibinitperiod},
+         given={Stephan},
+         giveni={S\bibinitperiod},
+      }}%
+      {{hash=TSC}{%
+         family={Turaga},
+         familyi={T\bibinitperiod},
+         given={Srinivas\bibnamedelima C.},
+         giveni={S\bibinitperiod\bibinitdelim C\bibinitperiod},
+      }}%
+    }
+    \list{publisher}{1}{%
+      {IEEE Trans Pattern Anal Mach Intell}%
+    }
+    \keyw{Algorithms,Animals,Cerebral Cortex / cytology,Cerebral Cortex /
+  diagnostic imaging,Computer-Assisted / methods*,Connectome / methods*,Deep
+  Learning*,Drosophila,Electron,Fabian Tschopp,Image Processing,Imaging,Jan
+  Funke,MEDLINE,Mice,Microscopy,NCBI,NIH,NLM,National Center for Biotechnology
+  Information,National Institutes of Health,National Library of Medicine,Nerve
+  Net / diagnostic imaging*,Neurons / cytology,PubMed Abstract,Srinivas C
+  Turaga,Three-Dimensional,doi:10.1109/TPAMI.2018.2835450,pmid:29993708}
+    \strng{namehash}{FJ+1}
+    \strng{fullhash}{FJTFGWSASCSSTSC1}
+    \field{labelnamesource}{author}
+    \field{labeltitlesource}{title}
+    \field{labelyear}{2019}
+    \field{labeldatesource}{}
+    \field{abstract}{%
+    We present a method combining affinity prediction with region
+  agglomeration, which improves significantly upon the state of the art of
+  neuron segmentation from electron microscopy (EM) in accuracy and
+  scalability. Our method consists of a 3D U-Net, trained to predict affinities
+  between voxels, followed by iterative region agglomeration. We train using a
+  structured loss based on Malis, encouraging topologically correct
+  segmentations obtained from affinity thresholding. Our extension consists of
+  two parts: First, we present a quasi-linear method to compute the loss
+  gradient, improving over the original quadratic algorithm. Second, we compute
+  the gradient in two separate passes to avoid spurious gradient contributions
+  in early training stages. Our predictions are accurate enough that simple
+  learning-free percentile-based agglomeration outperforms more involved
+  methods used earlier on inferior predictions. We present results on three
+  diverse EM datasets, achieving relative improvements over previous results of
+  27, 15, and 250 percent. Our findings suggest that a single method can be
+  applied to both nearly isotropic block-face EM data and anisotropic serial
+  sectioned EM data. The runtime of our method scales linearly with the size of
+  the volume and achieves a throughput of $\sim$∼ 2.6 seconds per megavoxel,
+  qualifying our method for the processing of very large datasets.%
+    }
+    \verb{doi}
+    \verb 10.1109/TPAMI.2018.2835450
+    \endverb
+    \field{issn}{1939-3539}
+    \field{issue}{7}
+    \field{pages}{1669\bibrangedash 1680}
+    \field{title}{Large Scale Image Segmentation with Structured Loss Based
+  Deep Learning for Connectome Reconstruction}
+    \verb{url}
+    \verb https://pubmed.ncbi.nlm.nih.gov/29993708/ https://pubmed.ncbi.nlm.nih
+    \verb .gov/29993708/?dopt=Abstract
+    \endverb
+    \field{volume}{41}
+    \field{journaltitle}{IEEE transactions on pattern analysis and machine
+  intelligence}
+    \field{month}{07}
+    \field{year}{2019}
+  \endentry
+
+  \entry{3D_seg_2}{article}{}
+    \name{author}{5}{}{%
+      {{hash=AA}{%
+         family={Abdollahzadeh},
+         familyi={A\bibinitperiod},
+         given={Ali},
+         giveni={A\bibinitperiod},
+      }}%
+      {{hash=BI}{%
+         family={Belevich},
+         familyi={B\bibinitperiod},
+         given={Ilya},
+         giveni={I\bibinitperiod},
+      }}%
+      {{hash=JE}{%
+         family={Jokitalo},
+         familyi={J\bibinitperiod},
+         given={Eija},
+         giveni={E\bibinitperiod},
+      }}%
+      {{hash=SA}{%
+         family={Sierra},
+         familyi={S\bibinitperiod},
+         given={Alejandra},
+         giveni={A\bibinitperiod},
+      }}%
+      {{hash=TJ}{%
+         family={Tohka},
+         familyi={T\bibinitperiod},
+         given={Jussi},
+         giveni={J\bibinitperiod},
+      }}%
+    }
+    \list{publisher}{1}{%
+      {Nature Publishing Group}%
+    }
+    \keyw{Computational neuroscience,Image processing,Machine learning}
+    \strng{namehash}{AA+1}
+    \strng{fullhash}{AABIJESATJ1}
+    \field{labelnamesource}{author}
+    \field{labeltitlesource}{title}
+    \field{labelyear}{2021}
+    \field{labeldatesource}{}
+    \field{abstract}{%
+    Tracing the entirety of ultrastructures in large three-dimensional electron
+  microscopy (3D-EM) images of the brain tissue requires automated segmentation
+  techniques. Current segmentation techniques use deep convolutional neural
+  networks (DCNNs) and rely on high-contrast cellular membranes and
+  high-resolution EM volumes. On the other hand, segmenting low-resolution,
+  large EM volumes requires methods to account for severe membrane
+  discontinuities inescapable. Therefore, we developed DeepACSON, which
+  performs DCNN-based semantic segmentation and shape-decomposition-based
+  instance segmentation. DeepACSON instance segmentation uses the tubularity of
+  myelinated axons and decomposes under-segmented myelinated axons into their
+  constituent axons. We applied DeepACSON to ten EM volumes of rats after
+  sham-operation or traumatic brain injury, segmenting hundreds of thousands of
+  long-span myelinated axons, thousands of cell nuclei, and millions of
+  mitochondria with excellent evaluation scores. DeepACSON quantified the
+  morphology and spatial aspects of white matter ultrastructures, capturing
+  nanoscopic morphological alterations five months after the injury. With
+  DeepACSON, Abdollahzadeh et al. combines existing deep learning-based methods
+  for semantic segmentation and a novel shape decomposition technique for the
+  instance segmentation. The pipeline is used to segment low-resolution 3D-EM
+  datasets allowing quantification of white matter morphology in large
+  fields-of-view.%
+    }
+    \verb{doi}
+    \verb 10.1038/s42003-021-01699-w
+    \endverb
+    \field{issn}{2399-3642}
+    \field{issue}{1}
+    \field{pages}{1\bibrangedash 14}
+    \field{title}{DeepACSON automated segmentation of white matter in 3D
+  electron microscopy}
+    \verb{url}
+    \verb https://www.nature.com/articles/s42003-021-01699-w
+    \endverb
+    \field{volume}{4}
+    \field{journaltitle}{Communications Biology 2021 4:1}
+    \field{month}{02}
+    \field{year}{2021}
   \endentry
 \enddatalist
 \endinput

@@ -1,8 +1,0 @@
-destinations_use spiky tracks_design_subs
-========================================================
-levels:dict_keys(['use spiky tracks-yes-folddiff', 'use spiky tracks-no-folddiff']):
- Kruskal Wallis t=0.135, p=0.71312
- --> N.S.
-
-use spiky tracks-yes-folddiff, use spiky tracks-yes-folddiff: p: 0.46775	use spiky tracks-yes-folddiff, use spiky tracks-no-folddiff: p: 0.39137	
-use spiky tracks-no-folddiff, use spiky tracks-yes-folddiff: p: 0.39137	use spiky tracks-no-folddiff, use spiky tracks-no-folddiff: p: 0.45667	

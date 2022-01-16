@@ -1,8 +1,0 @@
-speed_2-joint placement
-========================================================
-levels:dict_keys(['2-joint placement-early', '2-joint placement-late']):
- Kruskal Wallis t=1.366, p=0.24256
- --> N.S.
-
-2-joint placement-early, 2-joint placement-early: p: 0.49995	2-joint placement-early, 2-joint placement-late: p: 0.12130	
-2-joint placement-late, 2-joint placement-early: p: 0.12130	2-joint placement-late, 2-joint placement-late: p: 0.49998	

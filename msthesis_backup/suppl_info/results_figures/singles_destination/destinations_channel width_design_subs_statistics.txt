@@ -1,9 +1,0 @@
-destinations_channel width_design_subs
-========================================================
-levels:dict_keys(['channel width-1.5-folddiff', 'channel width-8.0-folddiff', 'channel width-3.0-folddiff']):
- Kruskal Wallis t=2.644, p=0.26659
- --> N.S.
-
-channel width-1.5-folddiff, channel width-1.5-folddiff: p: 0.44121	channel width-1.5-folddiff, channel width-8.0-folddiff: p: 0.12733	channel width-1.5-folddiff, channel width-3.0-folddiff: p: 0.15471	
-channel width-8.0-folddiff, channel width-1.5-folddiff: p: 0.12733	channel width-8.0-folddiff, channel width-8.0-folddiff: p: 0.47410	channel width-8.0-folddiff, channel width-3.0-folddiff: p: 0.14821	
-channel width-3.0-folddiff, channel width-1.5-folddiff: p: 0.15471	channel width-3.0-folddiff, channel width-8.0-folddiff: p: 0.14821	channel width-3.0-folddiff, channel width-3.0-folddiff: p: 0.43805	
