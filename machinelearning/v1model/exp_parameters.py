@@ -7,14 +7,14 @@ from torch import nn as nn
 import matplotlib.pyplot as plt
 import matplotlib.font_manager as font_manager
 
-from config import RAW_TRAINING_DATA_DIR, OUTPUT_DIR, DEFAULT_DEVICE, DEFAULT_NUM_WORKERS, SPACER
+from config import TRAINING_DATA_DIR, OUTPUT_DIR, DEFAULT_DEVICE, DEFAULT_NUM_WORKERS, SPACER
 from utils import get_run_dir, architecture_to_text
 
 def get_default_parameters():
     # DATA
-    TIMELAPSE_FILE = RAW_TRAINING_DATA_DIR + 'G001_red_compr.deflate.tif'
-    LABELS_FILE = OUTPUT_DIR + 'labelled_axons_astardists.csv'
-    MASK_FILE = OUTPUT_DIR + 'mask_wells_excl.npy'
+    TIMELAPSE_FILE = TRAINING_DATA_DIR + 'G001_red_compr.deflate.tif'
+    LABELS_FILE = TRAINING_DATA_DIR + 'labelled_axons_astardists.csv'
+    MASK_FILE = TRAINING_DATA_DIR + 'mask_wells_excl.npy'
     TRAIN_TIMEPOINTS = range(4,33)
     TEST_TIMEPOINTS = list(range(2,4)) + list(range(33,35))
     

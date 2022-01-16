@@ -8,11 +8,11 @@ if where.startswith('/home/ssteffens'):
     # eth gpu server
     BASE_DIR = '/home/ssteffens/'
     
-    RAW_TRAINING_DATA_DIR = '/srv/beegfs-data/projects/biohybrid-signal-p/data/training_data/'
-    RAW_INFERENCE_DATA_DIR = '/srv/beegfs-data/projects/biohybrid-signal-p/data/timelapse13_processed_remote/'
-    RAW_INFERENCE_DATA_DIR = '/srv/beegfs-data/projects/biohybrid-signal-p/data/timelapse14_processed_remote'
+    TRAINING_DATA_DIR = '/srv/beegfs-data/projects/biohybrid-signal-p/data/training_data/'
+    # RAW_INFERENCE_DATA_DIR = '/srv/beegfs-data/projects/biohybrid-signal-p/data/timelapse13_processed_remote/'
+    # RAW_INFERENCE_DATA_DIR = '/srv/beegfs-data/projects/biohybrid-signal-p/data/timelapse14_processed_remote'
     RAW_INFERENCE_DATA_DIR = '/srv/beegfs-data/projects/biohybrid-signal-p/data/tl13_tl14_all'
-    SCREENING_DIR = '/srv/beegfs-data/projects/biohybrid-signal-p/data/PDMS_structure_screen/'
+    # SCREENING_DIR = '/srv/beegfs-data/projects/biohybrid-signal-p/data/PDMS_structure_screen/'
     SCREENING_DIR = '/srv/beegfs-data/projects/biohybrid-signal-p/data/PDMS_structure_screen_v2/'
     
     OUTPUT_DIR = '/srv/beegfs-data/projects/biohybrid-signal-p/data/model_output/'
@@ -23,24 +23,17 @@ if where.startswith('/home/ssteffens'):
 
 # local
 elif where.startswith('/home/loaloa/gdrive/'):
-    BASE_DIR = '/home/loaloa/gdrive/cur_projects/biohybrid MEA/'
-    RAW_TRAINING_DATA_DIR = '/home/loaloa/Documents/training_data/'
-    RAW_TRAINING_DATA_DIR = '/home/loaloa/Documents/'
-    
-    LOCAL_RAW_INFERENCE_DATA_DIR = '/home/loaloa/Documents/timelapse13_processed/'
-    LOCAL_SCREENING_DIR = '/home/loaloa/Documents/PDMS_structure_screen/'
+    BASE_DIR = '/home/loaloa/gdrive/projects/biohybrid MEA/'
+    TRAINING_DATA_DIR = BASE_DIR + 'training_data_subs/'
+    OUTPUT_DIR = BASE_DIR + 'model_output/'
     
     SCREENING_DIR = '/home/loaloa/ETZ_drive/biohybrid-signal-p/PDMS_structure_screen_v2/'
-    # SCREENING_DIR = '/home/loaloa/PDMS_structure_screen_v2/'
     RAW_INFERENCE_DATA_DIR = '/home/loaloa/ETZ_drive/biohybrid-signal-p/tl13_tl14_all/'
     
     DEFAULT_DEVICE = 'cpu'
     DEFAULT_NUM_WORKERS = 3
     VIDEO_ENCODER = 'ffmpeg'
 
-    OUTPUT_DIR = '/home/loaloa/ETZ_drive/biohybrid-signal-p/model_output/'
-    RAW_TRAINING_DATA_DIR = '/home/loaloa/Documents/'
-    OUTPUT_DIR = BASE_DIR + 'tl140_outputdata/'
 SPACER = '========================================================'
 
 # plotting 

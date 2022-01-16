@@ -1,20 +1,16 @@
 import os
 import sys
-where = os.path.abspath(os.curdir)
-sys.path.append('../../')
-sys.path.append(where)
-from copy import copy
-# from os import environ as cuda_environment
-
-from  config import OUTPUT_DIR, SPACER, RAW_TRAINING_DATA_DIR
-from plotting import draw_all
-
-from AxonDetections import AxonDetections
+# make runable from code basedir and model base dir
+sys.path.extend(('../../', os.path.abspath(os.curdir))) 
 
 import numpy as np
 import pandas as pd
 import torch
 import torch.nn as nn
+
+from  config import OUTPUT_DIR, SPACER, TRAINING_DATA_DIR
+from plotting import draw_all
+from AxonDetections import AxonDetections
 
 from exp_parameters import (
     get_default_parameters, 
@@ -49,31 +45,10 @@ from evaluation import (
     evaluate_ID_assignment,
 )
 
-
-def run_experiment(exp_name, parameters, save_results=True):
-    set_seed(parameters['SEED'])
-    if torch.cuda.is_available():
-        # torch.multiprocessing.set_start_method('spawn')
-        torch.cuda.set_device(parameters['DEVICE'])
-
-    # Setup saving and parameter checking 
-    print(f'Running Experiment: {exp_name}', flush=True)
-    check_parameters(parameters, get_default_parameters())
-    if save_results:
-        dirs, run_label = create_logging_dirs(exp_name)
-        RUN_DIR, MODELS_DIR, METRICS_DIR, PREPROC_DATA_DIR = dirs
-        write_parameters(f'{RUN_DIR}/params.pkl', parameters)
-        # params2img(f'{RUN_DIR}/params.png', parameters, show=False)
-        print('\tSaving: ', run_label)
-    else:
-        print('\tRun is not saved!')
-    print(params2text(parameters), flush=True)
-
-    # setup model and data
-    model, loss_fn, optimizer, lr_scheduler = setup_model(parameters)
-    train_data, test_data = setup_data(parameters)
-
-    print_log = []                      
+def optimize(parameters, train_data, test_data, model, loss_fn, optimizer, 
+             lr_scheduler, save_results, MODELS_DIR, METRICS_DIR, 
+             PREPROC_DATA_DIR, RUN_DIR):
+    print_log = []
     for epoch in range(parameters['EPOCHS']):
         print(f'\n\n\nEpoch {epoch}/{parameters["EPOCHS"]}', flush=True)
         # train and optimize
@@ -136,6 +111,35 @@ def run_experiment(exp_name, parameters, save_results=True):
         print(current_progress.stack(level=1).iloc[:, -20:].mean(1).round(3).to_frame().T.to_string())
 
 
+
+def run_experiment(exp_name, parameters, save_results=True):
+    set_seed(parameters['SEED'])
+    if torch.cuda.is_available():
+        # torch.multiprocessing.set_start_method('spawn')
+        torch.cuda.set_device(parameters['DEVICE'])
+
+    # Setup saving and parameter checking 
+    print(f'Running Experiment: {exp_name}', flush=True)
+    check_parameters(parameters, get_default_parameters())
+    if save_results:
+        dirs, run_label = create_logging_dirs(exp_name)
+        RUN_DIR, MODELS_DIR, METRICS_DIR, PREPROC_DATA_DIR = dirs
+        write_parameters(f'{RUN_DIR}/params.pkl', parameters)
+        # params2img(f'{RUN_DIR}/params.png', parameters, show=False)
+        print('\tSaving: ', run_label)
+    else:
+        print('\tRun is not saved!')
+    print(params2text(parameters), flush=True)
+
+    # setup model and data
+    model, loss_fn, optimizer, lr_scheduler = setup_model(parameters)
+    train_data, test_data = setup_data(parameters)
+
+    # iterate epochs
+    optimize(parameters, train_data, test_data, model, loss_fn, optimizer, 
+            lr_scheduler, save_results, MODELS_DIR, METRICS_DIR, PREPROC_DATA_DIR, RUN_DIR)
+    
+
 if __name__ == '__main__':
     default_parameters = get_default_parameters()
     exp2_name = 'v1Model_exp2_boxlossfocus'
@@ -144,6 +148,7 @@ if __name__ == '__main__':
     exp5_name = 'v1Model_exp5_RefactIDFocus'
     exp6_name = 'v1Model_exp6_AxonDetClass'
     exp7_name = 'v1Model_exp7_final'
+    exp8_name = 'v1Model_exp8_postsubmission'
     
     # from utils import print_models
     # print_models()
@@ -169,7 +174,7 @@ if __name__ == '__main__':
     # evaluate_training([(exp7_name, 'run41'), ], recreate=False, show=True)
     # evaluate_training([(exp7_name, 'run38'), ], recreate=False, show=True)
     # evaluate_precision_recall([(exp7_name, 'run38', 1000), (exp7_name, 'run41', 900)], avg_over_t=42)
-    evaluate_model(exp7_name, 'run38', 600, which_data='train', animated=False)
+    # evaluate_model(exp7_name, 'run38', 600, which_data='train', animated=False)
     # evaluate_ID_assignment(exp7_name, 'run38', 1000, cached_astar_paths='from', which_data='test')
 
 
@@ -229,20 +234,20 @@ if __name__ == '__main__':
     # parameters['USE_TRANSFORMS'] = []
     parameters['CACHE'] = None
     parameters['FROM_CACHE'] = OUTPUT_DIR
-    parameters['TIMELAPSE_FILE'] = RAW_TRAINING_DATA_DIR + 'training_timelapse.tif'
-    parameters['MASK_FILE'] = RAW_TRAINING_DATA_DIR + 'training_mask.npy'
-    parameters['LABELS_FILE'] = RAW_TRAINING_DATA_DIR + 'axon_anchor_labels.csv'
-    parameters['DEVICE'] = 'cuda:1'
+    # parameters['TIMELAPSE_FILE'] = TRAINING_DATA_DIR + 'training_timelapse.tif'
+    # parameters['MASK_FILE'] = TRAINING_DATA_DIR + 'training_mask.npy'
+    # parameters['LABELS_FILE'] = TRAINING_DATA_DIR + 'axon_anchor_labels.csv'
+    # parameters['DEVICE'] = 'cuda:1'
 
-    parameters['TEST_TIMEPOINTS'] = list(range(37+80-20, 37+80+20))
-    parameters['TRAIN_TIMEPOINTS'] = list(range(2, 37+80-20-4)) + list(range(37+80+20+4, 37+80+210-2))
+    # parameters['TEST_TIMEPOINTS'] = list(range(37+80-20, 37+80+20))
+    # parameters['TRAIN_TIMEPOINTS'] = list(range(2, 37+80-20-4)) + list(range(37+80+20+4, 37+80+210-2))
     
-    parameters['TEST_TIME_DISCONTINUITIES'] = [37+80]
-    parameters['TRAIN_TIME_DISCONTINUITIES'] = [37, 37+80-20-4, 37+80+20+4]
+    # parameters['TEST_TIME_DISCONTINUITIES'] = [37+80]
+    # parameters['TRAIN_TIME_DISCONTINUITIES'] = [37, 37+80-20-4, 37+80+20+4]
     parameters['NUM_WORKERS'] = 2
 
-    parameters['NOTES'] = 'fixing precision recall'
-    # run_experiment(exp7_name, parameters, save_results=True)
+    parameters['NOTES'] = 'GetThingsToRun'
+    run_experiment(exp7_name, parameters, save_results=True)
 
 
     

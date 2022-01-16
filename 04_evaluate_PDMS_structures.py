@@ -5,7 +5,7 @@ import glob
 
 import os
 # os.chdir('../')
-sys.path.append('./models/v1model')
+sys.path.append('./machinelearning/v1model')
 
 from UnlabelledTimelapse import UnlabelledTimelapse
 from StructureScreen import StructureScreen
