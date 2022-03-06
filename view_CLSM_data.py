@@ -1,4 +1,17 @@
 
+"""
+to run this you need the bioformats package 
+
+try 
+pip install bioformats
+then run the script.
+
+or try 
+pip install javabridge
+pip install bioformats
+then run the script.
+"""
+
 import os
 import sys
 import pickle
@@ -82,21 +95,20 @@ def process_dir(all_files, inp_dir, outp_dir, notes):
 
 
 
-
+# ============= change below to your pathhhhhh / files =================
 # name1 = 'Exp14_DIV14_prim01_Cycle'
-name2 = 'Exp14_DIV14_prim02_Cycle'
+# name2 = 'Exp14_DIV14_prim02_Cycle'
 # name3 = 'Exp14_DIV14_prim02_real_Cycle'
 # name4 = 'Exp14_DIV14_prim03_Cycle'
 # name5 = 'Exp14_DIV14_prim04_Cycle_01'
 # name6 = 'Exp14_DIV14_rest_Cycle'
 # name7 = 'Exp14overview_Cycle'
 name8 = 'main_Cycle_01'
-
-
 path = '/run/media/loaloa/lbb_ssd/primitives_13.10/exp12_DIV14/'
-
 inp_dir = f'{path}/{name8}/'
 outp_dir = f'{path}/exp12_DIV14_processed_nostitch/'
+notes = 'DIV14, Exp14, GFP RGC, RFP RGC, faint green=thalamus+GCamp'
+# ============= change above to your pathhhhhh / files =================
 
 # inp_dir = '/home/loaloa/ETZ_drive/biohybrid-signal-p/20.10_primitives/Exp14_DIV14_prim02_Cycle/'
 # outp_dir = '/home/loaloa/ETZ_drive/biohybrid-signal-p/20.10_primitives/exp14_DIV14_processed_2/'
@@ -117,9 +129,11 @@ outp_dir = f'{path}/exp12_DIV14_processed_nostitch/'
 # outp_dir = '/home/loaloa/ETZ_drive/biohybrid-signal-p/20.10_primitives/exp14_DIV14_processed_7/'
 
 
-notes = 'DIV14, Exp14, GFP RGC, RFP RGC, faint green=thalamus+GCamp'
 
+# ============ change regular expression below. * indicate whatever is in between the filename =================
 all_files = sorted(glob(inp_dir+'/main*_G02*.oir'))
+# ============ change regular expression above. * indicate whatever is in between the filename =================
+
 print_files = '\n\t'.join([f for f in all_files])
 print(f'Found {len(all_files)} areas: \n\t{print_files}')
 

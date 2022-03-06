@@ -13,7 +13,7 @@ from utils import load_checkpoint
 
 from AxonDetections import AxonDetections
 
-def setup_data(P):
+def setup_data(P, skip_test=False):
     # training data
     train_data = Timelapse(P['TIMELAPSE_FILE'], P['LABELS_FILE'], P['MASK_FILE'], 
                            timepoints = P['TRAIN_TIMEPOINTS'],
@@ -34,7 +34,8 @@ def setup_data(P):
                            tilesize = P['TILESIZE'],
                            Sy = P['SY'], 
                            Sx = P['SX'],)
-                           
+    if skip_test:
+        return train_data, None     
     # test data
     test_data = Timelapse(P['TIMELAPSE_FILE'], P['LABELS_FILE'], P['MASK_FILE'], 
                            timepoints = P['TEST_TIMEPOINTS'],
@@ -73,8 +74,10 @@ def setup_model(P):
                          Sy = P['SY'],
                          Sx =  P['SX'],)
     model.to_device(P['DEVICE'])
+    # model.to(P['DEVICE'])
     # summary(model, input_size=(initial_in_channels, P['TILESIZE'], P['TILESIZE']), 
     #                            device=P['DEVICE'])
+    # model.get_CNN_outdim()
 
     optimizer = optim.Adam(model.parameters(), lr=P['LR'], weight_decay=P['WEIGHT_DECAY'])
 
@@ -86,7 +89,6 @@ def setup_model(P):
     
     loss_fn = YOLO_AXTrack_loss(Sy = P['SX'], 
                                 Sx = P['SX'],
-                                conf_thr = P['BBOX_THRESHOLD'],
                                 lambda_obj = P['L_OBJECT'],
                                 lambda_noobj = P['L_NOBJECT'],
                                 lambda_coord_anchor = P['L_COORD_ANCHOR'],)
@@ -105,7 +107,7 @@ def setup_data_loaders(P, dataset):
         drop_last = P['DROP_LAST'],)
     return data_loader
 
-def run_epoch(data_loader, model, loss_fn, device, epoch, which_dataset, optimizer):
+def run_epoch(data_loader, model, loss_fn, device, which_dataset, optimizer):
     print(f'LOSS: ', end='')
     
     epoch_loss = []
@@ -114,7 +116,6 @@ def run_epoch(data_loader, model, loss_fn, device, epoch, which_dataset, optimiz
             
         pred = model(X)
         loss, loss_components = loss_fn(pred, target)
-        loss_components.rename((epoch, which_dataset, batch), inplace=True)
         epoch_loss.append(loss_components)
         print(f'{loss.item():.3f}', end='...', flush=True)
         
@@ -123,10 +124,8 @@ def run_epoch(data_loader, model, loss_fn, device, epoch, which_dataset, optimiz
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
-
-    epoch_loss = pd.concat(epoch_loss, axis=1)
-    epoch_loss.columns.names = ('epoch', 'dataset', 'batch')
-    return epoch_loss
+    print('Done.')
+    return pd.concat(epoch_loss, axis=1)
 
 def prepare_data(device, dataset):
     dataset.construct_tiles(device)
@@ -145,23 +144,22 @@ def one_epoch(dataset, model, loss_fn, params, epoch, optimizer=None, lr_schedul
     
     # get the dataloader and run model on entire dataset
     data_loader = setup_data_loaders(params, dataset)
-    epoch_loss = run_epoch(data_loader, model, loss_fn, params['DEVICE'], epoch, 
+    epoch_loss = run_epoch(data_loader, model, loss_fn, params['DEVICE'], 
                            which_dataset, optimizer)
+    epoch_loss = epoch_loss.mean(axis=1).rename((epoch, which_dataset))
     
-    # every 5th epoch calculate precision, recall, and F1 for entire dataset
-    if not (epoch % 20):
+    # every 20th epoch calculate precision, recall, and F1 for entire dataset
+    if not (epoch % 10):
         step = 10 if which_dataset == 'train' else 1
         tstart = np.random.randint(0,10, ) if which_dataset == 'train' else 0
-        ax_dets = AxonDetections(model, dataset, params, timepoint_subset=range(tstart, dataset.sizet, step))
-        cnfs_mtrx = sum([ax_dets.compute_TP_FP_FN(t, which_det='unfiltered') for t in range(len(ax_dets))])
-        epoch_metrics = ax_dets.compute_prc_rcl_F1(cnfs_mtrx, epoch, which_dataset)
-    else:
-        epoch_metrics = pd.DataFrame([], index=['precision', 'recall', 'F1'])
-
-    print((f'\n++++ Mean: {epoch_loss.loc["total_summed_loss"].mean():.3f}, F1'
-           f' {epoch_metrics.loc["F1"].max():.3f} ++++'))
+        ax_dets = AxonDetections(model, dataset, params, 
+                                 timepoint_subset=range(tstart, dataset.sizet, step))
+        cnfs_mtrx = sum([ax_dets.compute_TP_FP_FN(t, which_det='unfiltered') 
+                         for t in range(len(ax_dets))])
+        epoch_metrics = ax_dets.compute_prc_rcl_F1(cnfs_mtrx, return_dataframe=True)
+        epoch_loss = pd.concat([epoch_loss, epoch_metrics]).rename((epoch, which_dataset))
 
     if which_dataset == 'train' and lr_scheduler:
         lr_scheduler.step()
     torch.cuda.empty_cache()
-    return epoch_loss, epoch_metrics
+    return epoch_loss

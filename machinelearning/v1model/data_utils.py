@@ -101,7 +101,7 @@ def transform_Y(target, angle, flip_dims,  dy, dx, sizey, sizex):
     # make a new dataframe with reset index (y-axis from 0 - last timepoint)
     target_transf = target.copy()
     # get the anchor points of all the bboxes (center point)
-    anchors = target.loc[:,(slice(None),['anchor_y', 'anchor_x'])].sort_index(1).copy()
+    anchors = target.loc[:,(slice(None),['anchor_y', 'anchor_x'])].sort_index(axis=1).copy()
 
     # translating
     if dy or dx:
@@ -145,7 +145,7 @@ def apply_transformations(transform_configs, X, target, sizey, sizex, device):
 
     # translating parameter
     dy, dx = 0, 0
-    # dy and dx are in [-.25, +.25]
+    # dy and dx are in [-.25, +.25]s
     if transform_configs.get('translateY', 0) >.6:
         dy = round(512 *(transform_configs.get('translateY', 0)-.75))
     if transform_configs.get('translateX', 0) >.6:
@@ -164,11 +164,6 @@ def apply_transformations(transform_configs, X, target, sizey, sizex, device):
         angle = ((transform_configs['rot'] * 40) -20)
         # angle = ((transform_configs['rot'] * 90) -45)
 
-    # if transform_configs.get('intensity_scaling',0) > .5:
-    #     factor = transform_configs.get('intensity_scaling',0) +.25
-    #     print('Intsty scaling factor: ', factor)
-    #     X *= factor
-    
     # apply the transformation using paramters above, do on GPU, return on CPU
     tchunksize = 60
     X = transform_X(X, tchunksize, angle, flip_dims, dy, dx, sizey, sizex, device)
@@ -181,3 +176,20 @@ def apply_transformations(transform_configs, X, target, sizey, sizex, device):
 def sprse_scipy2torch(scipy_coo):
     indices = np.vstack((scipy_coo.row, scipy_coo.col))
     return torch.sparse_coo_tensor(indices, scipy_coo.data, scipy_coo.shape, dtype=torch.float32)
+
+# def get_target_in_libmot_format(self, axon_boxs):
+#     libmot_targets = []
+#     for t in range(self.sizet):
+#         target = self.target.iloc[self.timepoints_indices[t]].unstack().dropna()
+#         x, y = target.values.T
+#         x_topleft = target.anchor_x-axon_boxs//2
+#         y_topleft = target.anchor_y-axon_boxs//2
+#         frame_id = np.full(target.shape[0], t)
+#         axon_id = np.array([int(idx[-3:]) for idx in target.index])
+#         boxs = np.full(target.shape[0], axon_boxs)
+
+#         libmot_target = np.stack([frame_id, axon_id, x_topleft, y_topleft, 
+#                                 boxs, boxs]).T.astype(int)
+#         libmot_target = pd.DataFrame(libmot_target, columns=['FrameId', 'Id', 'X', 'Y', 'Width', 'Height'])
+#         libmot_targets.append(libmot_target.set_index(['FrameId', 'Id']))
+#     return pd.concat(libmot_targets)

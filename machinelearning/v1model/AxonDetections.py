@@ -13,15 +13,9 @@ import matplotlib.pyplot as plt
 import config
 import cv2
 from scipy import sparse
-# from scipy.optimize import linear_sum_assignment
 from sklearn import metrics
 
 import pyastar2d
-pyastar2d
-
-from StructureScreen import StructureScreen
-from UnlabelledTimelapse import UnlabelledTimelapse
-
 from libmot.data_association  import MinCostFlowTracker
 import motmetrics as mm
 
@@ -40,21 +34,14 @@ class AxonDetections(object):
         self.tilesize = parameters['TILESIZE']
         
         # parameters for selecting detections
-        self.conf_thr = parameters['BBOX_THRESHOLD']
         self.nms_min_dist = parameters.get('NON_MAX_SUPRESSION_DIST')
-        self.axon_box_size = 70
+        self.axon_box_size = 70     # only for visualization
         self.max_px_assoc_dist = 500
-        # self.all_conf_thrs = np.arange(0.6, 1.13, .03).round(2)
-        self.all_conf_thrs = np.arange(0.55, 1, .04).round(2)
-        self.labelled = False if isinstance(dataset, UnlabelledTimelapse) else True
+        self.conf_thr = parameters['BBOX_THRESHOLD']
+        self.all_conf_thrs = np.sort(np.append(np.arange(0.55, 1, .04), self.conf_thr)).round(2)
+        self.labelled = False if  hasattr(dataset, 'start_mask') else True
 
         # min cost flow hyperparamters 
-        # old from train: ec:0.3 eec:1.5 mr:0.6 vsw:0.05 ccm:scale_to_max
-        # new from run39, test: ec:1 eec:1 mr:0.6 vsw:0 ccm:scale_to_max
-        #                       ec:0.6 eec:0.8 mr:0.8 vsw:0 ccm:scale_to_max
-        #                       ec:3 eec:0.4 mr:0.6 vsw:0.2 ccm:ceil
-        #  ec:0.7 eec:2 mr:0.6 vsw:0 ccm:scale_to_max'
-
         self.MCF_edge_cost_thr =  0.7
         self.MCF_entry_exit_cost = 2
         self.MCF_miss_rate =  0.6
@@ -63,7 +50,6 @@ class AxonDetections(object):
         self.MCF_max_flow = 450
         self.MCF_max_conf_cost = 4.6
         self.MCF_vis_sim_weight = 0
-        # self.MCF_conf_capping_method = 'ceil'
         self.MCF_conf_capping_method = 'scale_to_max'
         self.MCF_min_ID_lifetime = 5
 
@@ -82,12 +68,11 @@ class AxonDetections(object):
         pandas_tiled_dets = []
         detections = []
         print(f'Detecting axons in {self.dataset.name} data: ', end='\n')
-        # for t in range(len(self)):
         for t in self.timepoint_subset:
             print(f'frame {t}/{(len(self)-1)}', end='...', flush=True)
             # get a stack of tiles that makes up a frame
             # batch dim of X corresbonds to all tiles in frame at time t
-            X, yolo_target = self.dataset.get_stack('image', t, self.device)
+            X, yolo_target = self.dataset.get_frametiles_stack(t, self.device)
             
             # use the model to detect axons, output here follows target.shape
             yolo_det = self.model.detect_axons(X)
@@ -214,19 +199,7 @@ class AxonDetections(object):
         # self.to_target_dists = pd.concat(true_to_target_dists, axis=1)
         # self.to_target_dists.to_csv(f'{self.dir}/train_data_dists_gt.csv')
 
-    def update_conf_thr_to_best_F1(self):
-        cnfs_mtrx = sum([self.compute_TP_FP_FN(t) for t in range(len(self))])
-        prc_rcl_f1 = self.compute_prc_rcl_F1(cnfs_mtrx)
-        
-        best_thr = 0.5 + 0.01*np.argmax(prc_rcl_f1[2])
-        print(f'Changed object confidence threshold from {self.conf_thr} to '
-              f'best F1 threshold {best_thr}.')
-        self.conf_thr = best_thr
-
-    def get_confident_det(self, t, update_conf_thr_to_best_F1=False, 
-                          get_tiled_not_image=False):
-        if update_conf_thr_to_best_F1:
-            self.update_conf_thr_to_best_F1()
+    def get_confident_det(self, t,  get_tiled_not_image=False):
         if not get_tiled_not_image:
             # filter the detection set at this frame to confidence threshold 
             return self.detections[t][self.detections[t].conf>self.conf_thr]
@@ -319,8 +292,7 @@ class AxonDetections(object):
         return prc_rcl_f1
 
     def get_det_image_and_target(self, t, return_tiled=True):
-        img_tiled, _ = self.dataset.get_stack('image', t, self.device, 
-                                              X2drawable_img=False)
+        img_tiled, _ = self.dataset.get_frametiles_stack(t, self.device)
         pd_tiled_true_det = self._yolo_Y2pandas_det(self.yolo_targets[t], conf_thr=1)
         pd_image_true_det, img = self.dataset.stitch_tiles(pd_tiled_true_det, img_tiled)
 
@@ -378,15 +350,16 @@ class AxonDetections(object):
         print('Done.', flush=True)
         return cnfs_mtrx
         
-    def compute_prc_rcl_F1(self, confus_mtrx, epoch=None, which_data=None):
+    def compute_prc_rcl_F1(self, confus_mtrx, return_dataframe=False):
         prc = confus_mtrx[0] / (confus_mtrx[0]+confus_mtrx[1]+0.000001)
         rcl = confus_mtrx[0] / (confus_mtrx[0]+confus_mtrx[2]+0.000001)
         f1 =  2*(prc*rcl)/(prc+rcl)
         metric = np.array([prc, rcl, f1]).round(3)
 
-        if epoch is not None and which_data is not None:
-            index = pd.MultiIndex.from_product([[epoch],[which_data], self.all_conf_thrs])
-            return pd.DataFrame(metric, columns=index, index=('precision', 'recall', 'F1'))
+        if return_dataframe:
+            index = pd.MultiIndex.from_product([('precision', 'recall', 'F1'), 
+                                                self.all_conf_thrs])
+            return pd.Series(metric.flatten(), index=index)
         return metric
 
 

@@ -1,25 +1,20 @@
-
 import os
 import pickle
 from collections import OrderedDict
 
 from torch import nn as nn
 import matplotlib.pyplot as plt
-import matplotlib.font_manager as font_manager
 
 from config import TRAINING_DATA_DIR, OUTPUT_DIR, DEFAULT_DEVICE, DEFAULT_NUM_WORKERS, SPACER
 from utils import get_run_dir, architecture_to_text
 
 def get_default_parameters():
     # DATA
-    TIMELAPSE_FILE = TRAINING_DATA_DIR + 'G001_red_compr.deflate.tif'
-    LABELS_FILE = TRAINING_DATA_DIR + 'labelled_axons_astardists.csv'
-    MASK_FILE = TRAINING_DATA_DIR + 'mask_wells_excl.npy'
+    TIMELAPSE_FILE = TRAINING_DATA_DIR + 'training_timelapse.tif'
+    LABELS_FILE = TRAINING_DATA_DIR + 'axon_anchor_labels.csv'
+    MASK_FILE = TRAINING_DATA_DIR + 'training_mask.npy'
     TRAIN_TIMEPOINTS = range(4,33)
     TEST_TIMEPOINTS = list(range(2,4)) + list(range(33,35))
-    
-    TEST_TIME_DISCONTINUITIES = [37+80]
-    TRAIN_TIME_DISCONTINUITIES = [37, 37+80-20, 37+80+20]
     
     LOG_CORRECT = True
     PLOT_PREPROC = True
@@ -51,9 +46,8 @@ def get_default_parameters():
          (3, 80,  1,  1),      # y-x out: 32
          (3, 80,  1,  1),      # y-x out: 32
          'M',
+        (3, 160, 1,  1),      # y-x out: 16
          ],      
-        [(3, 160, 1,  1),      # y-x out: 16
-         ],
         [('FC', 1024),
          ('activation', nn.Sigmoid()), 
          ('FC', 1024),
@@ -72,7 +66,7 @@ def get_default_parameters():
 
     WEIGHT_DECAY = 5e-4
     BATCH_SIZE = 32
-    EPOCHS = 3001
+    EPOCHS = 1501
     LOAD_MODEL = None # ['Exp1_yolo_only_firstfirst', 'run02', 'E0']   # [ExpName, #run, #epoch]
     BBOX_THRESHOLD = .7
     LR = 5e-4
@@ -89,6 +83,8 @@ def get_default_parameters():
     NUM_WORKERS = DEFAULT_NUM_WORKERS
     PIN_MEMORY = True
     NOTES = 'no notes - shame on you!'
+    MODEL_CHECKPOINTS = (1, 250, 750, 1000, 1500)
+    PERF_LOG_VIDEO_KWARGS = {}
 
     param_dict = OrderedDict({key: val for key, val in locals().items()})
     return param_dict
@@ -98,10 +94,13 @@ def write_parameters(file, params):
         txt_file.writelines([(f'{key:20} {val}\n') for key, val in params.items()])
     pickle.dump(params, open(file, 'wb'))
 
-def load_parameters(exp_name, run):
-    EXP_DIR = f'{OUTPUT_DIR}/runs/{exp_name}/'
-    RUN_DIR = get_run_dir(EXP_DIR, run)
-    file = f'{RUN_DIR}/params.pkl'
+def load_parameters(exp_name, run, from_directory=None):
+    if exp_name and run:
+        EXP_DIR = f'{OUTPUT_DIR}/runs/{exp_name}/'
+        RUN_DIR = get_run_dir(EXP_DIR, run)
+        file = f'{RUN_DIR}/params.pkl'
+    elif from_directory:
+        file = f'{from_directory}/params.pkl'
     return pickle.load(open(file, 'rb'))
 
 def get_notes(exp_name, run):
@@ -123,24 +122,12 @@ def params2text(params):
             text += '\n\t>> loss <<\n'
         elif key == 'SEED':
             text += '\n\t>> run settings <<\n'
+        if key.endswith('TIMEPOINTS') and len(val) >30:
+            n = len(val)
+            val = f'{val[:5]} ... {val[n//2:n//2+5]} ... {val[-5:]} (n={n})'
         text += f'\t\t{key:20} {val}\n'
     text += SPACER+'\n'
     return text
-
-def params2img(fname, params, show=False):
-    fontfiles = font_manager.findSystemFonts(fontpaths='/home/loaloa/.fonts/c/', fontext='ttf')
-    [font_manager.fontManager.addfont(font_file) for font_file in fontfiles]
-
-    fig, ax = plt.subplots(figsize=(9,9))
-    ax.axis('off')
-    txt = params2text(params).replace("\t", "    ")
-    hfont = {'fontname':'CMU Typewriter Text'}
-    ax.text(0,0, txt, fontsize=9, **hfont)
-
-    if show:
-        plt.show()
-    fig.savefig(fname, dpi=600)
-    plt.close()
 
 def check_parameters(passed_params, default_params):
     inval_keys = [key for key in passed_params if key not in default_params]
@@ -159,16 +146,24 @@ def to_device_specifc_params(model_parameters, local_default_params,
     return model_parameters
 
 def compare_parameters(param1, param2):
-    text = '\n'+SPACER
+    text = ''
     param1_only = [key for key in param1 if key not in param2]
     param2_only = [key for key in param2 if key not in param1]
+    
+    text += '\n'+SPACER
+    text += '\nParamters only in P1:\n'
     if param1_only:
-        text += '\nParamters only in P1:\n'
         text += '\n'.join([f'\t{key}: {param1[key]}'for key in param1_only])
+        text += '\n'+SPACER+'\n'
+    
+    text += '\n'+SPACER
+    text += '\nParamters only in P2:\n'
     if param2_only:
-        text += '\nParamters only in P2:\n'
         text += '\n'.join([f'\t{key}: {param2[key]}'for key in param2_only])
+        text += '\n'+SPACER+'\n'
 
+    text += '\n'+SPACER
+    text += '\nParamters that differ:\n'
     for key in param1.keys():
         if key in param1_only: 
             continue
@@ -180,5 +175,5 @@ def compare_parameters(param1, param2):
             else:
                 text += f'\n\tP1: {param1[key]}:'
                 text += f'\n\tP2: {param2[key]}:'
-    text += SPACER+'\n'
+    text += '\n'+SPACER+'\n'
     return text

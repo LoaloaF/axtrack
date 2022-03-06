@@ -9,7 +9,7 @@ from torchvision import models
 import matplotlib.pyplot as plt
 from matplotlib import animation
 
-from plotting import draw_frame
+# from plotting import draw_frame
 
 from AxonDetections import AxonDetections
 

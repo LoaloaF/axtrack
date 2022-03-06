@@ -1,41 +1,40 @@
 import sys
+import os
+
+sys.path.extend(('./machinelearning/v1model/', './screen', os.path.abspath(os.curdir))) 
+
 import pickle
 import glob
-
-
-import os
-# os.chdir('../')
-sys.path.append('./machinelearning/v1model')
 
 from UnlabelledTimelapse import UnlabelledTimelapse
 from StructureScreen import StructureScreen
 
 from exp_parameters import load_parameters
 
-from evaluation import setup_evaluation
+from exp_evaluation import setup_evaluation
 from core_functionality import setup_model
 from AxonDetections import AxonDetections
 
 import warnings
 warnings.filterwarnings("ignore")
 
-from plotting import draw_all
+from video_plotting import draw_all
+from screen_plotting import plot_target_distance_over_time_video
+
 
 from exp_parameters import (
     get_default_parameters, 
     to_device_specifc_params,
     )
 
-# from config import RAW_DATA_DIR, SCREENING_DIR, OUTPUT_DIR
+# from config import RAW_DATA_DIR, SCREENING_OUT_DIR, OUTPUT_DIR
 import config
 
 from utils import set_seed
-from utils import turn_tex
-turn_tex('on')
 
 from utils import save_preproc_metrics
 from utils import set_seed
-from plotting import plot_preprocessed_input_data
+from ml_plotting import plot_preprocessed_input_data
 from exp_parameters import params2text
 
 from PDMSDesignScreen import PDMSDesignScreen
@@ -52,6 +51,12 @@ def get_params(exp_name, run, num_workers=None, device=None):
         parameters['DEVICE'] = device
     return parameters
 
+def get_data_standardization_scaler(parameters):
+    # if 'OFFSET' not in parameters:
+    #     parameters['OFFSET'] = None
+    train_data, _ = setup_data(parameters, skip_test=True)
+    return train_data.stnd_scaler, train_data
+
 def get_model(exp_name, run, epoch, parameters, print_params=True):
     parameters['LOAD_MODEL'] = [exp_name, run, epoch]
     model, _, _, _ = setup_model(parameters)
@@ -59,11 +64,6 @@ def get_model(exp_name, run, epoch, parameters, print_params=True):
         print(params2text(parameters))
     return model
 
-def get_data_standardization_scaler(parameters):
-    if 'OFFSET' not in parameters:
-        parameters['OFFSET'] = None
-    train_data, _ = setup_data(parameters)
-    return train_data.stnd_scaler, train_data
 
 def get_structure_screen_names(names_subset, exclude_names):
     segmted_timelapses = glob.glob(config.RAW_INFERENCE_DATA_DIR+'/*mask1.npy')
@@ -82,6 +82,7 @@ def create_structure_screen(structure_name, directory, model, parameters,
                             use_cached_datasets, use_cached_det_astar_paths, 
                             use_cached_target_astar_paths, make_tracking_video,
                             make_tracking_video_finaldest, tracking_video_kwargs, 
+                            make_dist_over_time_video,
                             cache_screen):
     
     imseq_fname = f'{structure_name}_GFP_compr.deflate.tif'
@@ -101,15 +102,6 @@ def create_structure_screen(structure_name, directory, model, parameters,
     axon_detections = AxonDetections(model, timelapse, parameters, f'{directory}/axon_dets')
     cache = 'to' if not use_cached_det_astar_paths else 'from'
     axon_detections.assign_ids(cache=cache)
-    
-    if make_tracking_video:
-        fname = f'timepoint---of{timelapse.sizet}'
-        dest_dir = f'{directory}/det_videos'
-        os.makedirs(dest_dir, exist_ok=True)
-        draw_all(axon_detections, fname, dest_dir=dest_dir, 
-                 dt=timelapse.dt, pixelsize=timelapse.pixelsize, hide_det2=True,
-                 color_det1_ids=True, use_IDed_dets=True, 
-                 **tracking_video_kwargs)
 
     # PDMS structure screen object composed of axon detections and basic timelapse properties
     cache = 'to' if not use_cached_target_astar_paths else 'from'
@@ -119,15 +111,38 @@ def create_structure_screen(structure_name, directory, model, parameters,
         pickle.dump(screen, open(f'{directory}/{structure_name}_screen.pkl', 'wb'))
         print(f'{structure_name} screen successfully saved.')
     
+    if make_tracking_video:
+        fname = f'timepoint---of{timelapse.sizet}'
+        dest_dir = f'{directory}/det_videos'
+        os.makedirs(dest_dir, exist_ok=True)
+
+        if tracking_video_kwargs.get('insert_distance_plot'):
+            tracking_video_kwargs['insert_distance_plot'] = screen
+            if tracking_video_kwargs.get('which_axons'):
+                screen.set_axon_subset(tracking_video_kwargs.get('which_axons'))
+
+        draw_all(axon_detections, fname, dest_dir=dest_dir, 
+                 dt=timelapse.dt, pixelsize=timelapse.pixelsize, hide_det2=True,
+                 color_det1_ids=True, use_IDed_dets=True, 
+                 **tracking_video_kwargs)
+
+
+    
     if make_tracking_video_finaldest:
         dists = screen.get_distances()
-        target_axons, cg_axons = screen.detect_axons_final_location(dists)
+        target_axons, cg_axons, stag_axons = screen.detect_axons_final_location(dists)
         
         fname = f'timepoint---of{timelapse.sizet}'
         draw_all(axon_detections, fname, dest_dir=dest_dir, which_axons=target_axons+cg_axons,
                  dt=timelapse.dt, pixelsize=timelapse.pixelsize, hide_det2=True, 
                  color_det1_ids=True, use_IDed_dets=True, anim_fname_postfix='_special_axons',
                  **tracking_video_kwargs)
+    if make_dist_over_time_video:
+        os.makedirs(f'{screen.dir}/target_distance_frames/', exist_ok=True)
+        plot_target_distance_over_time_video(screen, subtr_init_dist=True, )
+
+
+
     return screen
     
 def get_PDMSscreen(num_workers, device, exp_name, run, epoch, 
@@ -135,6 +150,7 @@ def get_PDMSscreen(num_workers, device, exp_name, run, epoch,
                    use_cached_det_astar_paths, use_cached_target_astar_paths, 
                    use_cached_screen, check_preproc, make_tracking_video, 
                    make_tracking_video_finaldest, tracking_video_kwargs, 
+                   make_dist_over_time_video,
                    PDMS_screen_dest_dir):
 
     parameters = get_params(exp_name, run, num_workers, device)
@@ -147,8 +163,8 @@ def get_PDMSscreen(num_workers, device, exp_name, run, epoch,
     structure_screen_names = get_structure_screen_names(structure_names_subset, exclude_names)
     for i, structure_name in enumerate(structure_screen_names):
         print(f'Processing structure screen {structure_name} now ({i}/'
-              f'{len(structure_screen_names)})...', flush=True, end='')
-        directory = f'{config.SCREENING_DIR}/{structure_name}/'
+              f'{len(structure_screen_names)})...', flush=True)
+        directory = f'{config.SCREENING_OUT_DIR}/{structure_name}/'
         os.makedirs(directory, exist_ok=True)
         
         if not use_cached_screen:
@@ -161,6 +177,7 @@ def get_PDMSscreen(num_workers, device, exp_name, run, epoch,
                                              make_tracking_video,
                                              make_tracking_video_finaldest,
                                              tracking_video_kwargs,
+                                             make_dist_over_time_video,
                                              cache_screen=True)
         else:
             try:
@@ -170,18 +187,18 @@ def get_PDMSscreen(num_workers, device, exp_name, run, epoch,
                 continue
             
             print('Screen loaded from cache.')
-            screen.dir = f'{config.SCREENING_DIR}/{structure_name}/screen/'
+            screen.dir = f'{config.SCREENING_OUT_DIR}/{structure_name}/screen/'
 
             # if screen.dir.startswith('/srv/beegfs-data/') and \
             #     config.BASE_DIR.startswith('/home/loaloa'):
             #     print('in')
-            #     screen.dir = f'{config.SCREENING_DIR}/{structure_name}/screen/'
+            #     screen.dir = f'{config.SCREENING_OUT_DIR}/{structure_name}/screen/'
         
             # remove me later when caching new screening objects
             screen.hacky_adhoc_param_setter()
             # pickle.dump(screen, open(f'{directory}/{structure_name}_screen.pkl', 'wb'))
         all_screens.append(screen)
-    return PDMSDesignScreen(all_screens, f'{config.SCREENING_DIR}/{PDMS_screen_dest_dir}')
+    return PDMSDesignScreen(all_screens, f'{config.SCREENING_OUT_DIR}/{PDMS_screen_dest_dir}')
 
 
 
@@ -207,14 +224,16 @@ def validate_screens(screen, symlink_results, plot_kwargs):
 def main():
     # device run settings, which model used for inference
     num_workers = 28
-    device = 'cuda:0'
+    device = 'cpu'
     exp_name, run, epoch = 'v1Model_exp7_final', 'run36', 400
 
     # which timelapses to include in analysis, None = all
-    structure_names_subset = None
+    # structure_names_subset = None
     # structure_names_subset = range(34)  # all timelapse13 
     # structure_names_subset = range(34, 75)  # all timelapse14
     # structure_names_subset = range(25,45) # for fast testing
+    # structure_names_subset = [19] # for fast testing
+    structure_names_subset = [72] # D20 winner
     exclude_names = ['tl13_D04_G004', 'tl13_D19_G035', # training data
                      'tl14_D02_G002', 'tl14_D02_G014', 'tl14_D03_G015', # bad detections
                      'tl13_D20_G036'] # only one exists for D20.... changed on 2nd wafer....
@@ -234,12 +253,13 @@ def main():
     use_cached_datasets = True
     use_cached_det_astar_paths = True
     use_cached_target_astar_paths = True
-    use_cached_screen = True
+    use_cached_screen = False
     
     # for a new screen which additional functions should be executed 
     check_preproc = True
     make_tracking_video = True
     make_tracking_video_finaldest = True
+    make_dist_over_time_video = False
     tracking_video_kwargs = {'draw_axons':None, 'show':False, 'animated':True, 
                              'draw_scalebar':'top_right', }#'t_y_x_slice':[(0,20), None, None]}
     
@@ -270,6 +290,7 @@ def main():
                             make_tracking_video, 
                             make_tracking_video_finaldest, 
                             tracking_video_kwargs, 
+                            make_dist_over_time_video,
                             PDMS_screen_dest_dir
     )
 
@@ -287,7 +308,7 @@ def main():
     """Results figure 1 `Information obtained through tracking` : 
     Take a first look at single-structure distance over time plots, 
     base line subtr and not"""
-    # screen.sss_target_distance_timeline(symlink_results=symlink_results, plot_kwargs=plot_kwargs)
+    screen.sss_target_distance_timeline(symlink_results=symlink_results, plot_kwargs=plot_kwargs)
     # _plot_kwargs = {**plot_kwargs, 'subtr_init_dist': False, 'fname_postfix':'_nodelta'}
     # screen.sss_target_distance_timeline(symlink_results=symlink_results, plot_kwargs=_plot_kwargs)
 

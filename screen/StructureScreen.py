@@ -363,6 +363,10 @@ class StructureScreen(object):
     def growth_direction_start2end(self, dists, drop_axon_names=False, drop_small_deltas=False):
         start_dist = dists.groupby(level=0).apply(lambda row: row.dropna(axis=1).iloc[:,0])
         end_dist = dists.groupby(level=0).apply(lambda row: row.dropna(axis=1).iloc[:,-1])
+        # when only one axon this outputs a 2d instead of a 1d array. slice here
+        if start_dist.ndim == 2:
+            start_dist = start_dist.iloc[0]
+            end_dist = end_dist.iloc[0]
         
         # growth_direction = dists.notna().sum(1).rename('id_lifetime').to_frame()
         # growth_direction = (growth_direction*self.dt) /60
@@ -432,6 +436,9 @@ class StructureScreen(object):
     def subtract_initial_dist(self, dists):
         # get the initial timepoints distance
         init_dist = dists.groupby(level=0).apply(lambda row: row.dropna(axis=1).iloc[:,0])
+        # when only one axon this outputs a 2d instead of a 1d array. slice here
+        if init_dist.ndim == 2:
+            init_dist = init_dist.iloc[0]
         # subtract that distance
         return dists.apply(lambda col: col-init_dist.values)
 

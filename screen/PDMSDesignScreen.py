@@ -13,12 +13,10 @@ from scipy.stats import f_oneway
 from scipy.stats import normaltest
 from scipy.stats import ttest_ind
 
-
-
 from utils import turn_tex
 
 import matplotlib.pyplot as plt
-import plotting
+import screen_plotting
 # from plotting import (
 #     plot_axon_IDs_lifetime,
 #     plot_target_distance_over_time,
@@ -30,7 +28,7 @@ import plotting
 # )
 
 class PDMSDesignScreen(object):
-    def __init__(self, structure_screens, directory, tex=True):
+    def __init__(self, structure_screens, directory):
         self.structure_screens = structure_screens
         
         self.dir = directory
@@ -49,8 +47,7 @@ class PDMSDesignScreen(object):
         print(f'\n{config.SPACER}\nScreening object initialized with the '
               f'following samples:\n{self.get_index.to_string()}\n{config.SPACER}\n')
 
-        if tex:
-            turn_tex('on')
+        turn_tex('on')
 
         
     
@@ -76,7 +73,7 @@ class PDMSDesignScreen(object):
         
         for ss in self:
             print(f'{ss.name}', end='...', flush=True)
-            fname = plotting.draw_mask(ss, **plot_kwargs)
+            fname = screen_plotting.draw_mask(ss, **plot_kwargs)
             if symlink_results:
                 dest_ln_fname = dest_dir+os.path.basename(fname)
                 if not os.path.exists(dest_ln_fname):
@@ -93,7 +90,7 @@ class PDMSDesignScreen(object):
 
         for ss in self:
             print(f'{ss.name}', end='...', flush=True)
-            fname = plotting.plot_axon_IDs_lifetime(ss, **plot_kwargs)
+            fname = screen_plotting.plot_axon_IDs_lifetime(ss, **plot_kwargs)
             if symlink_results:
                 dest_ln_fname = dest_dir+os.path.basename(fname)
                 if not os.path.exists(dest_ln_fname):
@@ -111,7 +108,7 @@ class PDMSDesignScreen(object):
 
         for ss in self:
             print(f'{ss.name}', end='...', flush=True)
-            fname = plotting.plot_target_distance_over_time(ss, **plot_kwargs)
+            fname = screen_plotting.plot_target_distance_over_time(ss, **plot_kwargs)
             if symlink_results:
                 dest_ln_fname = dest_dir+os.path.basename(fname)
                 if not os.path.exists(dest_ln_fname):
@@ -198,7 +195,7 @@ class PDMSDesignScreen(object):
             all_metrics.append(metric)
         all_metrics = pd.concat(all_metrics)
         
-        testing_data = plotting.plot_axon_distribution(all_metrics, self.dir, 
+        testing_data = screen_plotting.plot_axon_distribution(all_metrics, self.dir, 
                                        which_metric=which_metric, **plot_kwargs)
         name=f'{which_metric}_{plot_kwargs.get("split_by")}{plot_kwargs.get("fname_postfix")}'
         self.test(testing_data, name=name,
@@ -227,7 +224,7 @@ class PDMSDesignScreen(object):
         index_names.extend(config.DESIGN_FEATURE_NAMES)
         all_metrics.index.rename(index_names, inplace=True)
 
-        testing_data = plotting.plot_axon_distribution(all_metrics, self.dir, 
+        testing_data = screen_plotting.plot_axon_distribution(all_metrics, self.dir, 
                                         which_metric=which_metric, **plot_kwargs)
         
         self.test(testing_data, name=f'{which_metric}_{plot_kwargs.get("split_by")}',

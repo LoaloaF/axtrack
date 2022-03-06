@@ -4,15 +4,12 @@ import torch
 import torch.nn as nn
 
 class YOLO_AXTrack_loss(nn.Module):
-
-    def __init__(self, Sy, Sx, conf_thr, lambda_obj, lambda_noobj, lambda_coord_anchor):
+    def __init__(self, Sy, Sx, lambda_obj, lambda_noobj, lambda_coord_anchor):
         super(YOLO_AXTrack_loss, self).__init__()
         self.mse = nn.MSELoss(reduction="sum")
 
         self.Sy = Sy
         self.Sx = Sx
-
-        self.conf_thr = conf_thr
 
         self.lambda_obj = lambda_obj
         self.lambda_noobj = lambda_noobj
@@ -42,7 +39,6 @@ class YOLO_AXTrack_loss(nn.Module):
             torch.flatten(pred_xy_positive_label, end_dim=-2),
             torch.flatten(true_xy, end_dim=-2),
         )
-        # print(box_loss_anchors.item(), end='...')
 
         # ==================== #
         #   FOR OBJECT LOSS    #
@@ -51,7 +47,6 @@ class YOLO_AXTrack_loss(nn.Module):
             torch.flatten(pred_conf_positive_label),
             torch.flatten(obj_exists),
         )
-        # print('Object loss: ', object_loss.item(), end='...')
 
         # ======================= #
         #   FOR NO OBJECT LOSS    #
@@ -60,7 +55,6 @@ class YOLO_AXTrack_loss(nn.Module):
             torch.flatten(pred_conf_negative_label, start_dim=1),
             torch.flatten(torch.zeros_like(pred_conf_negative_label), start_dim=1),
         )
-        # print('no Object loss: ', no_object_loss.item(), end='...')
 
         loss_components = {
                     'total_xy_anchors_loss': (self.lambda_coord_anchor * box_loss_anchors) /bs,

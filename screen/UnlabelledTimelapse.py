@@ -65,10 +65,16 @@ class UnlabelledTimelapse(Timelapse):
         self.pixelsize = metadata['pixelsize']
         self.structure_outputchannel_coo = metadata['target'][0]+pad[0], metadata['target'][1]+pad[3]
         
-        self.goal_mask = np.load(mask_path.replace('mask1', 'mask1_goal'))
+        if not mask_path.endswith('None'):
+            self.goal_mask = np.load(mask_path.replace('mask1', 'mask1_goal'))
+            self.start_mask = np.load(mask_path.replace('mask1', 'mask1_start'))
+        else:
+            self.goal_mask = np.ones((self.sizey, self.sizex)).astype(bool)
+            self.start_mask = self.goal_mask.copy()
+
         self.goal_mask = np.pad(self.goal_mask, 50, mode='constant')
-        self.start_mask = np.load(mask_path.replace('mask1', 'mask1_start'))
         self.start_mask = np.pad(self.start_mask, 50, mode='constant')
+        
 
     def _load_metadata(self, filename):
         metadata = {}
@@ -79,6 +85,7 @@ class UnlabelledTimelapse(Timelapse):
         metadata['CLSM_area'] = f'G{df.CLSM_area:0>3}'
         metadata['dt'] = float(df["dt"])
         metadata['pixelsize'] = float(df.pixelsize)
+        # metadata['ntimepoints'] = int(df.ntimepoints)
         
         # newly added, old csv dont have this, default to tl13 dataset params
         metadata['which_tl'] = df.which_tl if 'which_tl' in df.index else 'tl13'
@@ -90,10 +97,7 @@ class UnlabelledTimelapse(Timelapse):
             int_offset = 121 /2**16
         elif metadata['which_tl'] == 'tl14':
             int_offset = 137 /2**16
-
-
         metadata['intensity_offset'] = int_offset
+
         
         return metadata        
-
-    
