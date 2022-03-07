@@ -15,6 +15,7 @@ from core_functionality import (
 from utils import (
     save_preproc_metrics,
     create_all_epochs_info,
+    get_all_epoch_data,
     # create_lossovertime_pkl,
     # create_metricsovertime_pkl,
     get_run_dir,
@@ -42,7 +43,6 @@ def setup_evaluation(exp_name, run, print_params=True):
     return RUN_DIR, parameters
 
 def evaluate_preprocssing(exp_name, run, show=True):
-    print('Evaluating preprocessing steps...', end='')
     # get the matching directory for the comb of experiment name and run name
     RUN_DIR, params = setup_evaluation(exp_name, run)
     PREPROC_DATA_DIR = f'{RUN_DIR}/preproc_data/'
@@ -55,6 +55,9 @@ def evaluate_preprocssing(exp_name, run, show=True):
         save_preproc_metrics(RUN_DIR, train_data, test_data)
     # plot the input data distribution over taken preprocessing steps
     data = pd.read_csv(preproc_file, header=[0,1,2], index_col=0)
+    
+    # plot the different preprocessing outcomes
+    print('Evaluating preprocessing steps...', end='')
     plot_preprocessed_input_data(data, params['NOTES'], dest_dir=RUN_DIR, show=show)
     print('Done.')
 
@@ -68,30 +71,40 @@ def evaluate_training(exp_run_ids, recreate=False, use_prepend_ifavail=True, sho
         if i == 0:
             dest_dir = RUN_DIR
             base_params = params
-            print(f'Evaluating training of {lbl}...', end='')
         else:
             print(compare_parameters(base_params, params))
         
-        loss_file = f'{METRICS_DIR}/loss_all_epochs.pkl'
-        metrics_file = f'{METRICS_DIR}/metrics_all_epochs.pkl'
-    
-        # check if there exists a prepended version of that run
-        loss_file_prd = loss_file.replace('.pkl', '_prepend.pkl')
-        metrics_file_prd = metrics_file.replace('.pkl', '_prepend.pkl')
-        print(os.path.exists(loss_file_prd) and os.path.exists(metrics_file_prd))
-        if use_prepend_ifavail and os.path.exists(loss_file_prd) and os.path.exists(metrics_file_prd):
-            loss_file, metrics_file = loss_file_prd, metrics_file_prd
-        # if files files don't exists yet, make them here 
-        if not os.path.exists(loss_file) or recreate:
-            create_all_epochs_info(METRICS_DIR)
-            # loss_file = create_lossovertime_pkl(METRICS_DIR)
-            # metrics_file = create_metricsovertime_pkl(METRICS_DIR)
-        training[lbl] = [loss_file, metrics_file, params]
+        # get the training data over time (loss + metrics)
+        training[lbl], _ = get_all_epoch_data(exp_name, run, recreate, use_prepend_ifavail)
 
     # plot the loss and metrics over epochs
+    print(f'Evaluating training of {lbl}...', end='')
     plot_training_process(training, dest_dir=dest_dir, show=show)
     print('Done. ')
     
+def evaluate_precision_recall(exp_run_epoch_ids, show=True, avg_over_t=30,
+                              recreate=False, use_prepend_ifavail=True):
+    metrics = {}
+    for i, (exp_name, run, epoch) in enumerate(exp_run_epoch_ids):
+        RUN_DIR, params = setup_evaluation(exp_name, run, print_params=False)
+        METRICS_DIR = f'{RUN_DIR}/metrics/'
+        lbl = f"{run} E{epoch:0>3} - {params['NOTES']}"
+        
+        if i == 0:
+            base_params = params
+            dest_dir = RUN_DIR
+        else:
+            print(compare_parameters(base_params, params))
+        
+        # get the training data over time, slice to certain epoch range, avg over epochs
+        _, dat = get_all_epoch_data(exp_name, run, recreate, use_prepend_ifavail)
+        metrics[lbl] = dat.loc[epoch-avg_over_t//2 :epoch+avg_over_t//2+1].dropna().mean()
+    
+    # plot precision recall
+    print(f'Evaluating precision/recall of {lbl}...', end='')
+    plot_prc_rcl(metrics, dest_dir=dest_dir, show=show)
+    print('Done.')
+
 def evaluate_model(exp_name, run, epoch='latest', which_data='test', video_kwargs={}):
     print('\nEvaluating model...', end='')
 
@@ -139,25 +152,3 @@ def evaluate_ID_assignment(exp_name, run, epoch='latest', cached_astar_paths='to
     fname = f'{data.name}_E{epoch}_timepoint:---of{data.sizet}'
     draw_all(axon_detections, fname, dest_dir=IDed_dets_dir, dt=31,
                 notes=params["NOTES"], use_IDed_dets=True, **video_kwargs)
-
-def evaluate_precision_recall(exp_run_epoch_ids, show=True, avg_over_t=30):
-    metrics = {}
-    for i, (exp_name, run, epoch) in enumerate(exp_run_epoch_ids):
-        RUN_DIR, params = setup_evaluation(exp_name, run, print_params=False)
-        lbl = f"{run} E{epoch} - {params['NOTES']}"
-        
-        if i == 0:
-            print(f'Evaluating precision/recall of {lbl}...', end='')
-            base_params = params
-            dest_dir = RUN_DIR
-        else:
-            print(compare_parameters(base_params, params))
-
-        metrics_files = [f'{RUN_DIR}/metrics/E{e:0>4}_metrics.pkl' 
-                         for e in range(epoch-avg_over_t//2, epoch+avg_over_t//2+1)]
-        import pandas as pd
-        # for the last Epoch, there are no 15 epochs into the future, delete those
-        metrics_files = [file for file in metrics_files if os.path.exists(file) and not pd.read_pickle(file).empty]
-        metrics[lbl] = metrics_files
-    plot_prc_rcl(metrics, dest_dir=dest_dir, show=show)
-    print('Done.')

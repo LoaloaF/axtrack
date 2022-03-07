@@ -127,21 +127,27 @@ def create_all_epochs_info(metrics_dir):
     fname = f'{metrics_dir}/loss_all_epochs.pkl'
     all_epochs_info.to_pickle(fname)
     fname = f'{metrics_dir}/metrics_all_epochs.pkl'
-    all_epochs_metrics.to_pickle(fname)
+    all_epochs_metrics.swaplevel(axis=1).to_pickle(fname)
 
-def get_all_epoch_data(exp_name, run, recreate=False):
+def get_all_epoch_data(exp_name, run, recreate=False, use_prepend_ifavail=True):
     EXP_DIR = f'{OUTPUT_DIR}/runs/{exp_name}/'
     RUN_DIR = get_run_dir(EXP_DIR, run)
-    
+
     all_epochs_info_fname = f'{RUN_DIR}/metrics/loss_all_epochs.pkl'
     all_epochs_metrics_fname = f'{RUN_DIR}/metrics/metrics_all_epochs.pkl'
-    if os.path.exists(all_epochs_info_fname) and not recreate:
-        all_epochs_info = pd.read_pickle(all_epochs_info_fname)
-        all_epochs_metrics = pd.read_pickle(all_epochs_metrics_fname)
-    else:
+
+    if use_prepend_ifavail:
+        all_epochs_info_prd_fname = all_epochs_info_fname.replace('.pkl', '_prepend.pkl')
+        all_epochs_metrics_prd_fname = all_epochs_metrics_fname.replace('.pkl', '_prepend.pkl')
+        if os.path.exists(all_epochs_info_prd_fname):
+            all_epochs_info_fname = all_epochs_info_prd_fname
+            all_epochs_metrics_fname = all_epochs_metrics_prd_fname
+
+    if not os.path.exists(all_epochs_info_fname) or recreate:
         create_all_epochs_info(f'{RUN_DIR}/metrics/')
-        all_epochs_info = pd.read_pickle(all_epochs_info_fname)
-        all_epochs_metrics = pd.read_pickle(all_epochs_metrics_fname)
+    
+    all_epochs_info = pd.read_pickle(all_epochs_info_fname)
+    all_epochs_metrics = pd.read_pickle(all_epochs_metrics_fname)
     return all_epochs_info, all_epochs_metrics
 
 def prepend_prev_run(exp_name, older_run, newer_run, older_run_until_e=None, 
@@ -155,7 +161,7 @@ def prepend_prev_run(exp_name, older_run, newer_run, older_run_until_e=None,
     args = [older_run, newer_run], [older_run_until_e, newer_run_until_e]
     for i, (run, until_e) in enumerate(zip(*args)):
 
-        all_epochs_info, all_epochs_metrics = get_all_epoch_data(exp_name, run)
+        all_epochs_info, all_epochs_metrics = get_all_epoch_data(exp_name, run, use_prepend_ifavail=False)
         if until_e:
             all_epochs_info = all_epochs_info.loc[:until_e]
             all_epochs_metrics = all_epochs_metrics.loc[:until_e]
@@ -167,9 +173,8 @@ def prepend_prev_run(exp_name, older_run, newer_run, older_run_until_e=None,
             all_epochs_info.index += last_epoch+1
             all_epochs_metrics.index += last_epoch+1
 
-            all_epochs_info = pd.concat((old_all_epochs_info, all_epochs_info), axis=1, sort=False)
-            all_epochs_metrics = pd.concat((old_all_epochs_metrics, all_epochs_metrics), axis=0, sort=False)
-            print(all_epochs_metrics)
+            all_epochs_info = pd.concat((old_all_epochs_info, all_epochs_info), sort=False)
+            all_epochs_metrics = pd.concat((old_all_epochs_metrics, all_epochs_metrics), sort=False)
 
             all_epochs_info.to_pickle(f'{RUN_DIR}/metrics/loss_all_epochs_prepend.pkl')
             all_epochs_metrics.to_pickle(f'{RUN_DIR}/metrics/metrics_all_epochs_prepend.pkl')

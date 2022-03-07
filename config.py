@@ -80,7 +80,6 @@ DEFAULT_COLORS = ['#729C27', '#A85C2A', '#1B6C5C', '#892259', '#273673', '#A0F40
 DESIGN_CMAP = ListedColormap([D21_COLOR, *plt.cm.get_cmap('tab20b', 20).colors])
 plt.rcParams["axes.prop_cycle"] = cycler('color', DEFAULT_COLORS)
 
-
 # TEX labels constans
 um_h = r'[$\frac{\mathrm{\upmu}\mathrm{m}}{\mathrm{h}}$]'
 um = r'[$\upmu$m]'

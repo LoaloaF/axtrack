@@ -167,16 +167,16 @@ if __name__ == '__main__':
     # run training with a specifc parsameter set
     # run_experiment(exp8_name, parameters, save_results=True)
 
-    # turn_tex('on')
+    turn_tex('on')
+    prepend_prev_run(exp8_name, 'run01', 'run00')
     # evaluate_preprocssing(exp8_name, 'run00', show=True)
-    evaluate_training([[exp7_name, 'run35'], [exp7_name, 'run36'], [exp7_name, 'run38'] ], show=True)
-    evaluate_training([[exp8_name, 'run00']], show=True)
-    # evaluate_precision_recall([(exp8_name, 'run12', 1)], show=True)
+    # evaluate_training([[exp7_name, 'run35'], [exp7_name, 'run36'], [exp7_name, 'run38'] ], show=True)
+    # evaluate_training([[exp8_name, 'run00'], [exp8_name, 'run01']], show=True, use_prepend_ifavail=True)
+    evaluate_precision_recall([[exp8_name, 'run00', 70], [exp8_name, 'run01', 5]], show=True, recreate=True)
     # evaluate_model(exp8_name, 'run12', which_data='test', video_kwargs={'draw_grid':True, 'show':False, 'animated':True})
     # evaluate_ID_assignment(exp8_name, 'run12', show=True)
 
     # clean_rundirs(exp8_name, delete_runs_min_epochs=1, keep_only_latest_model=False)
-    # prepend_prev_run(exp8_name, 'run01', 'run00')
     # evaluate_training([[exp8_name, 'run41']], recreate=True, show=True)
     # p2 = load_parameters(exp7_name, 'run37')
     # o = compare_parameters(get_default_parameters(), p2)

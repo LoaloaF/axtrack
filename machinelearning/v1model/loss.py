@@ -57,9 +57,9 @@ class YOLO_AXTrack_loss(nn.Module):
         )
 
         loss_components = {
-                    'total_xy_anchors_loss': (self.lambda_coord_anchor * box_loss_anchors) /bs,
                     'total_no_object_loss': (self.lambda_noobj * no_object_loss) /bs,
-                    'total_object_loss': (self.lambda_obj * object_loss) /bs}
+                    'total_object_loss': (self.lambda_obj * object_loss) /bs,
+                    'total_xy_anchors_loss': (self.lambda_coord_anchor * box_loss_anchors) /bs, }
         loss = sum([l for l in loss_components.values()])
         
         loss_components['total_summed_loss'] = loss
