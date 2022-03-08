@@ -14,10 +14,7 @@ from core_functionality import (
     )
 from utils import (
     save_preproc_metrics,
-    create_all_epochs_info,
     get_all_epoch_data,
-    # create_lossovertime_pkl,
-    # create_metricsovertime_pkl,
     get_run_dir,
     set_seed,
     )
@@ -105,29 +102,32 @@ def evaluate_precision_recall(exp_run_epoch_ids, show=True, avg_over_t=30,
     plot_prc_rcl(metrics, dest_dir=dest_dir, show=show)
     print('Done.')
 
-def evaluate_model(exp_name, run, epoch='latest', which_data='test', video_kwargs={}):
+def evaluate_model(exp_name, run, epoch='latest', which_data='test', cache_detections='from', 
+video_kwargs={}):
     print('\nEvaluating model...', end='')
 
     RUN_DIR, params = setup_evaluation(exp_name, run)
     params = to_device_specifc_params(params, get_default_parameters(), from_cache=OUTPUT_DIR)
     params['LOAD_MODEL'] = [exp_name, run, epoch]
-    params['OFFSET'] = None
+    # params['OFFSET'] = None
     # params['FROM_CACHE'] = None
     # params['CACHE'] = OUTPUT_DIR
-    params['DEVICE'] = 'cpu'
+    # params['DEVICE'] = 'cpu'
 
     train_data, test_data = setup_data(params)
-    model, _, _, _ = setup_model(params)
     data = test_data if which_data == 'test' else train_data
+    model, _, _, _ = setup_model(params)
 
-    axon_detections = AxonDetections(model, data, params, f'{RUN_DIR}/axon_detections')
+    axon_detections = AxonDetections(model, data, params, f'{RUN_DIR}/axon_dets_cache')
+    axon_detections.detect_dataset(cache=cache_detections)
     
     os.makedirs(f'{RUN_DIR}/model_out', exist_ok=True)
     fname = f'{data.name}_E{epoch}_timepoint---of{data.sizet}'
     draw_all(axon_detections, fname, dest_dir=f'{RUN_DIR}/model_out', 
                 notes=params["NOTES"], color_det1_ids=False, **video_kwargs)
 
-def evaluate_ID_assignment(exp_name, run, epoch='latest', cached_astar_paths='to',
+def evaluate_ID_assignment(exp_name, run, epoch='latest', cache_detections='from', 
+                           cached_astar_paths='to',
                            which_data='test', do_draw_all_vis=False, do_ID_lifetime_vis=False, 
                            video_kwargs={}):
     RUN_DIR, params = setup_evaluation(exp_name, run)

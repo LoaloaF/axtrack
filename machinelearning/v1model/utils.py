@@ -255,14 +255,14 @@ def prepend_prev_run(exp_name, older_run, newer_run, older_run_until_e=None,
 #     metrics_data.to_pickle(training_file_metrics.replace('all_epochs', 'all_epochs_prepend'))
 
 def save_checkpoint(model, optimizer, lr_schedular, filename):
-    print("=> Saving checkpoint")
+    print("=> Saving model checkpoint")
     checkpoint = {"state_dict": model.state_dict(),
                    "optimizer": optimizer.state_dict(),
                    "lr_schedular": lr_schedular.state_dict(), }
     torch.save(checkpoint, filename)
 
 def load_checkpoint(load_model, model, optimizer, lr_schedular, device):
-    print("=> Loading checkpoint...", end='')
+    print("=> Loading model checkpoint...", end='')
     # at inference/ deployment (skip LR schedular and optimizer )
     if isinstance(load_model, str):
         file = glob.glob(f'{load_model}/*.pth')[0]
@@ -282,7 +282,7 @@ def load_checkpoint(load_model, model, optimizer, lr_schedular, device):
         optimizer.load_state_dict(checkpoint["optimizer"])
         if 'lr_schedular' in checkpoint:
             lr_schedular.load_state_dict(checkpoint["lr_schedular"])
-    print(f' - {file} - Done.')
+    print(f' - {file} - Done.\n', flush=True)
 
 def print_torchvision_models(initial_in_channels, tilesize):
     models_to_print = [(models.alexnet(), 'AlexNet'),

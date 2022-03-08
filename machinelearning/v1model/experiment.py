@@ -129,6 +129,7 @@ def run_experiment(exp_name, parameters, save_results=True):
         write_parameters(f'{RUN_DIR}/params.pkl', parameters)
         print('\tSaving: ', run_label)
     else:
+        RUN_DIR, MODELS_DIR, METRICS_DIR = None, None, None
         print('\tRun is not saved!')
     print(params2text(parameters), flush=True)
 
@@ -158,25 +159,50 @@ if __name__ == '__main__':
                                            't_y_x_slice':[(0,40), None, None]}
 
 
-    # parameters['USE_TRANSFORMS'] = []
+    parameters['USE_TRANSFORMS'] = []
+    parameters['LOAD_MODEL'] = (exp7_name, 'run35', 600)
     parameters['MODEL_CHECKPOINTS'] = [100,200]
     # on gpuserver settings
     parameters['TEST_TIMEPOINTS'] = config.WHOLE_DATASET_TEST_FRAMES
     parameters['TRAIN_TIMEPOINTS'] = config.WHOLE_DATASET_TRAIN_FRAMES
 
+    old_arch = [
+        #kernelsize, out_channels, stride, groups
+        [(3, 20,  2,  1),      # y-x out: 256
+         (3, 40,  2,  1),      # y-x out: 128
+         (3, 80,  1,  1),      # y-x out: 64
+         'M',
+         (3, 80,  1,  1),      # y-x out: 64
+         (3, 80,  1,  1),      # y-x out: 32
+         'M',
+         (3, 80,  1,  1),      # y-x out: 32
+         (3, 80,  1,  1),      # y-x out: 32
+         'M',],
+        [(3, 160, 1,  1)],      # y-x out: 16
+        #  ],      
+        [('FC', 1024),
+         ('activation', nn.Sigmoid()), 
+         ('FC', 1024),
+         ('activation', nn.Sigmoid()), 
+        ]
+    ]
+    parameters['ARCHITECTURE'] = old_arch
+
     # run training with a specifc parsameter set
-    # run_experiment(exp8_name, parameters, save_results=True)
+    # run_experiment(exp8_name, parameters, save_results=False)
 
     turn_tex('on')
-    prepend_prev_run(exp8_name, 'run01', 'run00')
+    # clean_rundirs(exp8_name, delete_runs_min_epochs=1, keep_only_latest_model=False)
+    # prepend_prev_run(exp8_name, 'run01', 'run00')
     # evaluate_preprocssing(exp8_name, 'run00', show=True)
-    # evaluate_training([[exp7_name, 'run35'], [exp7_name, 'run36'], [exp7_name, 'run38'] ], show=True)
     # evaluate_training([[exp8_name, 'run00'], [exp8_name, 'run01']], show=True, use_prepend_ifavail=True)
-    evaluate_precision_recall([[exp8_name, 'run00', 70], [exp8_name, 'run01', 5]], show=True, recreate=True)
-    # evaluate_model(exp8_name, 'run12', which_data='test', video_kwargs={'draw_grid':True, 'show':False, 'animated':True})
+    # evaluate_precision_recall([[exp8_name, 'run00', 70], [exp8_name, 'run01', 5]], show=True, recreate=True)
+    # evaluate_model(exp8_name, 'run05', which_data='test', cache_detections='to',
+    #                video_kwargs={'draw_grid':True, 'show':False, 'animated':True})
+    evaluate_model(exp7_name, 'run35', which_data='test', cache_detections='from',
+                   video_kwargs={'draw_grid':True, 'show':False, 'animated':True})
     # evaluate_ID_assignment(exp8_name, 'run12', show=True)
 
-    # clean_rundirs(exp8_name, delete_runs_min_epochs=1, keep_only_latest_model=False)
     # evaluate_training([[exp8_name, 'run41']], recreate=True, show=True)
     # p2 = load_parameters(exp7_name, 'run37')
     # o = compare_parameters(get_default_parameters(), p2)

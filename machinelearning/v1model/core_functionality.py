@@ -124,6 +124,7 @@ def run_epoch(data_loader, model, loss_fn, device, which_dataset, optimizer):
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
+        break
     print('Done.')
     return pd.concat(epoch_loss, axis=1)
 
@@ -148,13 +149,15 @@ def one_epoch(dataset, model, loss_fn, params, epoch, optimizer=None, lr_schedul
                            which_dataset, optimizer)
     epoch_loss = epoch_loss.mean(axis=1).rename((epoch, which_dataset))
     
-    # every 20th epoch calculate precision, recall, and F1 for entire dataset
+    # every 10th epoch calculate precision, recall, and F1 for entire dataset
     if not (epoch % 10):
+        # on test, use all data, on train only a random subset
         step = 10 if which_dataset == 'train' else 1
         tstart = np.random.randint(0,10, ) if which_dataset == 'train' else 0
-        ax_dets = AxonDetections(model, dataset, params, 
+        ax_dets = AxonDetections(model, dataset, params, directory=None,
                                  timepoint_subset=range(tstart, dataset.sizet, step))
-        cnfs_mtrx = sum([ax_dets.compute_TP_FP_FN(t, which_det='unfiltered') 
+        ax_dets.detect_dataset()
+        cnfs_mtrx = sum([ax_dets.compute_TP_FP_FN(which_dets='all', t=t) 
                          for t in range(len(ax_dets))])
         epoch_metrics = ax_dets.compute_prc_rcl_F1(cnfs_mtrx, return_dataframe=True)
         epoch_loss = pd.concat([epoch_loss, epoch_metrics]).rename((epoch, which_dataset))

@@ -60,12 +60,12 @@ def draw_all(axon_dets, filename, dest_dir=None, notes='', dt=None, show=False,
         ygoal, xgoal, distplot_ax = None, None, None
     
 
-    which_det = 'confident' if not use_IDed_dets else 'ID_assigned'
+    which_dets = 'confident' if not use_IDed_dets else 'IDed'
     first_tpoint = True
     # iterate the timepoints
     for t in range(len(axon_dets))[tslice]:
         fname = filename.replace('---', f'{t:0>3}') 
-        prc, rcl, F1 = axon_dets.get_detection_metrics(t, which_det=which_det)
+        prc, rcl, F1 = axon_dets.get_detection_metrics(which_dets, t)
         lbl = f'{notes} - drawing frame, {fname} - Recall: {rcl}, Precision: {prc}, F1: {F1}'
         print(lbl, end='...', flush=True)
         
@@ -77,14 +77,15 @@ def draw_all(axon_dets, filename, dest_dir=None, notes='', dt=None, show=False,
                 time += dt
             lbl = f'{time//(24*60)} days, {(time//60)%24} hours'
 
-        img_tiled, img, tiled_true_det, image_true_det = axon_dets.get_det_image_and_target(t)
+        # img_tiled, img, tiled_true_det, image_true_det = axon_dets.get_frame_and_truedets(t, unstitched=True)
+        img, true_det = axon_dets.get_frame_and_truedets(t)
         img = img[:, yslice, xslice]
-        det2 = image_true_det
+        det2 = true_det
         
         # which detections exactly to draw
         if not use_IDed_dets:
             if not filter2FP_FN:
-                det1 = axon_dets.get_confident_det(t)
+                det1 = axon_dets.get_frame_dets('confident', t)
             
             # drawing FP and FN right now only for non-IDed data (confident set of dets)
             else:
@@ -171,12 +172,14 @@ def draw_all(axon_dets, filename, dest_dir=None, notes='', dt=None, show=False,
             if draw_grid:
                 draw_grid = axon_dets.tilesize/axon_dets.Sx
 
+            img_tiled, true_det_tiled = axon_dets.get_frame_and_truedets(t, unstitched=True)
+
             # for the current timepoints, iter non-empty tiles
             n_tiles = len(img_tiled)
-            tiled_det = axon_dets.get_confident_det(t, get_tiled_not_image=True)
+            tiled_det = axon_dets.get_confident_det(t, unstitched=True)
             for tile_i in range(n_tiles):
                 tile = img_tiled[tile_i][axon_dets.dataset.get_tcenter_idx()]
-                target_det = tiled_true_det[tile_i]
+                target_det = true_det_tiled[tile_i]
                 draw_frame(tile, None, target_det, 
                            draw_grid=draw_grid, boxs=axon_dets.axon_box_size,
                            dest_dir=dest_dir, show=show, 
