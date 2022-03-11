@@ -20,7 +20,9 @@ class MinCostFlowTracker(object):
                  transition_model = None, feature_model = None,
                  batch_size = 1, entry_exit_cost = 5, min_flow = 1,
                  max_flow = 50, miss_rate = 0.7, max_num_misses = 10,
-                 cost_threshold = -np.log(0.1), powersave = False):
+                 cost_threshold = -np.log(0.1), powersave = False,
+                 astar_dists = None, max_conf_cost=4.6, vis_sim_weight=0, 
+                 dataset_name='', max_px_assoc_dist=500):
         """Using MinCostFlow to handle data association problem
 
         Parameters
@@ -61,6 +63,12 @@ class MinCostFlowTracker(object):
         self.max_num_misses = max_num_misses
         self.cost_threshold = cost_threshold
         self.powersave = powersave
+
+        self.astar_dists = astar_dists
+        self.max_conf_cost = max_conf_cost
+        self.vis_sim_weight = vis_sim_weight
+        self.dataset_name = dataset_name
+        self.max_px_assoc_dist = max_px_assoc_dist
 
         time_gap_to_probability = np.array([1e-15] + [
             np.power(miss_rate, time_gap - 1)
@@ -112,7 +120,9 @@ class MinCostFlowTracker(object):
 
         # Compute features if necessary.
         parameters = {'image': image, 'boxes': boxes, 'scores': scores,
-                      'miss_rate': self.miss_rate, 'batch_size': self.batch_size}
+                      'miss_rate': self.miss_rate, 'batch_size': self.batch_size,
+                      'max_conf_cost':self.max_conf_cost, 
+                      'vis_sim_weight':self.vis_sim_weight}
         parameters.update(kwargs)
         if features is None:
             assert self.feature_model is not None, "No feature models given"
@@ -157,6 +167,8 @@ class MinCostFlowTracker(object):
         for k, predecessor_node_ids in enumerate(predecessor_time_slices):
             if len(predecessor_node_ids) == 0 or len(node_ids) == 0:
                 continue
+            # print()
+            # print('k: ', k, end='  ')
             predecessors = [self.node[x] for x in predecessor_node_ids]
             predecessor_boxes = np.asarray(
                 [node["box"] for node in predecessors])
@@ -173,7 +185,10 @@ class MinCostFlowTracker(object):
                 miss_rate = self.miss_rate,
                 time_gap = time_gap, predecessor_boxes = predecessor_boxes,
                 predecessor_features = predecessor_features,
-                boxes = boxes, features = features, **kwargs)
+                boxes = boxes, features = features, max_conf_cost = self.max_conf_cost,
+                astar_dists = self.astar_dists, vis_sim_weight = self.vis_sim_weight, 
+                dataset_name = self.dataset_name,
+                max_px_assoc_dist = self.max_px_assoc_dist, **kwargs)
 
             for i, costs in enumerate(transition_costs):
                 for j, cost in enumerate(costs):

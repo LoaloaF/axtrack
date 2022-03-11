@@ -41,7 +41,8 @@ class StructureScreen(object):
 
         axon_detections.compute_target_distances(cache=cache_target_distances)
         self.distances = axon_detections.to_target_dists
-        self.all_dets = axon_detections.get_all_IDassiged_dets()
+        self.all_dets = pd.concat(axon_detections.get_frame_dets('IDed',t) for t in range(self.sizet))
+        print(self.all_dets)
         self.goalmask2target_maxdist = self._compute_goalmask2target_maxdist()
 
         self.axons_reached_target = None
@@ -523,3 +524,65 @@ class StructureScreen(object):
                    'crossgrown_err': crossgrown_err,}
         return metrics
         
+"""
+rsync -r --info=progress2 --exclude code_old --exclude deployed_model --exclude model_output --exclude outdated_tl140_outputdata --exclude timelapse02_processed --exclude timelapse02_processed_inference --exclude training_data_subs ~/gdrive/projects/biohybrid\ MEA/* ~/lbbgpu_home
+
+17K     ./.ipynb_checkpoints
+512     ./.vscode
+269M    ./abstellgleis
+691M    ./code
+17M     ./--exclude code_old
+501M    ./--exclude deployed_model
+644M    ./docs
+876M    ./master_thesis
+14G     ./--exclude model_output
+4.2G    ./--exclude outdated_tl140_outputdata
+6.3G    ./pdms_designs
+31M     ./seedingtool
+7.7G    ./--exclude timelapse02_processed
+0       ./--exclude timelapse02_processed_inference
+4.0G    ./--exclude training_data_subs
+39G     .
+"""
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

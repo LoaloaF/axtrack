@@ -97,7 +97,7 @@ def draw_all(axon_dets, filename, dest_dir=None, notes='', dt=None, show=False,
                 kwargs['color_det2_ids'] = False 
                 kwargs['color_det1_ids'] = False 
         else:
-            det1 = axon_dets.get_IDed_det(t)
+            det1 = axon_dets.get_frame_dets('IDed', t)
             print(f'n={len(det1)}, lowest conf={det1.iloc[-1:,:].conf}.')
         
         # slice down list of axons to draw

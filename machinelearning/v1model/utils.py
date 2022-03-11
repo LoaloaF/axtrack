@@ -4,8 +4,11 @@ import shutil
 import pickle
 from datetime import datetime
 
+import pyastar2d
+
 import numpy as np
 import pandas as pd
+from scipy import sparse
 
 import torch
 from torchvision import models
@@ -344,3 +347,44 @@ def get_data_standardization_scaler(fname):
     with open(fname, 'rb') as file:
         stnd_scaler = pickle.load(file)
     return stnd_scaler    
+
+def _compute_astar_path(source, target, weights, return_dist=True,
+                        max_path_length=10000):
+    """
+    Compute the A* path between two coordinates on a given weight matrix.
+    Returns a scipy.sparse.coo_matrix containing the path coordinates or None
+    if the path is longer than max_path_length. Option to additionally return 
+    the distance.
+    
+
+    Attributes
+    ----------
+    source: iterable
+        (y, x) coordinates. Length 2. Start point of the path.
+    
+    target: iterable
+        (y, x) coordinates. Length 2. Stop point of the path.
+    
+    weights: np.array
+        Weight matrix on which the A* paths are calculated. Weight matrix
+        follows segmentation mask of the dataset.
+
+    return_dist: bool
+        Additionally to the A* path, return the length of the path. Defaults to 
+        True.
+
+    max_path_length: int
+        The thresholds at which the A* path search will exit and return None. 
+    """
+    path_coo = pyastar2d.astar_path(weights, source, target, max_path_length)
+    if path_coo is not None:
+        ones, row, cols = np.ones(path_coo.shape[0]), path_coo[:,0], path_coo[:,1]
+        path = sparse.coo_matrix((ones, (row, cols)), weights.shape, bool)
+        if return_dist:
+            return path, path_coo.shape[0]
+        else:
+            return path
+    elif return_dist:
+        return None, None
+    else:
+        return None

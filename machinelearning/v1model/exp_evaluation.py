@@ -102,53 +102,27 @@ def evaluate_precision_recall(exp_run_epoch_ids, show=True, avg_over_t=30,
     plot_prc_rcl(metrics, dest_dir=dest_dir, show=show)
     print('Done.')
 
-def evaluate_model(exp_name, run, epoch='latest', which_data='test', cache_detections='from', 
+def evaluate_model(exp_name, run, epoch='latest', which_data='test', 
+                assign_IDs=False,
+                cache_detections='from', astar_paths_cache='from', 
+                assigedIDs_cache='from', 
 video_kwargs={}):
     print('\nEvaluating model...', end='')
-
     RUN_DIR, params = setup_evaluation(exp_name, run)
     params = to_device_specifc_params(params, get_default_parameters(), from_cache=OUTPUT_DIR)
     params['LOAD_MODEL'] = [exp_name, run, epoch]
-    # params['OFFSET'] = None
-    # params['FROM_CACHE'] = None
-    # params['CACHE'] = OUTPUT_DIR
-    # params['DEVICE'] = 'cpu'
 
     train_data, test_data = setup_data(params)
     data = test_data if which_data == 'test' else train_data
     model, _, _, _ = setup_model(params)
 
-    axon_detections = AxonDetections(model, data, params, f'{RUN_DIR}/axon_dets_cache')
+    axon_detections = AxonDetections(model, data, params, f'{RUN_DIR}/axon_dets')
     axon_detections.detect_dataset(cache=cache_detections)
+    
+    if assign_IDs:
+        axon_detections.assign_ids(astar_paths_cache, assigedIDs_cache)
     
     os.makedirs(f'{RUN_DIR}/model_out', exist_ok=True)
     fname = f'{data.name}_E{epoch}_timepoint---of{data.sizet}'
-    draw_all(axon_detections, fname, dest_dir=f'{RUN_DIR}/model_out', 
+    draw_all(axon_detections, fname, dest_dir=f'{RUN_DIR}/model_out', use_IDed_dets=assign_IDs,
                 notes=params["NOTES"], color_det1_ids=False, **video_kwargs)
-
-def evaluate_ID_assignment(exp_name, run, epoch='latest', cache_detections='from', 
-                           cached_astar_paths='to',
-                           which_data='test', do_draw_all_vis=False, do_ID_lifetime_vis=False, 
-                           video_kwargs={}):
-    RUN_DIR, params = setup_evaluation(exp_name, run)
-    # params = to_device_specifc_params(params, get_default_parameters(), from_cache=OUTPUT_DIR)
-    params['LOAD_MODEL'] = [exp_name, run, epoch]
-    # params['DEVICE'] = 'cuda:6'
-    # params['OFFSET'] = None
-    # params['FROM_CACHE'] = None
-    # params['CACHE'] = OUTPUT_DIR
-
-    train_data, test_data = setup_data(params)
-    model, _, _, _ = setup_model(params)
-    data = test_data if which_data == 'test' else train_data
-    IDed_dets_dir = f'{RUN_DIR}/axon_detections'
-
-    axon_detections = AxonDetections(model, data, params, IDed_dets_dir)
-    
-    # axon_detections.search_MCF_params(show_results=False, dest_dir=None)
-    # axon_detections.search_MCF_params(show_results=False, dest_dir=IDed_dets_dir)
-    axon_detections.assign_ids(cache=cached_astar_paths)
-
-    fname = f'{data.name}_E{epoch}_timepoint:---of{data.sizet}'
-    draw_all(axon_detections, fname, dest_dir=IDed_dets_dir, dt=31,
-                notes=params["NOTES"], use_IDed_dets=True, **video_kwargs)

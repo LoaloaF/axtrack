@@ -41,42 +41,38 @@ from utils import (
     turn_tex,
     )
 from exp_evaluation import (
+    setup_evaluation,
     evaluate_preprocssing,
     evaluate_training,
     evaluate_precision_recall,
     evaluate_model,
-    evaluate_ID_assignment,
 )
+       
+def run_experiment(exp_name, parameters, save_results=True):
+    set_seed(parameters['SEED'])
+    if torch.cuda.is_available():
+        torch.cuda.set_device(parameters['DEVICE'])
 
-def save_epoch_results(epoch_info, epoch, parameters, train_data, test_data, model, optimizer, 
-             lr_scheduler, MODELS_DIR, METRICS_DIR, RUN_DIR):
-    # save the current epoch loss
-    epoch_info.to_pickle(f'{METRICS_DIR}/E{epoch:0>4}.pkl')
-    
-    # save preprocessing of input data for plotting 
-    if epoch == 0 and parameters['PLOT_PREPROC']:
-        save_preproc_metrics(f'{RUN_DIR}/preproc_data/', train_data, test_data)
-    
-    # checkpoint
-    if epoch in parameters['MODEL_CHECKPOINTS']:
-        save_checkpoint(model, optimizer, lr_scheduler, 
-                        filename=f'{MODELS_DIR}/E{epoch:0>4}.pth')
-    
-        epoch_dir = f'{METRICS_DIR}/{epoch:0>4}_results/'
-        os.makedirs(epoch_dir)
+    # Setup saving and parameter checking 
+    print(f'Running Experiment: {exp_name}', flush=True)
+    check_parameters(parameters, get_default_parameters())
+    if save_results:
+        dirs, run_label = create_logging_dirs(exp_name)
+        RUN_DIR, MODELS_DIR, METRICS_DIR = dirs
+        write_parameters(f'{RUN_DIR}/params.pkl', parameters)
+        print('\tSaving: ', run_label)
+    else:
+        RUN_DIR, MODELS_DIR, METRICS_DIR = None, None, None
+        print('\tRun is not saved!')
+    print(params2text(parameters), flush=True)
 
-        # predict everything in train data and plot result
-        train_axon_dets = AxonDetections(model, train_data, parameters, None)
-        train_fname = f'train_E{epoch}_timepoint---of{train_data.sizet}'
-        draw_all(train_axon_dets, train_fname, dest_dir=epoch_dir, 
-                    notes=parameters["NOTES"], **parameters['PERF_LOG_VIDEO_KWARGS'])
-        
-        # predict everything in test data and plot result
-        test_axon_dets = AxonDetections(model, test_data, parameters, None)
-        test_fname = f'test_E{epoch}_timepoint---of{test_data.sizet}'
-        draw_all(test_axon_dets, test_fname, dest_dir=epoch_dir, 
-                    notes=parameters["NOTES"], animated=False, 
-                    draw_grid=True)
+    # setup model and data
+    train_data, test_data = setup_data(parameters)
+    model, loss_fn, optimizer, lr_scheduler = setup_model(parameters)
+    # iterate epochs
+    optimize(parameters, train_data, test_data, model, loss_fn, optimizer, 
+             lr_scheduler, save_results, MODELS_DIR, METRICS_DIR, RUN_DIR)
+
 
 def optimize(parameters, train_data, test_data, model, loss_fn, optimizer, 
              lr_scheduler, save_results, MODELS_DIR, METRICS_DIR, RUN_DIR):
@@ -114,31 +110,52 @@ def optimize(parameters, train_data, test_data, model, loss_fn, optimizer,
             save_epoch_results(epoch_info, epoch, parameters, train_data, 
                                test_data, model, optimizer, lr_scheduler, 
                                MODELS_DIR, METRICS_DIR, RUN_DIR)
+
+def save_epoch_results(epoch_info, epoch, parameters, train_data, test_data, model, optimizer, 
+             lr_scheduler, MODELS_DIR, METRICS_DIR, RUN_DIR):
+    # save the current epoch loss
+    epoch_info.to_pickle(f'{METRICS_DIR}/E{epoch:0>4}.pkl')
+    
+    # save preprocessing of input data for plotting 
+    if epoch == 0 and parameters['PLOT_PREPROC']:
+        save_preproc_metrics(f'{RUN_DIR}/preproc_data/', train_data, test_data)
+    
+    # checkpoint
+    if epoch in parameters['MODEL_CHECKPOINTS']:
+        save_checkpoint(model, optimizer, lr_scheduler, 
+                        filename=f'{MODELS_DIR}/E{epoch:0>4}.pth')
+    
+        epoch_dir = f'{METRICS_DIR}/{epoch:0>4}_results/'
+        os.makedirs(epoch_dir)
+
+        # predict everything in train data and plot result
+        train_axon_dets = AxonDetections(model, train_data, parameters, None)
+        train_fname = f'train_E{epoch}_timepoint---of{train_data.sizet}'
+        draw_all(train_axon_dets, train_fname, dest_dir=epoch_dir, 
+                    notes=parameters["NOTES"], **parameters['PERF_LOG_VIDEO_KWARGS'])
         
-def run_experiment(exp_name, parameters, save_results=True):
-    set_seed(parameters['SEED'])
-    if torch.cuda.is_available():
-        torch.cuda.set_device(parameters['DEVICE'])
+        # predict everything in test data and plot result
+        test_axon_dets = AxonDetections(model, test_data, parameters, None)
+        test_fname = f'test_E{epoch}_timepoint---of{test_data.sizet}'
+        draw_all(test_axon_dets, test_fname, dest_dir=epoch_dir, 
+                    notes=parameters["NOTES"], animated=False, 
+                    draw_grid=True)
+ 
+def optimize_MCF_params(exp_name, run, epoch='latest', MCF_param_vals={}):
+    RUN_DIR, params = setup_evaluation(exp_name, run)
+    params = to_device_specifc_params(params, get_default_parameters(), from_cache=OUTPUT_DIR)
+    params['LOAD_MODEL'] = [exp_name, run, epoch]
 
-    # Setup saving and parameter checking 
-    print(f'Running Experiment: {exp_name}', flush=True)
-    check_parameters(parameters, get_default_parameters())
-    if save_results:
-        dirs, run_label = create_logging_dirs(exp_name)
-        RUN_DIR, MODELS_DIR, METRICS_DIR = dirs
-        write_parameters(f'{RUN_DIR}/params.pkl', parameters)
-        print('\tSaving: ', run_label)
-    else:
-        RUN_DIR, MODELS_DIR, METRICS_DIR = None, None, None
-        print('\tRun is not saved!')
-    print(params2text(parameters), flush=True)
+    _, test_data = setup_data(params)
+    model, _, _, _ = setup_model(params)
 
-    # setup model and data
-    train_data, test_data = setup_data(parameters)
-    model, loss_fn, optimizer, lr_scheduler = setup_model(parameters)
-    # iterate epochs
-    optimize(parameters, train_data, test_data, model, loss_fn, optimizer, 
-             lr_scheduler, save_results, MODELS_DIR, METRICS_DIR, RUN_DIR)
+    axon_detections = AxonDetections(model, test_data, params, f'{RUN_DIR}/axon_dets')
+    axon_detections.MCF_min_ID_lifetime = 1
+    axon_detections.detect_dataset('from')
+    axon_detections.assign_ids('from', 'to')
+    axon_detections.search_MCF_params(**MCF_param_vals)
+    
+
 
 if __name__ == '__main__':
     default_parameters = get_default_parameters()
@@ -153,7 +170,7 @@ if __name__ == '__main__':
     # some general settings
     parameters = get_default_parameters()
     parameters['NOTES'] = 'GetThingsToRun'
-    parameters['FROM_CACHE'] = OUTPUT_DIR
+    parameters['FROM_CACHE'] = None
     parameters['CACHE'] = False
     parameters['PERF_LOG_VIDEO_KWARGS'] = {'animated':True, 'draw_grid':True, 
                                            't_y_x_slice':[(0,40), None, None]}
@@ -163,8 +180,8 @@ if __name__ == '__main__':
     parameters['LOAD_MODEL'] = (exp7_name, 'run35', 600)
     parameters['MODEL_CHECKPOINTS'] = [100,200]
     # on gpuserver settings
-    parameters['TEST_TIMEPOINTS'] = config.WHOLE_DATASET_TEST_FRAMES
-    parameters['TRAIN_TIMEPOINTS'] = config.WHOLE_DATASET_TRAIN_FRAMES
+    # parameters['TEST_TIMEPOINTS'] = config.WHOLE_DATASET_TEST_FRAMES
+    # parameters['TRAIN_TIMEPOINTS'] = config.WHOLE_DATASET_TRAIN_FRAMES
 
     old_arch = [
         #kernelsize, out_channels, stride, groups
@@ -199,9 +216,20 @@ if __name__ == '__main__':
     # evaluate_precision_recall([[exp8_name, 'run00', 70], [exp8_name, 'run01', 5]], show=True, recreate=True)
     # evaluate_model(exp8_name, 'run05', which_data='test', cache_detections='to',
     #                video_kwargs={'draw_grid':True, 'show':False, 'animated':True})
-    evaluate_model(exp7_name, 'run35', which_data='test', cache_detections='from',
-                   video_kwargs={'draw_grid':True, 'show':False, 'animated':True})
-    # evaluate_ID_assignment(exp8_name, 'run12', show=True)
+    # evaluate_model(exp7_name, 'run35', which_data='test', cache_detections='from',
+    #                video_kwargs={'draw_grid':True, 'show':False, 'animated':True})
+    evaluate_model(exp7_name, 'run35', cache_detections='to', astar_paths_cache='from', assigedIDs_cache='to')
+    
+    # hyperparams to search over
+    
+    
+    MCF_param_vals = {'edge_cost_thr_values':  [.4, .6, .7, .8, .9, 1, 1.2, 3],
+              'entry_exit_cost_values': [ .2, .8, .9, 1, 1.1,  2],
+              'miss_rate_values':  [0.9, 0.6],
+              'vis_sim_weight_values': [0, 0.1],
+              'conf_capping_method_values': ['ceil' , 'scale_to_max'],}
+    optimize_MCF_params(exp7_name, 'run35', MCF_param_vals=MCF_param_vals)
+
 
     # evaluate_training([[exp8_name, 'run41']], recreate=True, show=True)
     # p2 = load_parameters(exp7_name, 'run37')

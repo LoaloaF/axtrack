@@ -191,11 +191,12 @@ class Timelapse(Dataset):
         
         print('masking...', end='', flush=True)
         if not mask_path.endswith('None'):
-            mask = np.load(mask_path).astype(bool)
+            mask = np.load(mask_path)
         else:
-            mask = np.ones(imseq.shape[1:]).astype(bool)
+            mask = np.ones(imseq.shape[1:], bool)
         if mask.ndim == 2:
             mask = np.stack([mask]*len(imseq))
+            # imseq[:, ~mask] = 0
         imseq[~mask] = 0
 
         if offset:

@@ -77,6 +77,18 @@ def get_default_parameters():
     L_NOBJECT = 1
     L_COORD_ANCHOR = 49.5
 
+    # min cost flow (id association)
+    MCF_EDGE_COST_THR =  0.7
+    MCF_ENTRY_EXIT_COST = 2
+    MCF_MISS_RATE =  0.6
+    MCF_MAX_NUM_MISSES = 1
+    MCF_MIN_FLOW = 5
+    MCF_MAX_FLOW = 450
+    MCF_MAX_CONF_COST = 4.6
+    MCF_VIS_SIM_WEIGHT = 0
+    MCF_CONF_CAPPING_METHOD = 'scale_to_max'
+    MCF_MIN_ID_LIFETIME = 5
+
     # RUN SETTINGS
     SEED = 42
     DEVICE = DEFAULT_DEVICE
@@ -136,13 +148,15 @@ def check_parameters(passed_params, default_params):
         exit(1)
 
 def to_device_specifc_params(model_parameters, local_default_params, 
-                             from_cache=None, cache=None):
+                             from_cache=None, cache=None, fill_missing_keys=True):
     to_update = ('TIMELAPSE_FILE', 'LABELS_FILE', 'MASK_FILE', 'DEVICE')
     [model_parameters.update({key: local_default_params[key]}) for key in to_update]
     if from_cache:
         model_parameters['FROM_CACHE'] = from_cache
     if cache:
         model_parameters['CACHE'] = cache
+    if fill_missing_keys:
+        [model_parameters.update({key: val}) for key,val in local_default_params.items() if key not in model_parameters]
     return model_parameters
 
 def compare_parameters(param1, param2):
