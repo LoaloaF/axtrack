@@ -104,10 +104,9 @@ def evaluate_precision_recall(exp_run_epoch_ids, show=True, avg_over_t=30,
     print('Done.')
 
 def evaluate_model(exp_name, run, epoch='latest', which_data='test', 
-                assign_IDs=False,
+                which_dets='confident', show=True,
                 cache_detections='from', astar_paths_cache='from', 
-                assigedIDs_cache='from', 
-video_kwargs={}):
+                assigedIDs_cache='from', **kwargs):
     print('\nEvaluating model...', end='')
     RUN_DIR, params = setup_evaluation(exp_name, run)
     params = to_device_specifc_params(params, get_default_parameters(), from_cache=OUTPUT_DIR)
@@ -117,16 +116,16 @@ video_kwargs={}):
     data = test_data if which_data == 'test' else train_data
     model, _, _, _ = setup_model(params)
 
-    axon_detections = AxonDetections(model, data, params, f'{RUN_DIR}/axon_dets')
+    dest_dir = f'{RUN_DIR}/axon_dets'
+    axon_detections = AxonDetections(model, data, params, dest_dir)
     axon_detections.detect_dataset(cache=cache_detections)
     
-    if assign_IDs:
+    if which_dets == 'IDed':
         axon_detections.assign_ids(astar_paths_cache, assigedIDs_cache)
     
-    os.makedirs(f'{RUN_DIR}/model_out', exist_ok=True)
-    fname = f'{data.name}_E{epoch}_timepoint---of{data.sizet}'
-    draw_all(axon_detections, fname, dest_dir=f'{RUN_DIR}/model_out', use_IDed_dets=assign_IDs,
-                notes=params["NOTES"], color_det1_ids=False, **video_kwargs)
+    description = f'{exp_name}, {run}, Epoch:{epoch}, Notes: {params["NOTES"]}'
+    draw_all(axon_detections, which_dets=which_dets, show=show,
+             description=description, **kwargs)
 
 def evaulate_ID_assignment(exp_name, run, epoch='latest', show=True):
     RUN_DIR, params = setup_evaluation(exp_name, run)

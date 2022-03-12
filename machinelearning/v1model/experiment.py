@@ -217,7 +217,8 @@ if __name__ == '__main__':
     #                video_kwargs={'draw_grid':True, 'show':False, 'animated':True})
     # evaluate_model(exp7_name, 'run35', which_data='test', cache_detections='from',
     #                video_kwargs={'draw_grid':True, 'show':False, 'animated':True})
-    evaluate_model(exp7_name, 'run35', cache_detections='from', astar_paths_cache='from', assigedIDs_cache='from')
+    evaluate_model(exp7_name, 'run35', cache_detections='from', astar_paths_cache='from', assigedIDs_cache='from', draw_true_dets=True, show=False,
+                   animated=True,which_dets='FP_FN', t_y_x_slice=(None, (1500,3000), (1000,4000)))
     
     # hyperparams to search over
     

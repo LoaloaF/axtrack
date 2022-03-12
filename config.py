@@ -50,6 +50,12 @@ ALLTRAIN_DATASET_TEST_FRAMES = range(2,6)  # dummy
 TRAIN_Ps = {'linewidth':3, 'alpha':.8, 'linestyle':':'}
 TEST_Ps = {'linewidth':3, 'alpha':.8}
 
+PREDICTED_BOXES_KWARGS = {'alpha':1, 'linestyle':'dashed', 'linewidth':1, 'facecolor':'none', 'edgecolor':'hsv'}
+GROUNDTRUTH_BOXES_KWARGS = {'alpha':.6, 'linestyle':'solid', 'linewidth':1.2, 'facecolor':'none', 'edgecolor':'white'}
+FP_BOXES_KWARGS = {'alpha':.8, 'linestyle':'solid', 'linewidth':1, 'facecolor':'none', 'edgecolor':'orange'}
+FN_BOXES_KWARGS = {'alpha':.8, 'linestyle':'solid', 'linewidth':1, 'facecolor':'none', 'edgecolor':'teal'}
+
+
 FIGURE_FILETYPE = 'svg'
 VIDEO_FILETYPE = 'mp4'
 SMALL_FONTS = 14.5

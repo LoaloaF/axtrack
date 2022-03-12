@@ -66,6 +66,9 @@ class StructureScreen(object):
     def __len__(self):
         return self.sizet
 
+    def get_trg_path(self, t=None, ymin=0, ymax=0):
+        pass
+
     def set_axon_subset(self, which_axons):
         self.axon_subset = which_axons
 

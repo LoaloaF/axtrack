@@ -386,3 +386,23 @@ def _compute_astar_path(source, target, weights, return_dist=True,
         return None, None
     else:
         return None
+
+def torch_data2drawable(img):
+    im = np.array(img.detach().cpu())
+    if im.shape[0] <= 3:
+        im = np.moveaxis(im, 0, 2)
+    height, width, cchannels = im.shape
+    
+    # make everything RGB, fill if necessary
+    emptychannel = np.zeros([height,width])
+    if cchannels == 2:
+        g, b = im[:,:,0], im[:,:,1]
+        im = np.stack([emptychannel, g, b], axis=2)
+    elif cchannels == 1:
+        r = im[:,:,0]
+        im = np.stack([r, emptychannel, emptychannel], axis=-1)
+    # min_val = im[im>0].min() if im.any().any() else 0
+    # im = np.where(im>0, im-min_val, 0)  # shift distribution to 0
+    # matplotlib likes float RGB images in range [0,1]
+    im = np.where(im>1, 1, im)  # ceil to 1
+    return im

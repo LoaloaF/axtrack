@@ -1,19 +1,13 @@
 import os
 import pickle
-from copy import deepcopy
-
-from concurrent.futures import ThreadPoolExecutor
 from itertools import repeat
+from concurrent.futures import ThreadPoolExecutor
 
 import numpy as np
 import pandas as pd
 import torch
-import matplotlib.pyplot as plt
 
-import config
-import cv2
 from sklearn import metrics
-
 from libmot.data_association  import MinCostFlowTracker
 import motmetrics as mm
 
@@ -356,7 +350,7 @@ class AxonDetections(object):
 
         if libmot:
             return self.det2libmot_det(det, t)
-        return det
+        return det.copy()
 
     def get_frame_and_truedets(self, t, unstitched=False):
         """
@@ -899,6 +893,16 @@ class AxonDetections(object):
 
 
 
+def _reconstruct_axons(self, ):
+    # indicate what path was interpolated, option to get that version or the one
+    # without interpolation 
+    all_dets = self.get_frame_dets('IDed', None)
+    print(all_dets)
+    pass
+
+def get_axon_reconstructions(self, t=None, axon_name=None, include_history=True, 
+                             interpolate_missing=True, ymin=0, ymax=0):
+    pass
 
 
 

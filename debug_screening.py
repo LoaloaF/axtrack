@@ -65,7 +65,7 @@ def prepare_input_data(imseq_fname, mask_fname, metadata_fname, parameters,
 def inference(timelapse, model, dest_dir, parameters, use_cached_det_astar_paths):
     axon_detections = AxonDetections(model, timelapse, parameters, f'{dest_dir}/axon_dets')
     cache = 'to' if not use_cached_det_astar_paths else 'from'
-    axon_detections.assign_ids(cache=cache)
+    axon_detections.assign_ids(astar_paths_cache=cache)
     return axon_detections
 
 def visualize_inference(timelapse, axon_detections, dest_dir, 
