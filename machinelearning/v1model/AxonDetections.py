@@ -891,10 +891,11 @@ class AxonDetections(object):
                             print(f'{i}/{length}', flush=True)
 
                             results.append(test_params())
+                            print(results[-1])
                             i += 1
 
-            results_csv = pd.concat(results, axis=1)
-            results_csv.to_csv(f'{self.dir}/MCF_params_results.csv')
+            results = pd.concat(results, axis=1).T
+            results.to_csv(f'{self.dir}/MCF_params_results.csv')
 
 
 

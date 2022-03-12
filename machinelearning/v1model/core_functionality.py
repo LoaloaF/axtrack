@@ -73,8 +73,8 @@ def setup_model(P):
                          tilesize = P['TILESIZE'], 
                          Sy = P['SY'],
                          Sx =  P['SX'],)
-    model.to_device(P['DEVICE'])
-    # model.to(P['DEVICE'])
+    model.to(P['DEVICE'])
+    # model.to_device(P['DEVICE'])
     # summary(model, input_size=(initial_in_channels, P['TILESIZE'], P['TILESIZE']), 
     #                            device=P['DEVICE'])
     # model.get_CNN_outdim()
@@ -124,7 +124,6 @@ def run_epoch(data_loader, model, loss_fn, device, which_dataset, optimizer):
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
-        break
     print('Done.')
     return pd.concat(epoch_loss, axis=1)
 

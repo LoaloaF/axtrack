@@ -236,98 +236,80 @@ def plot_prc_rcl(data, dest_dir=None, show=None):
         plt.show()
     if dest_dir:
         fig.savefig(f'{dest_dir}/prc_rcl_{runs_lbl}.{config.FIGURE_FILETYPE}')
+ 
+def plot_IDassignment_performance(metrics, dest_dir, show):
+    # sort by maximum MOTA, F1
+    metrics.sort_values(['mota', 'idf1'], inplace=True, ascending=False)
+    print(metrics.iloc[:5].T)
 
+    # create the figure
+    fig, axes = plt.subplots(1, 2, figsize=config.MEDIUM_FIGSIZE)
+    fig.subplots_adjust(bottom=.01, left=.13, wspace=.38, top=.8, right=.93)
+    ticks = np.arange(0.5, .91, 0.2)
+    lims = (.3, .94)
+
+    # setup both axes (largely the same)
+    for i, ax in enumerate(axes):
+        ax.set_ylim(*lims) 
+        ax.set_yticks(ticks)
+        ax.set_yticklabels([f'{t:.1f}' for t in ticks], fontsize=config.SMALL_FONTS)
+
+        ax.set_xlim(*lims)
+        ax.set_xticks(ticks)
+        ax.set_xticklabels([f'{t:.1f}' for t in ticks], fontsize=config.SMALL_FONTS)
+
+        ax.set_aspect('equal')
+        ax.spines['top'].set_visible(False)
+        ax.spines['right'].set_visible(False)
+        ax.grid()
+        if i == 0:
+            ax.set_xlabel('Identity precision', fontsize=config.FONTS)
+            ax.set_ylabel('Identity recall', fontsize=config.FONTS)
+        else:
+            ax.set_xlabel('MOT accuracy', fontsize=config.FONTS)
+            ax.set_ylabel('Identity F1', fontsize=config.FONTS)
+
+    # draw best scores
+    axes[0].scatter(metrics.idp.iloc[0], metrics.idr.iloc[0], alpha=1, edgecolor='k',
+                    color=config.DEFAULT_COLORS[0], linewidth=3, s=55, marker='o')
+    axes[1].scatter(metrics.mota.iloc[0], metrics.idf1.iloc[0], alpha=1, edgecolor='k',
+                    color=config.DEFAULT_COLORS[0], linewidth=3, s=55, marker='o')
+    # draw all the others
+    axes[0].scatter(metrics.idp.iloc[1:], metrics.idr.iloc[1:], alpha=.5, color='k', marker='.', s=3)
+    axes[1].scatter(metrics.mota.iloc[1:], metrics.idf1.iloc[1:], alpha=.5, color='k', marker='.', s=3)
     
+    # add bar on top indicating proportions tracked
+    bottom, left = .8, .13
+    width, height = .8, .1
+    ax = fig.add_axes([left, bottom, width, height])
+    ax.set_ylim(.2,.8)
+    ax.set_xlim(0,1)
+    xts = np.arange(0,1.01,.2).round(2)
+    ax.set_xticks(xts)
+    ax.set_xticklabels(xts)
+    # ax.set_xticklabels([f'{int(xt*100):2>0}\%' for xt in xts])
+    ax.tick_params(left=False, labelleft=False, labelsize=config.SMALL_FONTS)
     
+    n = metrics.num_unique_objects[0]
+    mostly_tr = metrics.mostly_tracked[0] / n
+    part_tr = metrics.partially_tracked[0] / n
+    mostly_lost = metrics.mostly_lost[0] / n
+
+    # proportion bar text
+    ax.text(mostly_tr/2, .5, 'mostly tracked', clip_on=False, 
+            ha='center', va='center', fontsize=config.SMALL_FONTS)
+    ax.text(mostly_tr + part_tr/2, .5, 'partially tracked', clip_on=False, 
+            ha='center', va='top', fontsize=config.SMALL_FONTS)
+    ax.text(mostly_tr + part_tr + mostly_lost/2, .5, 'mostly lost', clip_on=False, 
+            ha='center', va='bottom', fontsize=config.SMALL_FONTS)
+    ax.set_title('Proportion of axons', fontsize=config.FONTS, loc='left')
+
+    # proportion bar data drawing
+    ax.barh(0.5, mostly_tr, color=config.DEFAULT_COLORS[0], alpha=.8)
+    ax.barh(0.5, part_tr, left=mostly_tr, color=config.DEFAULT_COLORS[2], alpha=.8)
+    ax.barh(0.5, mostly_lost, left=mostly_tr+part_tr, color=config.DEFAULT_COLORS[1], alpha=.8)
     
-    # if below ran once, viz results
-    # if show_results or dest_dir:
-    #     ec = self.MCF_edge_cost_thr
-    #     eec = self.MCF_entry_exit_cost
-    #     mr = self.MCF_miss_rate
-    #     vsw = self.MCF_vis_sim_weight
-    #     ccm = self.MCF_conf_capping_method
-    #     print(f'Current params: ec:{ec} eec:{eec} mr:{mr} vsw:{vsw} ccm:{ccm}')
-
-    #     metrics = pd.read_csv(f'{self.dir}/MCF_param_search.csv', index_col=0)
-    #     # print(metrics.iloc[:,[1169, 1029, 813, 914, 780, 483, 316, 252, 32, 1, 0, 18]].T.to_string())
-    #     metrics.sort_values(['mota', 'idf1'], axis=1, inplace=True, ascending=False)
-    #     prc = metrics.loc['idp']
-    #     rcl = metrics.loc['idr']
-    #     mota = metrics.loc['mota']
-    #     f1 = metrics.loc['idf1']
-
-    #     n = metrics.loc['num_unique_objects'][0]
-    #     mostly_tr = metrics.loc['mostly_tracked'][0] / n
-    #     part_tr = metrics.loc['partially_tracked'][0] / n
-    #     mostly_lost = metrics.loc['mostly_lost'][0] / n
-
-    #     print()
-    #     print(metrics.iloc[:,:10].columns)
-    #     print(metrics.iloc[:,:10].T.reset_index(drop=True).T)
-    #     print()
-
-
-    #     fig, axes = plt.subplots(1, 2, figsize=config.MEDIUM_FIGSIZE)
-    #     fig.subplots_adjust(bottom=.01, left=.1, wspace=.3, right=.95)
-    #     ticks = np.arange(0.5, .91, 0.2)
-    #     lims = (.3, .94)
-
-    #     # setup both axes
-    #     for i, ax in enumerate(axes):
-    #         ax.set_ylim(*lims) 
-    #         ax.set_yticks(ticks)
-    #         ax.set_yticklabels([f'{t:.1f}' for t in ticks], fontsize=config.SMALL_FONTS)
-
-    #         ax.set_xlim(*lims)
-    #         ax.set_xticks(ticks)
-    #         ax.set_xticklabels([f'{t:.1f}' for t in ticks], fontsize=config.SMALL_FONTS)
-
-    #         ax.set_aspect('equal')
-    #         ax.spines['top'].set_visible(False)
-    #         ax.spines['right'].set_visible(False)
-    #         ax.grid()
-    #         if i == 0:
-    #             ax.set_xlabel('Identity precision', fontsize=config.FONTS)
-    #             ax.set_ylabel('Identity recall', fontsize=config.FONTS)
-    #         else:
-    #             ax.set_xlabel('MOT accuracy', fontsize=config.FONTS)
-    #             ax.set_ylabel('Identity F1', fontsize=config.FONTS)
-
-    #     colors = []
-    #     sizes = []
-    #     for i in range(len(mota)):
-    #         if i == 0:
-    #             colors.append(config.DEFAULT_COLORS[0])
-    #             sizes.append(250)
-    #         else:
-    #             colors.append('k')
-    #             sizes.append(3)
-    #     axes[0].scatter(prc, rcl, alpha=1, edgecolor='k', color=colors, s=sizes)
-    #     axes[1].scatter(mota, f1, alpha=1, edgecolor='k', color=colors, s=sizes)
-
-
-    #     bottom, left = .85, .1
-    #     width, height = .85, .1
-    #     ax = fig.add_axes([left, bottom, width, height])
-    #     ax.set_ylim(.2,.8)
-    #     ax.set_xlim(0,1)
-    #     ax.set_xticks(np.arange(0,1.01,.1))
-    #     ax.tick_params(left=False, labelleft=False, labelsize=config.SMALL_FONTS)
-
-    #     ax.text(mostly_tr/2, .5, 'mostly tracked', clip_on=False, 
-    #             ha='center', va='center', fontsize=config.SMALL_FONTS)
-    #     ax.text(mostly_tr + part_tr/2, .5, 'partially tracked', clip_on=False, 
-    #             ha='center', va='center', fontsize=config.SMALL_FONTS)
-    #     ax.text(mostly_tr + part_tr + mostly_lost/2, .5, 'mostly lost', clip_on=False, 
-    #             ha='center', va='center', fontsize=config.SMALL_FONTS)
-    #     ax.set_title('Proportion of axons', fontsize=config.FONTS)
-
-    #     ax.barh(0.5, mostly_tr, color=config.DEFAULT_COLORS[0], alpha=.8)
-    #     ax.barh(0.5, part_tr, left=mostly_tr, color=config.DEFAULT_COLORS[2], alpha=.8)
-    #     ax.barh(0.5, mostly_lost, left=mostly_tr+part_tr, color=config.DEFAULT_COLORS[1], alpha=.8)
-        
-    #     if show_results:
-    #         plt.show()
-    #     elif dest_dir:
-    #         plt.savefig(f'{dest_dir}/MCF_param_search_results.{config.FIGURE_FILETYPE}')
+    if show:
+        plt.show()
+    if dest_dir:
+        plt.savefig(f'{dest_dir}/MCF_param_search_results.{config.FIGURE_FILETYPE}')

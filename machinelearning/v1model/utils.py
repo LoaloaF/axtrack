@@ -80,8 +80,6 @@ def architecture_to_text(arch):
     empty = ''
     for i, arch_group in enumerate(arch):
         if i == 1:
-            text += f'{empty:28}== cat CNN features ==\n'
-        elif i == 2:
             text += f'{empty:28}== FullyConnected Head ==\n'
         for j, layer in enumerate(arch_group):
             if i == j == 0:

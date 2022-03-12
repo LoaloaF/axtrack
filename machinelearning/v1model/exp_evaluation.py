@@ -22,6 +22,7 @@ from ml_plotting import (
     plot_preprocessed_input_data, 
     plot_training_process,
     plot_prc_rcl,
+    plot_IDassignment_performance,
     )
 from video_plotting import  (
     draw_all,
@@ -126,3 +127,15 @@ video_kwargs={}):
     fname = f'{data.name}_E{epoch}_timepoint---of{data.sizet}'
     draw_all(axon_detections, fname, dest_dir=f'{RUN_DIR}/model_out', use_IDed_dets=assign_IDs,
                 notes=params["NOTES"], color_det1_ids=False, **video_kwargs)
+
+def evaulate_ID_assignment(exp_name, run, epoch='latest', show=True):
+    RUN_DIR, params = setup_evaluation(exp_name, run)
+    # params = to_device_specifc_params(params, get_default_parameters(), from_cache=OUTPUT_DIR)
+    results_fname = f'{RUN_DIR}/axon_dets/MCF_params_results.csv'
+
+    if not os.path.exists(results_fname):
+        print('Run optimize_MCF_params() first to evaluate MCF parameters!')
+        exit(1)
+
+    results = pd.read_csv(results_fname, index_col=0)
+    plot_IDassignment_performance(results, dest_dir=f'{RUN_DIR}/axon_dets/', show=show)
