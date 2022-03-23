@@ -1,8 +1,0 @@
-growth_direction_counted_timelapse_design_subs
-========================================================
-levels:dict_keys(['timelapse-tl13-forw', 'timelapse-tl14-forw']):
- Kruskal Wallis t=0.277, p=0.59853
- --> N.S.
-
-timelapse-tl13-forw, timelapse-tl13-forw: p: 0.49900	timelapse-tl13-forw, timelapse-tl14-forw: p: 0.30001	
-timelapse-tl14-forw, timelapse-tl13-forw: p: 0.30001	timelapse-tl14-forw, timelapse-tl14-forw: p: 0.49926	

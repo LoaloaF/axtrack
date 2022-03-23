@@ -1,8 +1,0 @@
-growth_direction_counted_2-joint placement_design_subs
-========================================================
-levels:dict_keys(['2-joint placement-early-forw', '2-joint placement-late-forw']):
- Kruskal Wallis t=0.121, p=0.72767
- --> N.S.
-
-2-joint placement-early-forw, 2-joint placement-early-forw: p: 0.48845	2-joint placement-early-forw, 2-joint placement-late-forw: p: 0.37259	
-2-joint placement-late-forw, 2-joint placement-early-forw: p: 0.37259	2-joint placement-late-forw, 2-joint placement-late-forw: p: 0.49247	

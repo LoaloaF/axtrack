@@ -1,9 +1,0 @@
-growth_direction_counted_n 2-joints
-========================================================
-levels:dict_keys(['n 2-joints-0-forw', 'n 2-joints-1-forw', 'n 2-joints-3-forw']):
- Kruskal Wallis t=3.708, p=0.15660
- --> N.S.
-
-n 2-joints-0-forw, n 2-joints-0-forw: p: 0.49755	n 2-joints-0-forw, n 2-joints-1-forw: p: 0.16725	n 2-joints-0-forw, n 2-joints-3-forw: p: 0.13825	
-n 2-joints-1-forw, n 2-joints-0-forw: p: 0.16725	n 2-joints-1-forw, n 2-joints-1-forw: p: 0.49941	n 2-joints-1-forw, n 2-joints-3-forw: p: 0.03608	
-n 2-joints-3-forw, n 2-joints-0-forw: p: 0.13825	n 2-joints-3-forw, n 2-joints-1-forw: p: 0.03608	n 2-joints-3-forw, n 2-joints-3-forw: p: 0.48845	

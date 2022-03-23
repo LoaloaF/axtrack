@@ -29,7 +29,6 @@ elif where.startswith('/home/loaloa/gdrive/'):
     TRAINING_DATA_DIR = BASE_DIR + 'training_data_subs/'
     SCREENING_OUT_DIR = REMOTE_DATA_DIR + '/PDMS_structure_screen_v2/'
     RAW_INFERENCE_DATA_DIR = TRAINING_DATA_DIR # locally for debugging/ testing
-    # RAW_INFERENCE_DATA_DIR = BASE_DIR + '/timelapse02_processed' # locally for debugging/ testing
     OUTPUT_DIR = BASE_DIR + 'model_output/'
     DEPLOYED_MODEL_DIR = BASE_DIR + '/deployed_model/'
     
@@ -50,10 +49,14 @@ ALLTRAIN_DATASET_TEST_FRAMES = range(2,6)  # dummy
 TRAIN_Ps = {'linewidth':3, 'alpha':.8, 'linestyle':':'}
 TEST_Ps = {'linewidth':3, 'alpha':.8}
 
-PREDICTED_BOXES_KWARGS = {'alpha':1, 'linestyle':'dashed', 'linewidth':1, 'facecolor':'none', 'edgecolor':'hsv'}
-GROUNDTRUTH_BOXES_KWARGS = {'alpha':.6, 'linestyle':'solid', 'linewidth':1.2, 'facecolor':'none', 'edgecolor':'white'}
-FP_BOXES_KWARGS = {'alpha':.8, 'linestyle':'solid', 'linewidth':1, 'facecolor':'none', 'edgecolor':'orange'}
-FN_BOXES_KWARGS = {'alpha':.8, 'linestyle':'solid', 'linewidth':1, 'facecolor':'none', 'edgecolor':'teal'}
+PREDICTED_BOXES_KWARGS = {'alpha':1, 'linestyle':'dashed', 'linewidth':1, 
+                          'facecolor':'none', 'edgecolor':'hsv'}
+GROUNDTRUTH_BOXES_KWARGS = {'alpha':.6, 'linestyle':'solid', 'linewidth':1.2, 
+                            'facecolor':'none', 'edgecolor':'white'}
+FP_BOXES_KWARGS = {'alpha':.8, 'linestyle':'solid', 'linewidth':1, 
+                   'facecolor':'none', 'edgecolor':'orange'}
+FN_BOXES_KWARGS = {'alpha':.8, 'linestyle':'solid', 'linewidth':1, 
+                   'facecolor':'none', 'edgecolor':'teal'}
 
 
 FIGURE_FILETYPE = 'svg'
@@ -82,7 +85,8 @@ RED = '#c22121'
 RED2 = '#ba7c7c'
 D21_COLOR = '#54aeb3'
 D22_COLOR = DARK_GRAY
-DEFAULT_COLORS = ['#729C27', '#A85C2A', '#1B6C5C', '#892259', '#273673', '#A0F40A', '#08C6A1', '#FF6B0B', '#E20A7C', '#2042CD']
+DEFAULT_COLORS = ['#729C27', '#A85C2A', '#1B6C5C', '#892259', '#273673', 
+                  '#A0F40A', '#08C6A1', '#FF6B0B', '#E20A7C', '#2042CD']
 DESIGN_CMAP = ListedColormap([D21_COLOR, *plt.cm.get_cmap('tab20b', 20).colors])
 plt.rcParams["axes.prop_cycle"] = cycler('color', DEFAULT_COLORS)
 
