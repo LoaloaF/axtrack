@@ -12,6 +12,7 @@ if where.startswith('/home/ssteffens'):
     
     TRAINING_DATA_DIR = REMOTE_DATA_DIR + '/training_data/'
     OUTPUT_DIR = REMOTE_DATA_DIR + '/model_output/'
+    DEPLOYED_MODEL_DIR = BASE_DIR + '/code/deployed_model/'
 
     DEFAULT_DEVICE = 'cuda:0'
     DEFAULT_NUM_WORKERS = 2
@@ -24,6 +25,8 @@ elif where.startswith('/home/loaloa/gdrive/'):
 
     TRAINING_DATA_DIR = BASE_DIR + 'training_data_subs/'
     OUTPUT_DIR = BASE_DIR + 'model_output/'
+    DEPLOYED_MODEL_DIR = BASE_DIR + '/code/deployed_model/'
+    print(DEPLOYED_MODEL_DIR)
     
     DEFAULT_DEVICE = 'cpu'
     DEFAULT_NUM_WORKERS = 3
