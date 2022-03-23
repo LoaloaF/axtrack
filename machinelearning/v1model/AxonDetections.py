@@ -888,10 +888,8 @@ class AxonDetections(object):
                             print(results[-1])
                             i += 1
 
-            results = pd.concat(results, axis=1).T
-            results.to_csv(f'{self.dir}/MCF_params_results.csv')
-
-
+        results = pd.concat(results, axis=1).T
+        results.to_csv(f'{self.dir}/MCF_params_results.csv')
 
 def _reconstruct_axons(self, ):
     # indicate what path was interpolated, option to get that version or the one

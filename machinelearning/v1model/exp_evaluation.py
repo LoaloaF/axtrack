@@ -1,6 +1,4 @@
 import os
-from copy import copy
-
 import pandas as pd
 
 from exp_parameters import (
@@ -17,6 +15,7 @@ from utils import (
     get_all_epoch_data,
     get_run_dir,
     set_seed,
+    turn_tex,
     )
 from ml_plotting import (
     plot_preprocessed_input_data, 
@@ -35,6 +34,7 @@ def setup_evaluation(exp_name, run, print_params=True):
     EXP_DIR = f'{OUTPUT_DIR}/runs/{exp_name}/'
     RUN_DIR = get_run_dir(EXP_DIR, run)
     parameters = load_parameters(exp_name, run)
+    turn_tex('on')
     if print_params:
         print(params2text(parameters))
     set_seed(parameters['SEED'])
@@ -73,7 +73,8 @@ def evaluate_training(exp_run_ids, recreate=False, use_prepend_ifavail=True, sho
             print(compare_parameters(base_params, params))
         
         # get the training data over time (loss + metrics)
-        training[lbl], _ = get_all_epoch_data(exp_name, run, recreate, use_prepend_ifavail)
+        training[lbl], _ = get_all_epoch_data(exp_name, run, recreate, 
+                                              use_prepend_ifavail)
 
     # plot the loss and metrics over epochs
     print(f'Evaluating training of {lbl}...', end='')
@@ -109,7 +110,8 @@ def evaluate_model(exp_name, run, epoch='latest', which_data='test',
                 assigedIDs_cache='from', **kwargs):
     print('\nEvaluating model...', end='')
     RUN_DIR, params = setup_evaluation(exp_name, run)
-    params = to_device_specifc_params(params, get_default_parameters(), from_cache=OUTPUT_DIR)
+    params = to_device_specifc_params(params, get_default_parameters(), 
+                                      from_cache=OUTPUT_DIR)
     params['LOAD_MODEL'] = [exp_name, run, epoch]
 
     train_data, test_data = setup_data(params)
@@ -127,9 +129,8 @@ def evaluate_model(exp_name, run, epoch='latest', which_data='test',
     draw_all(axon_detections, which_dets=which_dets, show=show,
              description=description, **kwargs)
 
-def evaulate_ID_assignment(exp_name, run, epoch='latest', show=True):
+def evaulate_ID_assignment(exp_name, run, epoch='latest', show=True, **kwargs):
     RUN_DIR, params = setup_evaluation(exp_name, run)
-    # params = to_device_specifc_params(params, get_default_parameters(), from_cache=OUTPUT_DIR)
     results_fname = f'{RUN_DIR}/axon_dets/MCF_params_results.csv'
 
     if not os.path.exists(results_fname):
@@ -137,4 +138,5 @@ def evaulate_ID_assignment(exp_name, run, epoch='latest', show=True):
         exit(1)
 
     results = pd.read_csv(results_fname, index_col=0)
-    plot_IDassignment_performance(results, dest_dir=f'{RUN_DIR}/axon_dets/', show=show)
+    plot_IDassignment_performance(results, dest_dir=f'{RUN_DIR}/axon_dets/', 
+                                  show=show, **kwargs)

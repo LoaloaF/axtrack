@@ -24,6 +24,7 @@ from exp_parameters import (
     params2text, 
     compare_parameters,
     to_device_specifc_params,
+    update_MCF_params,
     )
 from core_functionality import (
     setup_data, 
@@ -81,7 +82,8 @@ def optimize(parameters, train_data, test_data, model, loss_fn, optimizer,
     for epoch in range(parameters['EPOCHS']):
         last_epoch_dt = round(time.time()-tstart) if epoch else ''
         tstart = time.time()
-        print(f'\n\n\nEpoch {epoch}/{parameters["EPOCHS"]}, last epoch took: {last_epoch_dt}s\n{config.SPACER}', flush=True)
+        print(f'\n\n\nEpoch {epoch}/{parameters["EPOCHS"]}, last epoch took: '
+              f'{last_epoch_dt}s\n{config.SPACER}', flush=True)
         # train and optimize
         epoch_train_info = one_epoch(train_data, model, loss_fn, parameters, 
                                      epoch, optimizer, lr_scheduler)
@@ -101,7 +103,8 @@ def optimize(parameters, train_data, test_data, model, loss_fn, optimizer,
             epoch_info_str = epoch_info_str.to_frame()
         # loss and metrics in epoch , print all training epochs so far
         else:
-            metr_indexer = [(m, parameters['BBOX_THRESHOLD']) for m in ('precision', 'recall', 'F1')]
+            metr_indexer = [(m, parameters['BBOX_THRESHOLD']) 
+                            for m in ('precision', 'recall', 'F1')]
             epoch_info_str = epoch_info.loc[epoch, ['total_summed_loss', *metr_indexer]]
             print_log.append(epoch_info_str.to_frame().T)
             epoch_info_str = pd.concat(print_log)
@@ -112,7 +115,8 @@ def optimize(parameters, train_data, test_data, model, loss_fn, optimizer,
                                test_data, model, optimizer, lr_scheduler, 
                                MODELS_DIR, METRICS_DIR, RUN_DIR)
 
-def save_epoch_results(epoch_info, epoch, parameters, train_data, test_data, model, optimizer, 
+def save_epoch_results(epoch_info, epoch, parameters, train_data, test_data, 
+                       model, optimizer, 
              lr_scheduler, MODELS_DIR, METRICS_DIR, RUN_DIR):
     # save the current epoch loss
     epoch_info.to_pickle(f'{METRICS_DIR}/E{epoch:0>4}.pkl')
@@ -130,23 +134,22 @@ def save_epoch_results(epoch_info, epoch, parameters, train_data, test_data, mod
         os.makedirs(epoch_dir)
 
         # predict everything in train data and plot result
-        train_axon_dets = AxonDetections(model, train_data, parameters, None)
+        train_axon_dets = AxonDetections(model, train_data, parameters, epoch_dir)
         train_axon_dets.detect_dataset()
-        train_fname = f'train_E{epoch}_timepoint---of{train_data.sizet}'
-        draw_all(train_axon_dets, train_fname, dest_dir=epoch_dir, animated=False,
-                    notes=parameters["NOTES"], **parameters['PERF_LOG_VIDEO_KWARGS'])
+        draw_all(train_axon_dets, description=f'Notes: {parameters["NOTES"]}',
+                 **parameters['PERF_LOG_VIDEO_KWARGS'])
         
         # predict everything in test data and plot result
-        test_axon_dets = AxonDetections(model, test_data, parameters, None)
+        test_axon_dets = AxonDetections(model, test_data, parameters, epoch_dir)
         test_axon_dets.detect_dataset()
-        test_fname = f'test_E{epoch}_timepoint---of{test_data.sizet}'
-        draw_all(test_axon_dets, test_fname, dest_dir=epoch_dir, 
-                    notes=parameters["NOTES"], animated=False, 
-                    draw_grid=True)
+        draw_all(test_axon_dets, description=f'Notes: {parameters["NOTES"]}',
+                 **parameters['PERF_LOG_VIDEO_KWARGS'])
  
-def optimize_MCF_params(exp_name, run, epoch='latest', MCF_param_vals={}):
+def optimize_MCF_params(exp_name, run, epoch='latest', MCF_param_vals={},
+                        update_tobest_MCF_params=False):
     RUN_DIR, params = setup_evaluation(exp_name, run)
-    params = to_device_specifc_params(params, get_default_parameters(), from_cache=OUTPUT_DIR)
+    params = to_device_specifc_params(params, get_default_parameters(), 
+                                      from_cache=OUTPUT_DIR)
     params['LOAD_MODEL'] = [exp_name, run, epoch]
 
     _, test_data = setup_data(params)
@@ -155,11 +158,11 @@ def optimize_MCF_params(exp_name, run, epoch='latest', MCF_param_vals={}):
     axon_detections = AxonDetections(model, test_data, params, f'{RUN_DIR}/axon_dets')
     axon_detections.MCF_min_ID_lifetime = 1
     axon_detections.detect_dataset('from')
-    axon_detections.assign_ids('from', 'to')
-    axon_detections.search_MCF_params(**MCF_param_vals)
+    axon_detections.assign_ids('from', 'from')
+    axon_detections.search_MCF_params(update_tobest_MCF_params, **MCF_param_vals)
 
 if __name__ == '__main__':
-    default_parameters = get_default_parameters()
+    """Set the Experiment Name. Matched with a directory."""
     # exp2_name = 'v1Model_exp2_boxlossfocus'
     # exp3_name = 'v1Model_exp3_newcnn'
     # exp4_name = 'v1Model_exp4_NewCNN'
@@ -167,99 +170,69 @@ if __name__ == '__main__':
     # exp6_name = 'v1Model_exp6_AxonDetClass'
     exp7_name = 'v1Model_exp7_final'
     exp8_name = 'v1Model_exp8_postsubmission'
+
+    """Delete a subset of experiment runs for tidiness."""
+    # clean_rundirs(exp7_name, delete_all_except=(35,36,38,41))
+    # clean_rundirs(exp8_name, delete_all_except=(8,9))
     
-    # some general settings
+    """Get the default parameters defined in exp_parameters.py."""
     parameters = get_default_parameters()
-    parameters['NOTES'] = 'ReproduceResults'
-    parameters['FROM_CACHE'] = OUTPUT_DIR
+    
+    """Then adjust these defaults for the specifc experiment run."""
+    parameters['NOTES'] = 'ReproduceExp7run35E400Results, trainonly'
+    parameters['FROM_CACHE'] = None
     parameters['CACHE'] = None
-    parameters['PERF_LOG_VIDEO_KWARGS'] = {'animated':True, 'draw_grid':True, 
-                                           't_y_x_slice':[(0,40), None, None]}
-    # parameters['USE_TRANSFORMS'] = []
-    # parameters['LOAD_MODEL'] = (exp7_name, 'run35', 600)
-    # parameters['MODEL_CHECKPOINTS'] = [100,200]
+    parameters['PERF_LOG_VIDEO_KWARGS'] = {'animated':True, 
+                                           't_y_x_slice':[(0,50), None, None]}
     # on gpuserver settings
-    parameters['TEST_TIMEPOINTS'] = config.WHOLE_DATASET_TEST_FRAMES
-    parameters['TRAIN_TIMEPOINTS'] = config.WHOLE_DATASET_TRAIN_FRAMES
-
-    old_arch = [
-        #kernelsize, out_channels, stride, groups
-        [(3, 20,  2,  1),      # y-x out: 256
-         (3, 40,  2,  1),      # y-x out: 128
-         (3, 80,  1,  1),      # y-x out: 64
-         'M',
-         (3, 80,  1,  1),      # y-x out: 64
-         (3, 80,  1,  1),      # y-x out: 32
-         'M',
-         (3, 80,  1,  1),      # y-x out: 32
-         (3, 80,  1,  1),      # y-x out: 32
-         'M',],
-        [(3, 160, 1,  1)],      # y-x out: 16
-        #  ],      
-        [('FC', 1024),
-         ('activation', nn.Sigmoid()), 
-         ('FC', 1024),
-         ('activation', nn.Sigmoid()), 
-        ]
-    ]
-    # parameters['ARCHITECTURE'] = old_arch
-
-    # run training with a specifc parsameter set
-    # clean_rundirs(exp8_name, delete_runs_min_epochs=100, keep_only_latest_model=False)
+    # parameters['TEST_TIMEPOINTS'] = config.WHOLE_DATASET_TEST_FRAMES
+    # parameters['TRAIN_TIMEPOINTS'] = config.WHOLE_DATASET_TRAIN_FRAMES
+    parameters['TEST_TIMEPOINTS'] = config.ALLTRAIN_DATASET_TEST_FRAMES
+    parameters['TRAIN_TIMEPOINTS'] = config.ALLTRAIN_DATASET_TRAIN_FRAMES
+    
+    """Run the experiment (model optimization) using the paramters."""
     # run_experiment(exp8_name, parameters, save_results=True)
 
-    turn_tex('on')
+    
+    
+    """======================================================================"""
+    """======================  WHEN ALL EPOCHS DONE  ========================"""
+    """======================================================================"""
+    
+    
+    
+    """Option to glue two experiment runs together"""
     # prepend_prev_run(exp8_name, 'run01', 'run00')
-    # evaluate_preprocssing(exp8_name, 'run00', show=True)
-    # evaluate_training([[exp8_name, 'run00'], [exp8_name, 'run01']], show=True, use_prepend_ifavail=True)
-    # evaluate_precision_recall([[exp8_name, 'run00', 70], [exp8_name, 'run01', 5]], show=True, recreate=True)
-    # evaluate_model(exp8_name, 'run05', which_data='test', cache_detections='to',
-    #                video_kwargs={'draw_grid':True, 'show':False, 'animated':True})
-    # evaluate_model(exp7_name, 'run35', which_data='test', cache_detections='from',
-    #                video_kwargs={'draw_grid':True, 'show':False, 'animated':True})
-    evaluate_model(exp7_name, 'run35', cache_detections='from', astar_paths_cache='from', assigedIDs_cache='from', draw_true_dets=True, show=False,
-                   animated=True,which_dets='FP_FN', t_y_x_slice=(None, (1500,3000), (1000,4000)))
     
-    # hyperparams to search over
-    
-    MCF_param_vals = {'edge_cost_thr_values':  [.4, .6, .7, .8, .9, 1, 1.2, 3],
-              'entry_exit_cost_values': [ .2, .8, .9, 1, 1.1,  2],
-              'miss_rate_values':  [0.9, 0.6],
-              'vis_sim_weight_values': [0, 0.1],
-              'conf_capping_method_values': ['ceil' , 'scale_to_max'],}
-    # MCF_param_vals = {'edge_cost_thr_values':  [.4],
-    #           'entry_exit_cost_values': [ 2],
-    #           'miss_rate_values':  [0.9],
-    #           'vis_sim_weight_values': [0, 0.1],
-    #           'conf_capping_method_values': ['ceil' , 'scale_to_max'],}
-    # optimize_MCF_params(exp7_name, 'run35', MCF_param_vals=MCF_param_vals)
-
-    # evaulate_ID_assignment(exp7_name, 'run35',)
-    # evaluate_training([[exp8_name, 'run41']], recreate=True, show=True)
+    """Compare the paramters of two runs"""
     # p2 = load_parameters(exp7_name, 'run36')
-    # o = compare_parameters(get_default_parameters(), p2)
-    # print(o)
+    # text = compare_parameters(get_default_parameters(), p2)
+    # print(text)
 
-    # larger_arch = [
-    #     #kernelsize, out_channels, stride, groups
-    #     [(3, 20,  2,  1),      # y-x out: 256
-    #      (3, 80,  1,  1),      # y-x out: 64
-    #      'M',
-    #      (3, 80,  1,  1),      # y-x out: 64
-    #      (3, 80,  1,  1),      # y-x out: 64
-    #      (3, 80,  1,  1),      # y-x out: 64
-    #      'M',
-    #      (3, 100,  1,  1),      # y-x out: 32
-    #      (3, 40,  2,  1),      # y-x out: 128
-    #      (3, 100,  1,  1),      # y-x out: 32
-    #      (3, 100,  1,  1),      # y-x out: 32
-    #      'M',
-    #      ],      
-    #     [(3, 180, 1,  1),      # y-x out: 16
-    #      ],
-    #     [('FC', 1024),
-    #      ('activation', nn.Sigmoid()), 
-    #      ('FC', 1024),
-    #      ('activation', nn.Sigmoid()), 
-    #     ]
-    # ]
+    """Evalute an experiment run looking at:
+        1. data preprocessing, model input data
+        2. loss and metrics timeline over all epochs
+        3. precision, recall, F1 at a particular epoch
+        4. a saved model doing inference on test or train data 
+        5. the quality of ID assignment over time    
+        """
+    evaluate_preprocssing(exp8_name, 'run08', show=True)
+    evaluate_training([[exp8_name, 'run08'], [exp8_name, 'run09']], show=True, recreate=True)
+    evaluate_precision_recall([[exp8_name, 'run08', 1000]], show=True, recreate=True)
+    evaluate_model(exp8_name, 'run08', draw_true_dets=True, show=False, animated=True,
+                   which_dets='FP_FN', t_y_x_slice=(None, (1500,3000), (1000,4000)))
+    
+    """Min cost flow assignment hyper parameter optimization"""
+    # MCF_param_vals = {'edge_cost_thr_values':  [.1, .3, .4, .6, .7, .8, 1, 2],
+    #                   'entry_exit_cost_values': [1, 1.1,  1.7, 2, 2.3, 3],
+    #                   'miss_rate_values':  [0.9, 0.6],
+    #                   'vis_sim_weight_values': [0, 0.1, .4],
+    #                   'conf_capping_method_values': ['ceil' , 'scale_to_max'],}
+    # optimize_MCF_params(exp8_name, 'run08', 1000, MCF_param_vals=MCF_param_vals)
+    # update_MCF_params(exp8_name, 'run08', 1000)
+
+
+    """Point 5. from above (ID assignment evaluation)"""
+    evaulate_ID_assignment(exp8_name, 'run08', 1000)
+    [evaulate_ID_assignment(exp8_name, 'run08', 1000, show=True, col_param=param[:-7])
+     for param in MCF_param_vals.keys()]

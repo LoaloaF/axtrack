@@ -1,7 +1,6 @@
-import pickle
-
 import numpy as np
 
+import matplotlib as mpl
 import matplotlib.pyplot as plt
 from matplotlib.lines import Line2D
 
@@ -230,16 +229,17 @@ def plot_prc_rcl(data, dest_dir=None, show=None):
             Line2D([0], [0], label=f'Train - {name[12:]}', color=col, **TRAIN_Ps),
             Line2D([0], [0], label=f'Test', color=col, **TEST_Ps),
             ])
-    axes[0].legend(handles=legend_elements, bbox_to_anchor=(-.2, 1.05), ncol=2,
+    axes[0].legend(handles=legend_elements, bbox_to_anchor=(-.2, 1.05), ncol=1,
                    loc='lower left', fontsize=config.SMALL_FONTS)
     if show:
         plt.show()
     if dest_dir:
         fig.savefig(f'{dest_dir}/prc_rcl_{runs_lbl}.{config.FIGURE_FILETYPE}')
  
-def plot_IDassignment_performance(metrics, dest_dir, show):
-    # sort by maximum MOTA, F1
-    metrics.sort_values(['mota', 'idf1'], inplace=True, ascending=False)
+def plot_IDassignment_performance(metrics, dest_dir, show, col_param=None,
+                                  draw_topbar=True):
+    # sort by maximum MOTA, idF1
+    metrics.sort_values(['idf1', 'mota'], inplace=True, ascending=False)
     print(metrics.iloc[:5].T)
 
     # create the figure
@@ -270,46 +270,72 @@ def plot_IDassignment_performance(metrics, dest_dir, show):
             ax.set_ylabel('Identity F1', fontsize=config.FONTS)
 
     # draw best scores
-    axes[0].scatter(metrics.idp.iloc[0], metrics.idr.iloc[0], alpha=1, edgecolor='k',
-                    color=config.DEFAULT_COLORS[0], linewidth=3, s=55, marker='o')
-    axes[1].scatter(metrics.mota.iloc[0], metrics.idf1.iloc[0], alpha=1, edgecolor='k',
-                    color=config.DEFAULT_COLORS[0], linewidth=3, s=55, marker='o')
+    sct_args = {'alpha':1, 'edgecolor':'k', 'color':config.LIGHT_GRAY, 
+                'linewidth':1, 's':75, 'marker':'D', 'zorder':20}
+    axes[0].scatter(metrics.idp.iloc[0], metrics.idr.iloc[0], **sct_args)
+    axes[1].scatter(metrics.mota.iloc[0], metrics.idf1.iloc[0], **sct_args)
     # draw all the others
-    axes[0].scatter(metrics.idp.iloc[1:], metrics.idr.iloc[1:], alpha=.5, color='k', marker='.', s=3)
-    axes[1].scatter(metrics.mota.iloc[1:], metrics.idf1.iloc[1:], alpha=.5, color='k', marker='.', s=3)
+    sct_args.update({'alpha':.8, 'color':config.LIGHT_GRAY, 'linewidth':1, 
+                     's':5, 'marker':'.'})
+    if col_param:
+        # get the parameter values
+        param_vals = metrics.loc[:, col_param].iloc[1:]
+        if col_param == 'conf_capping_method':
+            param_vals = [m=='ceil' for m in param_vals]
+        # map those values to a color
+        norm = mpl.colors.Normalize(vmin=np.min(param_vals), vmax=np.max(param_vals))
+        cmap = plt.get_cmap('viridis')
+        sct_args.update({'edgecolor': cmap(norm(param_vals))})
+    axes[0].scatter(metrics.idp.iloc[1:], metrics.idr.iloc[1:], **sct_args)
+    axes[1].scatter(metrics.mota.iloc[1:], metrics.idf1.iloc[1:], **sct_args)
     
-    # add bar on top indicating proportions tracked
+    # add bar on top indicating proportions tracked or parameter values
     bottom, left = .8, .13
     width, height = .8, .1
     ax = fig.add_axes([left, bottom, width, height])
-    ax.set_ylim(.2,.8)
-    ax.set_xlim(0,1)
-    xts = np.arange(0,1.01,.2).round(2)
-    ax.set_xticks(xts)
-    ax.set_xticklabels(xts)
-    # ax.set_xticklabels([f'{int(xt*100):2>0}\%' for xt in xts])
-    ax.tick_params(left=False, labelleft=False, labelsize=config.SMALL_FONTS)
     
-    n = metrics.num_unique_objects[0]
-    mostly_tr = metrics.mostly_tracked[0] / n
-    part_tr = metrics.partially_tracked[0] / n
-    mostly_lost = metrics.mostly_lost[0] / n
+    if not col_param:
+        ax.set_ylim(.2,.8)
+        ax.set_xlim(0,1)
+        xts = np.arange(0,1.01,.2).round(2)
+        ax.set_xticks(xts)
+        ax.set_xticklabels(xts)
+        # ax.set_xticklabels([f'{int(xt*100):2>0}\%' for xt in xts])
+        ax.tick_params(left=False, labelleft=False, labelsize=config.SMALL_FONTS)
+        
+        n = metrics.num_unique_objects[0]
+        mostly_tr = metrics.mostly_tracked[0] / n
+        part_tr = metrics.partially_tracked[0] / n
+        mostly_lost = metrics.mostly_lost[0] / n
 
-    # proportion bar text
-    ax.text(mostly_tr/2, .5, 'mostly tracked', clip_on=False, 
-            ha='center', va='center', fontsize=config.SMALL_FONTS)
-    ax.text(mostly_tr + part_tr/2, .5, 'partially tracked', clip_on=False, 
-            ha='center', va='top', fontsize=config.SMALL_FONTS)
-    ax.text(mostly_tr + part_tr + mostly_lost/2, .5, 'mostly lost', clip_on=False, 
-            ha='center', va='bottom', fontsize=config.SMALL_FONTS)
-    ax.set_title('Proportion of axons', fontsize=config.FONTS, loc='left')
+        # proportion bar text
+        ax.text(mostly_tr/2, .5, 'mostly tracked', clip_on=False, 
+                ha='center', va='center', fontsize=config.SMALL_FONTS)
+        ax.text(mostly_tr + part_tr/2, .5, 'partially tracked', clip_on=False, 
+                ha='center', va='top', fontsize=config.SMALL_FONTS)
+        ax.text(mostly_tr + part_tr + mostly_lost/2, .5, 'mostly lost', clip_on=False, 
+                ha='center', va='bottom', fontsize=config.SMALL_FONTS)
+        ax.set_title('Proportion of axons', fontsize=config.FONTS, loc='left')
 
-    # proportion bar data drawing
-    ax.barh(0.5, mostly_tr, color=config.DEFAULT_COLORS[0], alpha=.8)
-    ax.barh(0.5, part_tr, left=mostly_tr, color=config.DEFAULT_COLORS[2], alpha=.8)
-    ax.barh(0.5, mostly_lost, left=mostly_tr+part_tr, color=config.DEFAULT_COLORS[1], alpha=.8)
-    
+        # proportion bar data drawing
+        ax.barh(0.5, mostly_tr, color=config.DEFAULT_COLORS[0], alpha=.8)
+        ax.barh(0.5, part_tr, left=mostly_tr, color=config.DEFAULT_COLORS[2], alpha=.8)
+        ax.barh(0.5, mostly_lost, left=mostly_tr+part_tr, 
+                color=config.DEFAULT_COLORS[1], alpha=.8)
+    else:
+        # cb1 = fig.colorbar(ax, cmap=cmap, norm=norm,
+        cbl = mpl.colorbar.ColorbarBase(ax, cmap=cmap, norm=norm, 
+                                        ticks=np.unique(param_vals),
+                                        orientation='horizontal')
+        if col_param != 'conf_capping_method':
+            cbl.set_ticklabels(np.unique(param_vals.values))
+        else:
+            cbl.set_ticklabels(('scale_to_max','ceil'))
+        cbl.set_label(col_param, fontsize=config.SMALL_FONTS)
+            
     if show:
         plt.show()
     if dest_dir:
-        plt.savefig(f'{dest_dir}/MCF_param_search_results.{config.FIGURE_FILETYPE}')
+        postf = '' if not col_param else '_'+col_param
+        plt.savefig(f'{dest_dir}/MCF_param_search_results{postf}.{config.FIGURE_FILETYPE}')
+    plt.close()

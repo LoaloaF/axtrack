@@ -3,6 +3,7 @@ import pickle
 from collections import OrderedDict
 
 from torch import nn as nn
+import pandas as pd
 import matplotlib.pyplot as plt
 
 from config import TRAINING_DATA_DIR, OUTPUT_DIR, DEFAULT_DEVICE, DEFAULT_NUM_WORKERS, SPACER
@@ -67,7 +68,8 @@ def get_default_parameters():
     WEIGHT_DECAY = 5e-4
     BATCH_SIZE = 32
     EPOCHS = 1501
-    LOAD_MODEL = None # ['Exp1_yolo_only_firstfirst', 'run02', 'E0']   # [ExpName, #run, #epoch]
+    # [ExpName, #run, #epoch]
+    LOAD_MODEL = None # ['Exp1_yolo_only_firstfirst', 'run02', 'E0']   
     BBOX_THRESHOLD = .7
     LR = 5e-4
     LR_DECAYRATE = 15
@@ -156,7 +158,8 @@ def to_device_specifc_params(model_parameters, local_default_params,
     if cache:
         model_parameters['CACHE'] = cache
     if fill_missing_keys:
-        [model_parameters.update({key: val}) for key,val in local_default_params.items() if key not in model_parameters]
+        [model_parameters.update({key: val}) for key,val in local_default_params.items() 
+         if key not in model_parameters]
     return model_parameters
 
 def compare_parameters(param1, param2):
@@ -191,3 +194,21 @@ def compare_parameters(param1, param2):
                 text += f'\n\tP2: {param2[key]}:'
     text += '\n'+SPACER+'\n'
     return text
+
+def update_MCF_params(exp_name, run, epoch='latest'):
+    EXP_DIR = f'{OUTPUT_DIR}/runs/{exp_name}/'
+    RUN_DIR = get_run_dir(EXP_DIR, run)
+    parameters = load_parameters(exp_name, run)
+
+    results_fname = f'{RUN_DIR}/axon_dets/MCF_params_results.csv'
+    if not os.path.exists(results_fname):
+        print('Run optimize_MCF_params() first to evaluate MCF parameters!')
+        exit(1)
+
+    results = pd.read_csv(results_fname, index_col=0)
+    params = results.sort_values(['idf1', 'mota'], ascending=False).iloc[0, :5]
+    # do the update
+    new_MCF_params = dict(zip(['MCF_'+o.upper() for o in params.index], params.values))
+    print('Updateting min cost flow parameters to: ', new_MCF_params)
+    parameters.update(new_MCF_params)
+    write_parameters(f'{RUN_DIR}/params.pkl', parameters)

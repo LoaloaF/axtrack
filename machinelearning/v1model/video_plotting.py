@@ -17,7 +17,7 @@ def draw_all(axon_dets, structure_screen=None, which_dets='confident',
              description='', t_y_x_slice=[None,None,None], dets_kwargs=None, 
              scnd_dets_kwargs=None, show=False, axon_subset=None, 
              save_single_tiles=False, animated=False, dpi=160, fps=6, 
-             anim_fname_postfix='', draw_true_dets=False, draw_grid=False,  
+             anim_fname_postfix='', draw_true_dets=False, draw_grid=True,
              draw_scalebar=False, draw_axon_reconstructions=False,  
              draw_trg_paths=None, draw_brightened_bg=True):
 
@@ -51,8 +51,6 @@ def draw_all(axon_dets, structure_screen=None, which_dets='confident',
                                   draw_grid, draw_trg_paths)
         frame_fname, frame_lbl, dets, frame_img, scnd_dets = out[:5]
         dets_kwargs, scnd_dets_kwargs, frame_args, dest_dir = out[5:]
-        print(dets, )
-        print(scnd_dets)
       
         frame_artists = draw_frame(img = frame_img, 
                                    dest_dir = axon_dets.dir,  
@@ -237,12 +235,14 @@ def draw_frame(img, dest_dir, dets=None, scnd_dets=None, fname='image', lbl='',
                        fontsize=height/180, color='k'))
 
     # draw the bounding boxes and potentially reconstructions
-    paths_canvas_rgba = np.zeros((height, width, 4))
-    artists.extend(draw_detections(dets, dets_kwargs, annotate=True, ax=ax, 
-                                   boxs=boxs, axon_reconstr=axon_reconstr, 
-                                   trg_paths=trg_paths, 
-                                   paths_canvas_rgba=paths_canvas_rgba))
-    artists.extend(draw_detections(scnd_dets, scnd_dets_kwargs, ax=ax, boxs=boxs))
+    if dets is not None:
+        paths_canvas_rgba = np.zeros((height, width, 4))
+        artists.extend(draw_detections(dets, dets_kwargs, annotate=True, ax=ax, 
+                                    boxs=boxs, axon_reconstr=axon_reconstr, 
+                                    trg_paths=trg_paths, 
+                                    paths_canvas_rgba=paths_canvas_rgba))
+    if scnd_dets is not None:
+        artists.extend(draw_detections(scnd_dets, scnd_dets_kwargs, ax=ax, boxs=boxs))
     
     # brighten the channel background 
     alpha = np.ones((height, width), float)
