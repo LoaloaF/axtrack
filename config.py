@@ -31,6 +31,8 @@ elif where.startswith('/home/loaloa/gdrive/'):
     DEFAULT_DEVICE = 'cpu'
     DEFAULT_NUM_WORKERS = 3
     VIDEO_ENCODER = 'ffmpeg'
+else:
+    pass
 
 SPACER = '========================================================'
 
