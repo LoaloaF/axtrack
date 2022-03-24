@@ -8,9 +8,9 @@ from torchsummary import summary
 
 from .model import YOLO_AXTrack
 from .loss import YOLO_AXTrack_loss
-from .Timelapse import Timelapse
-from .utils import load_checkpoint
-from .AxonDetections import AxonDetections
+from ..Timelapse import Timelapse
+from ..utils import load_checkpoint
+from ..AxonDetections import AxonDetections
 
 def setup_data(P, skip_test=False):
     # training data

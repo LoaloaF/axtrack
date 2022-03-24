@@ -1,6 +1,6 @@
 import os
 import sys
-sys.path.extend(('./machinelearning', os.path.abspath(os.curdir)))
+sys.path.append((os.path.dirname(__file__) + '/../'))
 import time
 
 import numpy as np
@@ -8,12 +8,11 @@ import pandas as pd
 import torch
 import torch.nn as nn
 
-import config
-from config import OUTPUT_DIR, SPACER, TRAINING_DATA_DIR
-from video_plotting import draw_all
-from AxonDetections import AxonDetections
-
-from exp_parameters import (
+import axtrack.config as config
+from axtrack.config import OUTPUT_DIR, SPACER, TRAINING_DATA_DIR
+from axtrack.video_plotting import draw_all
+from axtrack.AxonDetections import AxonDetections
+from axtrack.exp_parameters import (
     get_default_parameters, 
     write_parameters, 
     check_parameters,
@@ -23,13 +22,13 @@ from exp_parameters import (
     to_device_specifc_params,
     update_MCF_params,
     )
-from core_functionality import (
+from axtrack.machinelearning.core_functionality import (
     setup_data, 
     setup_model, 
     one_epoch,
     setup_data_loaders,
     )
-from utils import (
+from axtrack.utils import (
     create_logging_dirs,
     save_preproc_metrics,
     save_checkpoint,
@@ -38,7 +37,7 @@ from utils import (
     prepend_prev_run,
     turn_tex,
     )
-from exp_evaluation import (
+from axtrack.exp_evaluation import (
     setup_evaluation,
     evaluate_preprocssing,
     evaluate_training,
@@ -213,11 +212,11 @@ if __name__ == '__main__':
         4. a saved model doing inference on test or train data 
         5. the quality of ID assignment over time    
         """
-    evaluate_preprocssing(exp8_name, 'run08', show=True)
-    evaluate_training([[exp8_name, 'run08'], [exp8_name, 'run09']], show=True, recreate=True)
-    evaluate_precision_recall([[exp8_name, 'run08', 1000]], show=True, recreate=True)
+    # evaluate_preprocssing(exp8_name, 'run08', show=True)
+    # evaluate_training([[exp8_name, 'run08'], [exp8_name, 'run09']], show=True, recreate=True)
+    # evaluate_precision_recall([[exp8_name, 'run08', 1000]], show=True, recreate=True)
     evaluate_model(exp8_name, 'run08', draw_true_dets=True, show=False, animated=True,
-                   which_dets='FP_FN', t_y_x_slice=(None, (1500,3000), (1000,4000)))
+                   which_dets='IDed', t_y_x_slice=(None, (1500,3000), (1000,4000)))
     
     """Min cost flow assignment hyper parameter optimization"""
     # MCF_param_vals = {'edge_cost_thr_values':  [.1, .3, .4, .6, .7, .8, 1, 2],

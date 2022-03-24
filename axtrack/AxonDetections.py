@@ -8,7 +8,7 @@ import pandas as pd
 import torch
 
 from sklearn import metrics
-from libmot.data_association  import MinCostFlowTracker
+from libmot.data_association import MinCostFlowTracker
 import motmetrics as mm
 
 from .utils import _compute_astar_path

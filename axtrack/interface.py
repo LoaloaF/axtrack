@@ -3,12 +3,12 @@ import sys
 
 from .config import DEPLOYED_MODEL_DIR, DEFAULT_DEVICE, DEFAULT_NUM_WORKERS
 
-from .machinelearning.utils import turn_tex, set_seed, get_data_standardization_scaler
-from .machinelearning.exp_parameters import load_parameters, params2text
+from .utils import turn_tex, set_seed, get_data_standardization_scaler
+from .exp_parameters import load_parameters, params2text
 from .machinelearning.core_functionality import setup_model
 
-from .machinelearning.UnlabelledTimelapse import UnlabelledTimelapse
-from .machinelearning.AxonDetections import AxonDetections
+from .UnlabelledTimelapse import UnlabelledTimelapse
+from .AxonDetections import AxonDetections
 
 def _get_params(num_workers=None, device=None):
     parameters = load_parameters(exp_name=None, run=None, from_directory=DEPLOYED_MODEL_DIR)

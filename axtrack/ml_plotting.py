@@ -4,8 +4,7 @@ import matplotlib as mpl
 import matplotlib.pyplot as plt
 from matplotlib.lines import Line2D
 
-import config
-from config import TRAIN_Ps, TEST_Ps
+from .config import * # all caps constants
 
 def plot_preprocessed_input_data(data, notes='', dest_dir=None, show=False, 
                                  fname_prefix=''):
@@ -13,7 +12,7 @@ def plot_preprocessed_input_data(data, notes='', dest_dir=None, show=False,
     # 1 mio pixel intensity samples
 
     # create a large figure canvas
-    fig = plt.figure(figsize=config.LARGE_FIGSIZE)
+    fig = plt.figure(figsize=LARGE_FIGSIZE)
     fig.subplots_adjust(hspace=.4, wspace=.05, top=.95, left= .07, right=.97)
     # add subplots using a specified grid
     widths, heights = [1, 1, 0.3, 1, 1], [1, 1]
@@ -22,9 +21,9 @@ def plot_preprocessed_input_data(data, notes='', dest_dir=None, show=False,
     axes = [fig.add_subplot(spec[row,col]) for row in range(len(heights)) 
             for col in (0,1,3,4)]
     axes[0].text(.48,.03, 'Pixel intensity', transform=fig.transFigure, 
-                 fontsize=config.FONTS)
+                 fontsize=FONTS)
     axes[0].text(.02,.5, 'Density', transform=fig.transFigure, rotation=90, 
-                 fontsize=config.FONTS)
+                 fontsize=FONTS)
 
     which_preproc_steps = data.columns.unique(1)
     # when standardized label differs....
@@ -41,14 +40,14 @@ def plot_preprocessed_input_data(data, notes='', dest_dir=None, show=False,
             ax.spines['top'].set_visible(False)
             ax.spines['right'].set_visible(False)
             ax.grid(alpha=.5, zorder=0)
-            ax.tick_params(axis='both', labelsize=config.SMALL_FONTS)
+            ax.tick_params(axis='both', labelsize=SMALL_FONTS)
             if j:
                 ax.tick_params(labelleft=False)
             
             # title
             which_preproc_title = which_preproc if not which_preproc.startswith('Standardized') else 'Standardized'
             tit = which_timpoint if which_timpoint == 't_0' else 't_N'
-            ax.set_title(f'{tit}-data: {which_preproc_title}', fontsize=config.FONTS)
+            ax.set_title(f'{tit}-data: {which_preproc_title}', fontsize=FONTS)
             
             # setup yaxis
             ax.set_yscale('log')
@@ -82,18 +81,18 @@ def plot_preprocessed_input_data(data, notes='', dest_dir=None, show=False,
                         label='Train' if dat_name == 'train' else 'Infer')
         
         if i == 0:
-            ax.legend(fontsize=config.SMALL_FONTS, loc='upper right', 
+            ax.legend(fontsize=SMALL_FONTS, loc='upper right', 
                       bbox_to_anchor=(1.03, 1.03))
     if show:
         plt.show()
     if dest_dir is not None:
-        fname = f'{dest_dir}/{fname_prefix}preprocessed_data.{config.FIGURE_FILETYPE}'
+        fname = f'{dest_dir}/{fname_prefix}preprocessed_data.{FIGURE_FILETYPE}'
         fig.savefig(fname)
     plt.close()
 
 def plot_training_process(data, draw_best_thresholds=False, show=False, dest_dir=None):
     # create the figure, share epoch (x axis)
-    fig, axes = plt.subplots(2,4, figsize=config.LARGE_FIGSIZE, sharex=True)
+    fig, axes = plt.subplots(2,4, figsize=LARGE_FIGSIZE, sharex=True)
     fig.subplots_adjust(wspace=.12, hspace=.18, left=.05, right=.97, bottom=.1, 
                         top=.94)
     axes = axes.flatten()
@@ -111,13 +110,13 @@ def plot_training_process(data, draw_best_thresholds=False, show=False, dest_dir
             ax = axes[ax_i]
             
             # general args for every axis
-            ax.tick_params(labelsize=config.SMALL_FONTS, labelleft=False, 
+            ax.tick_params(labelsize=SMALL_FONTS, labelleft=False, 
                            left=False)
             ax.spines['top'].set_visible(False)
             ax.spines['right'].set_visible(False)
             ax.grid(True)
             tit = which_plot.replace('total_','').replace('_','-').capitalize()
-            ax.set_title(tit, fontsize=config.FONTS)
+            ax.set_title(tit, fontsize=FONTS)
             ax.set_xticklabels(ax.get_xticks().astype(int))
             
             # only plots on the left get yticklabels
@@ -129,7 +128,7 @@ def plot_training_process(data, draw_best_thresholds=False, show=False, dest_dir
                 span = 25
             # metrics plots (precision, recall, F1)
             elif which_plot in ( 'precision', 'recall', 'F1'):
-                ax.set_xlabel('Epoch', fontsize=config.FONTS)
+                ax.set_xlabel('Epoch', fontsize=FONTS)
                 ylim = (0.25,1.05)
                 span = 25
             
@@ -159,15 +158,15 @@ def plot_training_process(data, draw_best_thresholds=False, show=False, dest_dir
 
     # draw legend at last exes
     axes[-1].legend(handles=legend_elements, bbox_to_anchor=(0, 1), ncol=1,
-                    loc='upper left', fontsize=config.FONTS)
+                    loc='upper left', fontsize=FONTS)
     if show:
         plt.show()
     if dest_dir is not None:
-        fname = f'{dest_dir}/training{file_name_apdx}.{config.FIGURE_FILETYPE}'
+        fname = f'{dest_dir}/training{file_name_apdx}.{FIGURE_FILETYPE}'
         fig.savefig(fname)
 
 def plot_prc_rcl(data, dest_dir=None, show=None):
-    fig, axes = plt.subplots(1, 2, figsize=config.MEDIUM_FIGSIZE)
+    fig, axes = plt.subplots(1, 2, figsize=MEDIUM_FIGSIZE)
     fig.subplots_adjust(bottom=.01, wspace=.3, right=.95)
     ticks = np.arange(0.5, .91, 0.2)
     lims = (.3, 1.04)
@@ -183,19 +182,19 @@ def plot_prc_rcl(data, dest_dir=None, show=None):
         # yaxis setup
         ax.set_ylim(*lims) 
         ax.set_yticks(ticks)
-        ax.set_yticklabels([f'{t:.1f}' for t in ticks], fontsize=config.SMALL_FONTS)
+        ax.set_yticklabels([f'{t:.1f}' for t in ticks], fontsize=SMALL_FONTS)
 
         # xaxis setup
         ax.set_xlim(*lims)
         ax.set_xticks(ticks)
-        ax.set_xticklabels([f'{t:.1f}' for t in ticks], fontsize=config.SMALL_FONTS)
+        ax.set_xticklabels([f'{t:.1f}' for t in ticks], fontsize=SMALL_FONTS)
 
         if i == 0:
-            ax.set_xlabel('Precision', fontsize=config.FONTS)
-            ax.set_ylabel('Recall', fontsize=config.FONTS)
+            ax.set_xlabel('Precision', fontsize=FONTS)
+            ax.set_ylabel('Recall', fontsize=FONTS)
         else:
-            ax.set_xlabel('Thresholds', fontsize=config.FONTS)
-            ax.set_ylabel('F1', fontsize=config.FONTS)
+            ax.set_xlabel('Thresholds', fontsize=FONTS)
+            ax.set_ylabel('F1', fontsize=FONTS)
 
     # iterate different run metrices
     legend_elements, runs_lbl = [], ''
@@ -230,11 +229,11 @@ def plot_prc_rcl(data, dest_dir=None, show=None):
             Line2D([0], [0], label=f'Test', color=col, **TEST_Ps),
             ])
     axes[0].legend(handles=legend_elements, bbox_to_anchor=(-.2, 1.05), ncol=1,
-                   loc='lower left', fontsize=config.SMALL_FONTS)
+                   loc='lower left', fontsize=SMALL_FONTS)
     if show:
         plt.show()
     if dest_dir:
-        fig.savefig(f'{dest_dir}/prc_rcl_{runs_lbl}.{config.FIGURE_FILETYPE}')
+        fig.savefig(f'{dest_dir}/prc_rcl_{runs_lbl}.{FIGURE_FILETYPE}')
  
 def plot_IDassignment_performance(metrics, dest_dir, show, col_param=None,
                                   draw_topbar=True):
@@ -243,7 +242,7 @@ def plot_IDassignment_performance(metrics, dest_dir, show, col_param=None,
     print(metrics.iloc[:5].T)
 
     # create the figure
-    fig, axes = plt.subplots(1, 2, figsize=config.MEDIUM_FIGSIZE)
+    fig, axes = plt.subplots(1, 2, figsize=MEDIUM_FIGSIZE)
     fig.subplots_adjust(bottom=.01, left=.13, wspace=.38, top=.8, right=.93)
     ticks = np.arange(0.5, .91, 0.2)
     lims = (.3, .94)
@@ -252,30 +251,30 @@ def plot_IDassignment_performance(metrics, dest_dir, show, col_param=None,
     for i, ax in enumerate(axes):
         ax.set_ylim(*lims) 
         ax.set_yticks(ticks)
-        ax.set_yticklabels([f'{t:.1f}' for t in ticks], fontsize=config.SMALL_FONTS)
+        ax.set_yticklabels([f'{t:.1f}' for t in ticks], fontsize=SMALL_FONTS)
 
         ax.set_xlim(*lims)
         ax.set_xticks(ticks)
-        ax.set_xticklabels([f'{t:.1f}' for t in ticks], fontsize=config.SMALL_FONTS)
+        ax.set_xticklabels([f'{t:.1f}' for t in ticks], fontsize=SMALL_FONTS)
 
         ax.set_aspect('equal')
         ax.spines['top'].set_visible(False)
         ax.spines['right'].set_visible(False)
         ax.grid()
         if i == 0:
-            ax.set_xlabel('Identity precision', fontsize=config.FONTS)
-            ax.set_ylabel('Identity recall', fontsize=config.FONTS)
+            ax.set_xlabel('Identity precision', fontsize=FONTS)
+            ax.set_ylabel('Identity recall', fontsize=FONTS)
         else:
-            ax.set_xlabel('MOT accuracy', fontsize=config.FONTS)
-            ax.set_ylabel('Identity F1', fontsize=config.FONTS)
+            ax.set_xlabel('MOT accuracy', fontsize=FONTS)
+            ax.set_ylabel('Identity F1', fontsize=FONTS)
 
     # draw best scores
-    sct_args = {'alpha':1, 'edgecolor':'k', 'color':config.LIGHT_GRAY, 
+    sct_args = {'alpha':1, 'edgecolor':'k', 'color':LIGHT_GRAY, 
                 'linewidth':1, 's':75, 'marker':'D', 'zorder':20}
     axes[0].scatter(metrics.idp.iloc[0], metrics.idr.iloc[0], **sct_args)
     axes[1].scatter(metrics.mota.iloc[0], metrics.idf1.iloc[0], **sct_args)
     # draw all the others
-    sct_args.update({'alpha':.8, 'color':config.LIGHT_GRAY, 'linewidth':1, 
+    sct_args.update({'alpha':.8, 'color':LIGHT_GRAY, 'linewidth':1, 
                      's':5, 'marker':'.'})
     if col_param:
         # get the parameter values
@@ -301,7 +300,7 @@ def plot_IDassignment_performance(metrics, dest_dir, show, col_param=None,
         ax.set_xticks(xts)
         ax.set_xticklabels(xts)
         # ax.set_xticklabels([f'{int(xt*100):2>0}\%' for xt in xts])
-        ax.tick_params(left=False, labelleft=False, labelsize=config.SMALL_FONTS)
+        ax.tick_params(left=False, labelleft=False, labelsize=SMALL_FONTS)
         
         n = metrics.num_unique_objects[0]
         mostly_tr = metrics.mostly_tracked[0] / n
@@ -310,18 +309,18 @@ def plot_IDassignment_performance(metrics, dest_dir, show, col_param=None,
 
         # proportion bar text
         ax.text(mostly_tr/2, .5, 'mostly tracked', clip_on=False, 
-                ha='center', va='center', fontsize=config.SMALL_FONTS)
+                ha='center', va='center', fontsize=SMALL_FONTS)
         ax.text(mostly_tr + part_tr/2, .5, 'partially tracked', clip_on=False, 
-                ha='center', va='top', fontsize=config.SMALL_FONTS)
+                ha='center', va='top', fontsize=SMALL_FONTS)
         ax.text(mostly_tr + part_tr + mostly_lost/2, .5, 'mostly lost', clip_on=False, 
-                ha='center', va='bottom', fontsize=config.SMALL_FONTS)
-        ax.set_title('Proportion of axons', fontsize=config.FONTS, loc='left')
+                ha='center', va='bottom', fontsize=SMALL_FONTS)
+        ax.set_title('Proportion of axons', fontsize=FONTS, loc='left')
 
         # proportion bar data drawing
-        ax.barh(0.5, mostly_tr, color=config.DEFAULT_COLORS[0], alpha=.8)
-        ax.barh(0.5, part_tr, left=mostly_tr, color=config.DEFAULT_COLORS[2], alpha=.8)
+        ax.barh(0.5, mostly_tr, color=DEFAULT_COLORS[0], alpha=.8)
+        ax.barh(0.5, part_tr, left=mostly_tr, color=DEFAULT_COLORS[2], alpha=.8)
         ax.barh(0.5, mostly_lost, left=mostly_tr+part_tr, 
-                color=config.DEFAULT_COLORS[1], alpha=.8)
+                color=DEFAULT_COLORS[1], alpha=.8)
     else:
         # cb1 = fig.colorbar(ax, cmap=cmap, norm=norm,
         cbl = mpl.colorbar.ColorbarBase(ax, cmap=cmap, norm=norm, 
@@ -331,11 +330,11 @@ def plot_IDassignment_performance(metrics, dest_dir, show, col_param=None,
             cbl.set_ticklabels(np.unique(param_vals.values))
         else:
             cbl.set_ticklabels(('scale_to_max','ceil'))
-        cbl.set_label(col_param, fontsize=config.SMALL_FONTS)
+        cbl.set_label(col_param, fontsize=SMALL_FONTS)
             
     if show:
         plt.show()
     if dest_dir:
         postf = '' if not col_param else '_'+col_param
-        plt.savefig(f'{dest_dir}/MCF_param_search_results{postf}.{config.FIGURE_FILETYPE}')
+        plt.savefig(f'{dest_dir}/MCF_param_search_results{postf}.{FIGURE_FILETYPE}')
     plt.close()

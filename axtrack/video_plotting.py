@@ -10,8 +10,8 @@ from matplotlib.animation import ArtistAnimation, writers
 from skimage.filters import gaussian
 from skimage.morphology import dilation
 
-from utils import torch_data2drawable
-import config
+from .utils import torch_data2drawable
+from .config import *   # all caps constants
 
 def draw_all(axon_dets, structure_screen=None, which_dets='confident', 
              description='', t_y_x_slice=[None,None,None], dets_kwargs=None, 
@@ -98,8 +98,8 @@ def draw_all(axon_dets, structure_screen=None, which_dets='confident',
             plt.show()
         print('encoding animation...', flush=True, end='')
         fname = (f'{dest_dir}/{axon_dets.dataset.name}_dets'
-                 f'{anim_fname_postfix}.{config.VIDEO_FILETYPE}')
-        ani.save(fname, writer=writers[config.VIDEO_ENCODER](fps=fps), dpi=dpi)
+                 f'{anim_fname_postfix}.{VIDEO_FILETYPE}')
+        ani.save(fname, writer=writers[VIDEO_ENCODER](fps=fps), dpi=dpi)
         print(f'{axon_dets.dataset.name} animation saved.')
     plt.close('all')
     print(' - Done.', flush=True)
@@ -132,13 +132,13 @@ def setup_frame_drawing(axon_dets, structure_screen, which_dets, t, description,
     # drawing confident, IDed or all detections
     if which_dets != 'FP_FN':
         scnd_dets = gt_dets if draw_true_dets else None
-        dets_kwargs = dets_kwargs if dets_kwargs else config.PREDICTED_BOXES_KWARGS
-        scnd_dets_kwargs = scnd_dets_kwargs if scnd_dets_kwargs else config.GROUNDTRUTH_BOXES_KWARGS
+        dets_kwargs = dets_kwargs if dets_kwargs else PREDICTED_BOXES_KWARGS
+        scnd_dets_kwargs = scnd_dets_kwargs if scnd_dets_kwargs else GROUNDTRUTH_BOXES_KWARGS
     # or only false positives and false negatives
     else:
         dets, scnd_dets = dets
-        dets_kwargs = dets_kwargs if dets_kwargs else config.FP_BOXES_KWARGS
-        scnd_dets_kwargs = scnd_dets_kwargs if scnd_dets_kwargs else config.FN_BOXES_KWARGS
+        dets_kwargs = dets_kwargs if dets_kwargs else FP_BOXES_KWARGS
+        scnd_dets_kwargs = scnd_dets_kwargs if scnd_dets_kwargs else FN_BOXES_KWARGS
     
     # adjust the detection coordinates to the image slice
     dets.anchor_y -= ymin
@@ -213,7 +213,7 @@ def draw_frame(img, dest_dir, dets=None, scnd_dets=None, fname='image', lbl='',
 
     # draw label on top right
     artists.append(ax.text(width-140, 50, lbl, ha='right', va='top',
-                        fontsize=height/180, color=config.DARK_GRAY))
+                        fontsize=height/180, color=DARK_GRAY))
 
     # draw yolo lines, only at t0 if animation 
     if (gridsize and not animation) or (gridsize and animation and first_tpoint):
@@ -230,7 +230,7 @@ def draw_frame(img, dest_dir, dets=None, scnd_dets=None, fname='image', lbl='',
         bar_width, pad = 10, 150
         xstart, xstop = width-pad, width-pad-bar_length
         ystart, ystop = pad, pad
-        ax.plot((xstart,xstop), (ystart,ystop), linewidth=bar_width, color=config.DARK_GRAY)
+        ax.plot((xstart,xstop), (ystart,ystop), linewidth=bar_width, color=DARK_GRAY)
         artists.append(ax.text(width-225, 136, '200 um', ha='right', va='top',
                        fontsize=height/180, color='k'))
 
@@ -264,7 +264,7 @@ def draw_frame(img, dest_dir, dets=None, scnd_dets=None, fname='image', lbl='',
     if show:
         plt.show()
     if dest_dir:
-        fig.savefig(f'{dest_dir}/{fname}.{config.FIGURE_FILETYPE}')
+        fig.savefig(f'{dest_dir}/{fname}.{FIGURE_FILETYPE}')
         plt.close(fig) 
 
 def draw_detections(dets, kwargs, ax, boxs, annotate=False, axon_reconstr=None, 

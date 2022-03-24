@@ -6,8 +6,8 @@ from torch import nn as nn
 import pandas as pd
 import matplotlib.pyplot as plt
 
-from ..config import TRAINING_DATA_DIR, OUTPUT_DIR, DEFAULT_DEVICE, DEFAULT_NUM_WORKERS, SPACER
 from .utils import get_run_dir, architecture_to_text
+from .config import TRAINING_DATA_DIR, OUTPUT_DIR, DEFAULT_DEVICE, DEFAULT_NUM_WORKERS, SPACER
 
 def get_default_parameters():
     # DATA

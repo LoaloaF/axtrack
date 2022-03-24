@@ -6,7 +6,7 @@ from .exp_parameters import (
     to_device_specifc_params,
     compare_parameters,
     )
-from .core_functionality import (
+from .machinelearning.core_functionality import (
     setup_data, 
     setup_model, 
     )
@@ -28,7 +28,7 @@ from .video_plotting import  (
     )
 from .AxonDetections import AxonDetections
 from .exp_parameters import load_parameters, params2text
-from ..config import OUTPUT_DIR, SPACER
+from .config import OUTPUT_DIR, SPACER
 
 def setup_evaluation(exp_name, run, print_params=True):
     EXP_DIR = f'{OUTPUT_DIR}/runs/{exp_name}/'
@@ -106,8 +106,8 @@ def evaluate_precision_recall(exp_run_epoch_ids, show=True, avg_over_t=30,
 
 def evaluate_model(exp_name, run, epoch='latest', which_data='test', 
                 which_dets='confident', show=True,
-                cache_detections='from', astar_paths_cache='from', 
-                assigedIDs_cache='from', **kwargs):
+                cache_detections='to', astar_paths_cache='to', 
+                assigedIDs_cache='to', **kwargs):
     print('\nEvaluating model...', end='')
     RUN_DIR, params = setup_evaluation(exp_name, run)
     params = to_device_specifc_params(params, get_default_parameters(), 
