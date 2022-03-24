@@ -26,7 +26,6 @@ elif where.startswith('/home/loaloa/gdrive/'):
     TRAINING_DATA_DIR = BASE_DIR + 'training_data_subs/'
     OUTPUT_DIR = BASE_DIR + 'model_output/'
     DEPLOYED_MODEL_DIR = BASE_DIR + '/code/deployed_model/'
-    print(DEPLOYED_MODEL_DIR)
     
     DEFAULT_DEVICE = 'cpu'
     DEFAULT_NUM_WORKERS = 3
