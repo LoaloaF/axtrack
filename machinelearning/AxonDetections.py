@@ -11,8 +11,8 @@ from sklearn import metrics
 from libmot.data_association  import MinCostFlowTracker
 import motmetrics as mm
 
-from utils import _compute_astar_path
-from mincostflow_models import observation_model, transition_model, feature_model
+from .utils import _compute_astar_path
+from .mincostflow_models import observation_model, transition_model, feature_model
 
 class AxonDetections(object):
     """

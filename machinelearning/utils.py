@@ -14,7 +14,7 @@ import torch
 from torchvision import models
 from torchsummary import summary
 
-from config import OUTPUT_DIR
+from ..config import OUTPUT_DIR
 
 import matplotlib.pyplot as plt
 

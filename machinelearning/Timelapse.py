@@ -15,7 +15,7 @@ import torch
 from torch.utils.data import Dataset
 from torch.nn import ZeroPad2d
 
-from data_utils import apply_transformations, sprse_scipy2torch
+from .data_utils import apply_transformations, sprse_scipy2torch
 
 class Timelapse(Dataset):
     def __init__(self, imseq_path, labels_csv, mask_path, timepoints, offset,

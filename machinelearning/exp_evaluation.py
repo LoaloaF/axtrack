@@ -1,34 +1,34 @@
 import os
 import pandas as pd
 
-from exp_parameters import (
+from .exp_parameters import (
     get_default_parameters, 
     to_device_specifc_params,
     compare_parameters,
     )
-from core_functionality import (
+from .core_functionality import (
     setup_data, 
     setup_model, 
     )
-from utils import (
+from .utils import (
     save_preproc_metrics,
     get_all_epoch_data,
     get_run_dir,
     set_seed,
     turn_tex,
     )
-from ml_plotting import (
+from .ml_plotting import (
     plot_preprocessed_input_data, 
     plot_training_process,
     plot_prc_rcl,
     plot_IDassignment_performance,
     )
-from video_plotting import  (
+from .video_plotting import  (
     draw_all,
     )
-from AxonDetections import AxonDetections
-from exp_parameters import load_parameters, params2text
-from config import OUTPUT_DIR, SPACER
+from .AxonDetections import AxonDetections
+from .exp_parameters import load_parameters, params2text
+from ..config import OUTPUT_DIR, SPACER
 
 def setup_evaluation(exp_name, run, print_params=True):
     EXP_DIR = f'{OUTPUT_DIR}/runs/{exp_name}/'
