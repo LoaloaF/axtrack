@@ -212,7 +212,7 @@ if __name__ == '__main__':
         4. a saved model doing inference on test or train data 
         5. the quality of ID assignment over time    
         """
-    # evaluate_preprocssing(exp8_name, 'run08', show=True)
+    evaluate_preprocssing(exp8_name, 'run08', show=True)
     # evaluate_training([[exp8_name, 'run08'], [exp8_name, 'run09']], show=True, recreate=True)
     # evaluate_precision_recall([[exp8_name, 'run08', 1000]], show=True, recreate=True)
     evaluate_model(exp8_name, 'run08', draw_true_dets=True, show=False, animated=True,
