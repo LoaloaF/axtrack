@@ -109,7 +109,7 @@ def write_parameters(file, params):
     pickle.dump(params, open(file, 'wb'))
 
 def load_parameters(exp_name, run, from_directory=None):
-    if exp_name and run:
+    if exp_name is not None and run is not None:
         EXP_DIR = f'{OUTPUT_DIR}/runs/{exp_name}/'
         RUN_DIR = get_run_dir(EXP_DIR, run)
         file = f'{RUN_DIR}/params.pkl'
@@ -153,9 +153,9 @@ def to_device_specifc_params(model_parameters, local_default_params,
                              from_cache=None, cache=None, fill_missing_keys=True):
     to_update = ('TIMELAPSE_FILE', 'LABELS_FILE', 'MASK_FILE', 'DEVICE')
     [model_parameters.update({key: local_default_params[key]}) for key in to_update]
-    if from_cache:
+    if from_cache is not None:
         model_parameters['FROM_CACHE'] = from_cache
-    if cache:
+    if cache is not None:
         model_parameters['CACHE'] = cache
     if fill_missing_keys:
         [model_parameters.update({key: val}) for key,val in local_default_params.items() 
@@ -211,4 +211,6 @@ def update_MCF_params(exp_name, run, epoch='latest'):
     new_MCF_params = dict(zip(['MCF_'+o.upper() for o in params.index], params.values))
     print('Updateting min cost flow parameters to: ', new_MCF_params)
     parameters.update(new_MCF_params)
+    t = params2text(parameters)
+    print(t)
     write_parameters(f'{RUN_DIR}/params.pkl', parameters)

@@ -117,3 +117,4 @@ def transition_model(**kwargs):
                     + 1e-6)
     costs[inf_dist] = np.inf
     return costs
+    

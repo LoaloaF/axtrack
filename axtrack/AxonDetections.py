@@ -68,7 +68,6 @@ class AxonDetections(object):
         self.MCF_max_conf_cost = parameters['MCF_MAX_CONF_COST']
         self.MCF_vis_sim_weight = parameters['MCF_VIS_SIM_WEIGHT']
         self.MCF_conf_capping_method = parameters['MCF_CONF_CAPPING_METHOD']
-        self.MCF_min_ID_lifetime = parameters['MCF_MIN_ID_LIFETIME']
         
         # parameters for selecting detections
         self.nms_min_dist = parameters.get('NON_MAX_SUPRESSION_DIST')
@@ -76,7 +75,7 @@ class AxonDetections(object):
         self.all_conf_thrs = np.sort(np.append(np.arange(0.55, 1, .04), self.conf_thr)).round(2)
         self.max_px_assoc_dist = 500
         self.axon_box_size = 70     # only for visualization
-        self.labelled = False if  hasattr(dataset, 'start_mask') else True
+        self.labelled = dataset.target.empty
 
     def __len__(self):
         """
@@ -331,7 +330,7 @@ class AxonDetections(object):
                 det = [d[d.conf>self.conf_thr] for d in self._pandas_tiled_dets[t]]
 
         elif which_dets == 'IDed':
-            assert hasattr(self, '_IDed_detections'), "Run .assign_IDs() first!"
+            assert hasattr(self, '_IDed_detections') and self._IDed_detections, "Run .assign_IDs() first!"
             det = self._IDed_detections[t]
         
         elif which_dets == 'groundtruth':
@@ -576,6 +575,7 @@ class AxonDetections(object):
                         
                         astar_paths.append([p for p in as_paths])
                     astar_dets_paths[lbl] = astar_paths
+                print('\n')
             print('Done.')
             
             if cache == 'to':
@@ -675,6 +675,7 @@ class AxonDetections(object):
 
             # iterate of the frames and have them processed by tracker model
             for i in range(len(self)):
+                print('\n\n')
                 print(f'frame {i}/{(len(self)-1)}', end='...', flush=True)
                 det = dets[(dets[:, 0] == i), :]
                 img = self.get_frame_and_truedets(i)[0]
@@ -684,18 +685,21 @@ class AxonDetections(object):
 
             # solve the graph output trajectory is a list [IDs] of list of boxes (in
             # frames) with format frame_idx, box_idx, box_coo (4 values)
+            print('Finding trajectories:')
             trajectory = track_model.compute_trajectories()
-            
+            if not trajectory:
+                print('Could not solve the graph for identity association. Try '
+                      'narrowing expected identities by updating '
+                      'parameters[`MCF_min_flow`, `MCF_max_flow`].')
+                return None
+
             # iterate IDs and bring them in to more convinient format again
             record = []
             for i, t in enumerate(trajectory):
-                # check how long the ID lives
-                if len(t) < self.MCF_min_ID_lifetime:
-                    continue
                 # iterate over lifetime timepoints
                 for j, box in enumerate(t):
                     record.append([box[0], i, box[2][0], box[2][1], box[2][2], box[2][3]])
-            print(f'-> {i} axon IDs. Done.')
+            print(f'-> {len(trajectory)} axon IDs. Done.')
             track = np.array(record)
             track = track[np.argsort(track[:, 0])]
 

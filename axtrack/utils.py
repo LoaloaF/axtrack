@@ -94,18 +94,18 @@ def save_preproc_metrics(dest_dir, dataset1, dataset2=None):
 
     for which_step, arr in dataset1.plot_data.items():
         t0_sample = arr[0].flatten()[smple_indices]
-        tn1_sample =arr[1].flatten()[smple_indices]
+        tn1_sample = arr[1].flatten()[smple_indices]
         samples.append(pd.Series(t0_sample, name=(dataset1.name, which_step, 't_0')))
         samples.append(pd.Series(tn1_sample, name=(dataset1.name, which_step, 't_-1')))
 
-    if dataset2 is not None:
-        for which_step, arr in dataset2.plot_data.items():
-            t0_sample = arr[0].flatten()[smple_indices]
-            tn1_sample = arr[1].flatten()[smple_indices]
-            samples.append(pd.Series(t0_sample, name=(dataset2.name, which_step, 't_0')))
-            samples.append(pd.Series(tn1_sample, name=(dataset2.name, which_step, 't_-1')))
+    # if dataset2 is not None:
+    #     for which_step, arr in dataset2.plot_data.items():
+    #         t0_sample = arr[0].flatten()[smple_indices]
+    #         tn1_sample = arr[1].flatten()[smple_indices]
+    #         samples.append(pd.Series(t0_sample, name=(dataset2.name, which_step, 't_0')))
+    #         samples.append(pd.Series(tn1_sample, name=(dataset2.name, which_step, 't_-1')))
 
-    fname = f'{dest_dir}/preprocessed_data.csv'
+    fname = f'{dest_dir}/{dataset1.name}_preproc_data.csv'
     pd.concat(samples, axis=1).to_csv(fname)
     return fname
 
@@ -265,8 +265,9 @@ def save_checkpoint(model, optimizer, lr_schedular, filename):
 def load_checkpoint(load_model, model, optimizer, lr_schedular, device):
     print("=> Loading model checkpoint...", end='')
     # at inference/ deployment (skip LR schedular and optimizer )
+    print(load_model)
     if isinstance(load_model, str):
-        file = glob.glob(f'{load_model}/*.pth')[0]
+        file = sorted(glob.glob(f'{load_model}/*.pth'))[0]
         checkpoint = torch.load(file, map_location=torch.device(device))
         model.load_state_dict(checkpoint["state_dict"])
     
@@ -274,7 +275,8 @@ def load_checkpoint(load_model, model, optimizer, lr_schedular, device):
         exp_dir = f'{OUTPUT_DIR}/runs/{load_model[0]}/'
         run_dir = [rd for rd in os.listdir(exp_dir) if load_model[1] in rd][0]
         if load_model[2] == 'latest':
-            file = [pthfile for pthfile in glob.glob(f'{exp_dir}/{run_dir}/models/*.pth')][-1]
+            modelfiles = sorted(glob.glob(f'{exp_dir}/{run_dir}/models/*.pth'))
+            file = [pthfile for pthfile in modelfiles][-1]
         elif load_model[2]:
             file = f'{exp_dir}/{run_dir}/models/E{load_model[2]:0>4}.pth'
 

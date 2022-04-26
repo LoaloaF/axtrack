@@ -21,7 +21,8 @@ class Timelapse(Dataset):
     def __init__(self, imseq_path, labels_csv, mask_path, timepoints, offset,
                 log_correct, standardize_framewise, standardize, name, 
                 use_motion_filtered, use_sparse, use_transforms, contrast_llim, 
-                plot, pad, Sy, Sx, tilesize, cache, from_cache, temporal_context):
+                plot, pad, Sy, Sx, tilesize, cache, from_cache, temporal_context,
+                dt=None, incubation_time=None):
         
         super().__init__()
         self.name = name
@@ -33,6 +34,10 @@ class Timelapse(Dataset):
         if not from_cache:
             # agg preprocessing steps data in this dict
             self.plot_data = {}
+
+            # metadata
+            self.dt = dt
+            self.incubation_time = incubation_time
 
             # which input data to use
             self.timepoints = timepoints
@@ -86,7 +91,7 @@ class Timelapse(Dataset):
 
             # convert scipy.COO (imseq, p_motion & n_motion) to sparse tensor
             self.X = self._construct_X_tensor()
-            # del self.imseq
+            del self.imseq
 
             # final data to use is constructed before each epoch by calling 
             # construct_tiles(). empty tiles mask for reconstructing image from 
@@ -200,7 +205,8 @@ class Timelapse(Dataset):
         imseq[~mask] = 0
 
         if offset:
-            print(f'offsetting by {offset}...', end='', flush=True)
+            offset = offset/2**16 if isinstance(offset, int) else offset
+            print(f'offsetting by {offset:.4f} (0-1)...', end='', flush=True)
             imseq -=  offset
             imseq[imseq<0] = 0
         if any(self.pad):
@@ -214,16 +220,21 @@ class Timelapse(Dataset):
             padded_mask[:, top:top+imseq.shape[1], left:left+imseq.shape[2]] = mask
             imseq = padded
             mask = padded_mask
+        
+        if self.timepoints is None:
+            self.timepoints = np.arange(self.temporal_context, imseq.shape[0]-self.temporal_context)
         if plot:
             t0 = imseq[self.timepoints[0]].copy()
             tn1 = imseq[self.timepoints[-1]].copy() 
             self.plot_data['Original'] = t0, tn1
+        print('Done.')
         return imseq, mask
         
     def _clip_image_values(self, lower, plot):
         if lower:
+            lower = lower /2**16 if isinstance(lower, int) else lower
             self.imseq[self.imseq<lower] = 0
-            print(f'Image clipped to min value: {lower:.4f}')
+            print(f'Image clipped to min value: {lower:.4f} (0-1)')
         if plot:
             t0 = self.imseq[self.timepoints[0]].copy()
             tn1 = self.imseq[self.timepoints[-1]].copy() 
@@ -361,7 +372,7 @@ class Timelapse(Dataset):
         return bboxes
 
     def _slice_timepoints(self):
-        print(f'Slicing timepoints from t=[0...{self.sizet}] to t=' \
+        print(f'Slicing timepoints from t=[0...{self.sizet-1}] to t=' \
               f'{self.timepoints} (n={len(self.timepoints)})')
         tps = self.timepoints
         t_discontinuities = [i for i in range(1, len(tps)) if tps[i] != tps[i-1]+1]
@@ -411,18 +422,19 @@ class Timelapse(Dataset):
 
     def _caching(self, cache=False, from_cache=False):
         if from_cache:
-            print('Loading dataset from cache.\n')
+            print('Loading dataset from cache', end='...')
             dataset_file = f'{from_cache}/{self.name}_dataset_cached.pkl'
             assert os.path.exists(dataset_file), f'\n\nNo cached dataset found: {dataset_file}'
             with open(dataset_file, 'rb') as file:
                 cached_object = pickle.load(file)
                 [self.__setattr__(n, v) for n, v in cached_object.items()]
+            print('Done.\n')
 
         elif cache:
             with open(f'{cache}/{self.name}_dataset_cached.pkl', 'wb') as file:
-                print('Serializing datset for caching...', end='')
+                print('Serializing datset for caching', end='...')
                 pickle.dump(self.__dict__, file, protocol=4)
-                print('Done.\n\n')
+            print('Done.\n')
         
     def tiled_target2yolo_format(self, target_tiled):
         # yolo target switches dim order from y-x to x-y!

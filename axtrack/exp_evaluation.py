@@ -113,6 +113,7 @@ def evaluate_model(exp_name, run, epoch='latest', which_data='test',
     params = to_device_specifc_params(params, get_default_parameters(), 
                                       from_cache=OUTPUT_DIR)
     params['LOAD_MODEL'] = [exp_name, run, epoch]
+    # params['LOAD_MODEL'] = '/home/ssteffens/code/axtrack/deployed_model/'
 
     train_data, test_data = setup_data(params)
     data = test_data if which_data == 'test' else train_data
@@ -120,10 +121,22 @@ def evaluate_model(exp_name, run, epoch='latest', which_data='test',
 
     dest_dir = f'{RUN_DIR}/axon_dets'
     axon_detections = AxonDetections(model, data, params, dest_dir)
+    
+    ### debugging ###
+    # axon_detections = AxonDetections(model, data, params, dest_dir, timepoint_subset=range(5))
+    ### debugging ###
+
     axon_detections.detect_dataset(cache=cache_detections)
     
     if which_dets == 'IDed':
         axon_detections.assign_ids(astar_paths_cache, assigedIDs_cache)
+
+    calculate_metrics = True
+    if calculate_metrics:
+        cnfs_mtrx = sum([axon_detections.compute_TP_FP_FN(which_dets=which_dets, t=t) 
+                         for t in range(len(axon_detections))])
+        metrics = axon_detections.compute_prc_rcl_F1(cnfs_mtrx, return_dataframe=True)
+        print(metrics)
     
     description = f'{exp_name}, {run}, Epoch:{epoch}, Notes: {params["NOTES"]}'
     draw_all(axon_detections, which_dets=which_dets, show=show,

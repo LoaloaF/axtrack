@@ -1,1 +1,1 @@
-from .axtrack.interface import setup_inference, prepare_input_data, inference
+from .axtrack.interface import setup_inference, prepare_input_data, inference,visualize_inference

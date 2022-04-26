@@ -4,22 +4,25 @@ from cycler import cycler
 import matplotlib.pyplot as plt
 from matplotlib.colors import ListedColormap
 
-where = os.path.abspath(os.curdir)
+where = os.path.dirname(__file__) + '/../'
+print(where)
 
 # eth gpu server
-if where.startswith('/home/ssteffens'):
+if os.path.exists('/home/ssteffens/'):
     REMOTE_DATA_DIR = '/srv/beegfs-data/projects/biohybrid-signal-p/data/'
     
     TRAINING_DATA_DIR = REMOTE_DATA_DIR + '/training_data/'
+    TRAINING_DATA_DIR = REMOTE_DATA_DIR + '/training_data_subs/'
     OUTPUT_DIR = REMOTE_DATA_DIR + '/model_output/'
-    DEPLOYED_MODEL_DIR = BASE_DIR + '/code/deployed_model/'
+    BASE_DIR = '/home/ssteffens/'
+    DEPLOYED_MODEL_DIR = BASE_DIR + '/code/axtrack/deployed_model/'
 
     DEFAULT_DEVICE = 'cuda:0'
     DEFAULT_NUM_WORKERS = 2
     VIDEO_ENCODER = 'ffmpeg'
 
 # local machine
-elif where.startswith('/home/loaloa/gdrive/'):
+elif where.startswith('///home/loaloa/gdrive/'):
     BASE_DIR = '/home/loaloa/gdrive/projects/biohybrid MEA/'
     REMOTE_DATA_DIR = '/home/loaloa/lbbgpu_data/'
 
@@ -31,7 +34,18 @@ elif where.startswith('/home/loaloa/gdrive/'):
     DEFAULT_NUM_WORKERS = 3
     VIDEO_ENCODER = 'ffmpeg'
 else:
-    pass
+    BASE_DIR = where
+    # DATA_DIR = '/run/media/loaloa/'
+    DEPLOYED_MODEL_DIR = BASE_DIR + '/deployed_model/'
+    # REMOTE_DATA_DIR = '/home/loaloa/lbbgpu_data/'
+
+    TRAINING_DATA_DIR = BASE_DIR + 'training_data_subs/'
+    OUTPUT_DIR = BASE_DIR + 'model_output/'
+    
+    DEFAULT_DEVICE = 'cpu'
+    DEFAULT_NUM_WORKERS = 3
+    VIDEO_ENCODER = 'ffmpeg'
+    
 
 SPACER = '========================================================'
 
