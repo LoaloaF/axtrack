@@ -11,7 +11,7 @@ from sklearn import metrics
 from libmot.data_association import MinCostFlowTracker
 import motmetrics as mm
 
-from .utils import _compute_astar_path
+from .utils import _compute_astar_path, _get_astar_path_distances
 from .mincostflow_models import observation_model, transition_model, feature_model
 
 class AxonDetections(object):
@@ -46,6 +46,7 @@ class AxonDetections(object):
         """
         self.model = model
         self.dataset = dataset 
+        self.name = dataset.name 
         self.dir = directory
         if self.dir:
             os.makedirs(self.dir, exist_ok=True)
@@ -146,7 +147,7 @@ class AxonDetections(object):
         ---------
         which: str
             Which data to get. Options: {'yolo_targets', 'pandas_tiled_dets',
-            'detections', } 
+            'detections', 'astar_dets_paths', 'IDed_detections', ...} 
         """
         fname = f'{self.dataset.name}_{which}.pkl'
         print(f'Getting from cache: {fname}', flush=True)
@@ -520,6 +521,7 @@ class AxonDetections(object):
         """
         self.astar_dets_paths = self._compute_detections_astar_paths(cache=astar_paths_cache)
         self._IDed_detections = self._assign_IDs_to_detections(cache=assigedIDs_cache)
+        self.IDed_dets_all = self._agg_all_IDed_dets()
 
     def _compute_detections_astar_paths(self, cache='to'):
         """
@@ -657,7 +659,8 @@ class AxonDetections(object):
                 dets[:, -1] /= dets[:, -1].max()
 
             # setup the tracker model with paramters and a* distances
-            astar_dists = self._get_astar_path_distances(self.astar_dets_paths)
+            astar_dists = _get_astar_path_distances(self.astar_dets_paths, 
+                                                    self.max_px_assoc_dist)
             track_model = MinCostFlowTracker(observation_model = observation_model,
                                             transition_model = transition_model, 
                                             feature_model = feature_model,
@@ -675,7 +678,6 @@ class AxonDetections(object):
 
             # iterate of the frames and have them processed by tracker model
             for i in range(len(self)):
-                print('\n\n')
                 print(f'frame {i}/{(len(self)-1)}', end='...', flush=True)
                 det = dets[(dets[:, 0] == i), :]
                 img = self.get_frame_and_truedets(i)[0]
@@ -685,12 +687,13 @@ class AxonDetections(object):
 
             # solve the graph output trajectory is a list [IDs] of list of boxes (in
             # frames) with format frame_idx, box_idx, box_coo (4 values)
-            print('Finding trajectories:')
+            print('Finding trajectories...', end=' ')
             trajectory = track_model.compute_trajectories()
             if not trajectory:
                 print('Could not solve the graph for identity association. Try '
                       'narrowing expected identities by updating '
-                      'parameters[`MCF_min_flow`, `MCF_max_flow`].')
+                      'parameters[`MCF_min_flow`, `MCF_max_flow`]. Currently: '
+                      f'{self.MCF_min_flow} to {self.MCF_max_flow}.')
                 return None
 
             # iterate IDs and bring them in to more convinient format again
@@ -712,42 +715,42 @@ class AxonDetections(object):
             self.to_cache('_IDed_detections', _IDed_detections)
         return _IDed_detections
 
-    def _get_astar_path_distances(self, astar_paths):
-        """
-        Get the lengths of a set of A* paths. Inputs may be lists, nested lists
-        or dictionaries. Returns a np.array where dimensions match the input
-        type and shape.
+    # def _get_astar_path_distances(self, astar_paths):
+    #     """
+    #     Get the lengths of a set of A* paths. Inputs may be lists, nested lists
+    #     or dictionaries. Returns a np.array where dimensions match the input
+    #     type and shape.
 
-        Arguments
-        ---------
-        astar_paths: {dict, list}
-            The set of A* paths (scipy.sparse.coo_matrix) either within a
-            dictionary (for between-detection use case) or lists (or nested
-            lists) for general use case.
-        """
-        def rec_get_distance(path_list):
-            if isinstance(path_list, list):
-                # unpack the next depth level
-                dists_list = [rec_get_distance(el) for el in path_list]
-            else:
-                # path_list fully unpacked, elements are either None or scipy.coo
-                dist = self.max_px_assoc_dist if path_list is None else path_list.getnnz()
-                # built up nested list of distances
-                return dist
-            # final exit
-            return dists_list
+    #     Arguments
+    #     ---------
+    #     astar_paths: {dict, list}
+    #         The set of A* paths (scipy.sparse.coo_matrix) either within a
+    #         dictionary (for between-detection use case) or lists (or nested
+    #         lists) for general use case.
+    #     """
+    #     def rec_get_distance(path_list):
+    #         if isinstance(path_list, list):
+    #             # unpack the next depth level
+    #             dists_list = [rec_get_distance(el) for el in path_list]
+    #         else:
+    #             # path_list fully unpacked, elements are either None or scipy.coo
+    #             dist = self.max_px_assoc_dist if path_list is None else path_list.getnnz()
+    #             # built up nested list of distances
+    #             return dist
+    #         # final exit
+    #         return dists_list
         
-        dictinput = isinstance(astar_paths, dict)
-        if dictinput:
-            keys, astar_paths = astar_paths.keys(), list(astar_paths.values())
+    #     dictinput = isinstance(astar_paths, dict)
+    #     if dictinput:
+    #         keys, astar_paths = astar_paths.keys(), list(astar_paths.values())
         
-        dists = rec_get_distance(astar_paths)
-        dists = [np.array(ds) for ds in dists]
+    #     dists = rec_get_distance(astar_paths)
+    #     dists = [np.array(ds) for ds in dists]
         
-        # reconstruct dict input format
-        if dictinput:
-            dists = dict(zip(keys, dists))
-        return dists
+    #     # reconstruct dict input format
+    #     if dictinput:
+    #         dists = dict(zip(keys, dists))
+    #     return dists
 
     def det2libmot_det(self, detection, t, empty_id=False, drop_conf=False, 
                        to_pandas=True):
@@ -792,12 +795,12 @@ class AxonDetections(object):
         IDed_detections_libmot: pd.DataFrame
             Detetions across all frames in libmot format.
         """
-        # convert from top left to centor coordiante again, slice out hieght+width
+        # convert from top left to centor coordinate again, slice out hieght+width
         IDed_detections = (IDed_detections_libmot + self.axon_box_size//2).iloc[:,:2]
         
         # get the confidence values lost during ID assignment
         missing_confs = []
-        for t in range(len(self)):
+        for t in IDed_detections.index.unique(0):
             # get all detection at frame t
             conf, det_x, det_y = self.get_frame_dets('all', t).values.T
             for IDed_det_x, IDed_det_y  in IDed_detections.loc[t].values:
@@ -811,10 +814,31 @@ class AxonDetections(object):
         IDed_detections.columns = ['conf', 'anchor_x', 'anchor_y']
         IDed_detections_list = []
         for t in range(len(self)):
-            det = IDed_detections.loc[t]
-            det.index = [f'Axon_{i:0>3}' for i in det.index]
+            if t in IDed_detections.index.unique(0):
+                det = IDed_detections.loc[t]
+                det.index = [f'Axon_{i:0>3}' for i in det.index]
+            else:
+                # if frame empty, no detections
+                det = pd.DataFrame([])
             IDed_detections_list.append(det.sort_index())
         return IDed_detections_list
+
+    def _agg_all_IDed_dets(self):
+        """
+        Aggregate all frame-wise IDed detections into one pd.Dataframe.
+        DataFrame columns has frame index at level one, and [anchor_x, anchor_y,
+        conf] at level two; rows represent axons.
+        """
+        IDed_dets_all = self.get_frame_dets('IDed', t=None)
+        # add temporal frame index
+        t_cols = [(i//3, c) for i, c in enumerate(IDed_dets_all.columns)]
+        IDed_dets_all.columns = pd.MultiIndex.from_tuples(t_cols)
+        # fill up timeopints without detections
+        missing_ts = [t for t in range(len(self)) if t not in IDed_dets_all.columns.unique(0)]
+        fill_dfs = [pd.DataFrame([], columns=pd.MultiIndex.from_product(([t], 
+                    ['anchor_x', 'anchor_y', 'conf']))) for t in missing_ts]
+        return pd.concat([IDed_dets_all, *fill_dfs], axis=1).sort_index(axis=1)
+        
 
     def search_MCF_params(self, edge_cost_thr_values = [.4, .6, .7, .8, .9, 1, 1.2, 3], 
                           entry_exit_cost_values = [ .2, .8, .9, 1, 1.1,  2], 

@@ -110,7 +110,7 @@ def transition_model(**kwargs):
         for f2 in features:
             vis_sim_f1.append(1 - cv2.compareHist(f1, f2, cv2.HISTCMP_BHATTACHARYYA))
         vis_sim.append(vis_sim_f1)
-    vis_sim = np.array(vis_sim)
+    vis_sim = np.nan_to_num(np.array(vis_sim))
     
     costs = -np.log((1-kwargs['vis_sim_weight']) * distances*(miss_rate ** (time_gap-1)) \
                     + kwargs['vis_sim_weight'] * vis_sim \

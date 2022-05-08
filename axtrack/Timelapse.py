@@ -1,6 +1,8 @@
 import os
 import pickle
 from copy import copy
+from dateutil.relativedelta import relativedelta
+
 
 import numpy as np
 import pandas as pd
@@ -22,7 +24,8 @@ class Timelapse(Dataset):
                 log_correct, standardize_framewise, standardize, name, 
                 use_motion_filtered, use_sparse, use_transforms, contrast_llim, 
                 plot, pad, Sy, Sx, tilesize, cache, from_cache, temporal_context,
-                dt=None, incubation_time=None):
+                notes=None, pixelsize=None, dt=None, incubation_time=None, 
+                seeding_datetime=None):
         
         super().__init__()
         self.name = name
@@ -34,10 +37,13 @@ class Timelapse(Dataset):
         if not from_cache:
             # agg preprocessing steps data in this dict
             self.plot_data = {}
-
             # metadata
             self.dt = dt
             self.incubation_time = incubation_time
+            self.seeding_datetime = seeding_datetime
+            self.pixelsize = pixelsize
+            self.notes = notes
+            print(self.notes)
 
             # which input data to use
             self.timepoints = timepoints
@@ -150,6 +156,13 @@ class Timelapse(Dataset):
         if device:
             return torch.stack(X, 0).to(device), torch.stack(target, 0).to(device)
         return torch.stack(X, 0), torch.stack(target, 0)
+    
+    def get_DIV_point(self, t, to_str=True):
+        start = relativedelta(minutes=self.incubation_time)
+        end = start + relativedelta(minutes=self.dt*t)
+        if to_str:
+            end = f'{end.days} days - {end.hours} hours'
+        return end
     
     def stitch_tiles(self, pd_tiled_det, img_tiled=None, reset_index=False):
         ts = self.tilesize
@@ -422,19 +435,19 @@ class Timelapse(Dataset):
 
     def _caching(self, cache=False, from_cache=False):
         if from_cache:
-            print('Loading dataset from cache', end='...')
+            print('Loading dataset from cache', end='...', flush=True)
             dataset_file = f'{from_cache}/{self.name}_dataset_cached.pkl'
             assert os.path.exists(dataset_file), f'\n\nNo cached dataset found: {dataset_file}'
             with open(dataset_file, 'rb') as file:
                 cached_object = pickle.load(file)
                 [self.__setattr__(n, v) for n, v in cached_object.items()]
-            print('Done.\n')
+            print('Done.\n', flush=True)
 
         elif cache:
             with open(f'{cache}/{self.name}_dataset_cached.pkl', 'wb') as file:
                 print('Serializing datset for caching', end='...')
                 pickle.dump(self.__dict__, file, protocol=4)
-            print('Done.\n')
+            print('Done.\n', flush=True)
         
     def tiled_target2yolo_format(self, target_tiled):
         # yolo target switches dim order from y-x to x-y!

@@ -89,7 +89,6 @@ def get_default_parameters():
     MCF_MAX_CONF_COST = 4.6
     MCF_VIS_SIM_WEIGHT = 0
     MCF_CONF_CAPPING_METHOD = 'scale_to_max'
-    MCF_MIN_ID_LIFETIME = 5
 
     # RUN SETTINGS
     SEED = 42

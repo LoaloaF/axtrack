@@ -1,8 +1,6 @@
 import os
 import sys
 sys.path.append((os.path.dirname(__file__) + '/../'))
-sys.path.append('/home/ssteffens/code/axtrack/')
-# [print(p) for p in sys.path]
 import time
 
 import numpy as np
@@ -153,7 +151,6 @@ def optimize_MCF_params(exp_name, run, epoch='latest', MCF_param_vals={}):
     model, _, _, _ = setup_model(params)
 
     axon_detections = AxonDetections(model, test_data, params, f'{RUN_DIR}/axon_dets')
-    axon_detections.MCF_min_ID_lifetime = 1
     axon_detections.detect_dataset('from')
     axon_detections.assign_ids('from', 'from')
     axon_detections.search_MCF_params(**MCF_param_vals)
@@ -218,9 +215,9 @@ if __name__ == '__main__':
     # evaluate_preprocssing(exp8_name, 'run08', show=True)
     # evaluate_training([[exp8_name, 'run08'], [exp8_name, 'run09']], show=True, recreate=True)
     # evaluate_precision_recall([[exp8_name, 'run08', 1000]], show=True, recreate=True)
-    evaluate_model(exp8_name, 'run08', 1000, which_data='test', cache_detections='from', astar_paths_cache='from', 
-                   assigedIDs_cache=None, draw_true_dets=True, show=False, animated=False,
-                   which_dets='IDed', t_y_x_slice=(None, (1500,3000), (1000,4000)))
+    # evaluate_model(exp8_name, 'run08', 1000, which_data='test', cache_detections='from', astar_paths_cache='from', 
+    #                assigedIDs_cache=None, draw_true_dets=True, show=False, animated=False,
+    #                which_dets='IDed', t_y_x_slice=(None, (1500,3000), (1000,4000)))
     
     """Min cost flow assignment hyper parameter optimization"""
     MCF_param_vals = {'edge_cost_thr_values':  [.1, .3, .4, .6, .7, .8, 1, 2],

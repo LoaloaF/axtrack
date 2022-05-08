@@ -50,18 +50,24 @@ def prepare_input_data(imseq_fname, parameters, dest_dir, inference_data_dir,
                         stnd_scaler, mask_fname=None, use_cached_datasets='to', 
                         check_preproc=False, input_metadata={}):
     
+    pad = input_metadata.get('pad')
+    if pad:
+        pad = [pad] *4
     # create a timelapse object with a dummy labels.csv
     timelapse = Timelapse(imseq_path = f'{inference_data_dir}/{imseq_fname}',
                     mask_path = f'{inference_data_dir}/{mask_fname}',
                     labels_csv = None,
                     timepoints = None,
+                    pad = pad,  
                     use_transforms = [],
-                    pad = [], 
                     cache = dest_dir if use_cached_datasets=='to' else None,
                     from_cache = dest_dir if use_cached_datasets=='from' else None,
                     name = input_metadata.get('name'),
-                    dt = input_metadata.get('dt'),
-                    incubation_time = input_metadata.get('incubation_time'),
+                    dt = input_metadata.get('dt_min'),
+                    pixelsize = input_metadata.get('pixelsize'),
+                    incubation_time = input_metadata.get('incubation_time_min'),
+                    seeding_datetime = input_metadata.get('seeding_datetime'),
+                    notes = input_metadata.get('notes'),
                     offset = input_metadata.get('intensity_offset'),
                     contrast_llim = input_metadata.get('clip_intensity'),
                     log_correct = parameters['LOG_CORRECT'],
@@ -72,7 +78,7 @@ def prepare_input_data(imseq_fname, parameters, dest_dir, inference_data_dir,
                     temporal_context= parameters['TEMPORAL_CONTEXT'],
                     plot = parameters['PLOT_PREPROC'], 
                     tilesize = parameters['TILESIZE'],
-                    Sy = parameters['SY'], 
+                    Sy = parameters['SY'],
                     Sx = parameters['SX'])
     
     if check_preproc:
@@ -81,118 +87,42 @@ def prepare_input_data(imseq_fname, parameters, dest_dir, inference_data_dir,
         train_preproc_fname = f'{DEPLOYED_MODEL_DIR}/train_preproc_data.csv'
         train_preproc = pd.read_csv(train_preproc_fname, index_col=0, header=[0,1,2]).loc[:,['train']]
         plot_preprocessed_input_data(pd.concat([infrc_prproc, train_preproc], axis=1), 
-                                     dest_dir=dest_dir, show=True)
+                                     name=timelapse.name, dest_dir=dest_dir, show=False)
     return timelapse
 
-def inference(timelapse, model, dest_dir, parameters, cache_detections='to', 
+def inference(timelapse, model, dest_dir, parameters, detections_cache='to', 
               astar_paths_cache='to', assigedIDs_cache='to',):
     dets_dest_dir = f'{dest_dir}/axon_dets'
-    print(parameters)
     axon_detections = AxonDetections(model, timelapse, parameters, dets_dest_dir)
-    axon_detections.detect_dataset(cache=cache_detections)
-    
-    # axon_detections.MCF_edge_cost_thr = 1
-    # axon_detections.MCF_min_flow = 1
-    # axon_detections.MCF_max_flow = 100
-    # axon_detections.MCF_conf_capping_method = 'ceil'
+    axon_detections.detect_dataset(cache=detections_cache)
     
     axon_detections.assign_ids(astar_paths_cache, assigedIDs_cache)
     return axon_detections
 
-def visualize_inference(axon_detections, which_dets='IDed', show=False, **kwargs):
-    description = ''
-    draw_all(axon_detections, which_dets=which_dets, show=show, animated=True,
-            description=description, **kwargs)
-
-    # # PDMS structure screen object composed of axon detections and basic timelapse properties
-    # cache = 'to' if not use_cached_target_astar_paths else 'from'
-    # dest_dir = f'{dest_dir}/screen/'
-    # screen = StructureScreen(timelapse, dest_dir, axon_detections, cache_target_distances=cache)
-    
-    # if make_dist_over_time_video:
-    #     os.makedirs(f'{screen.dir}/target_distance_frames/', exist_ok=True)
-    #     plot_target_distance_over_time_video(screen, subtr_init_dist=True)
-
-#     if cache_screen:
-#         import pickle
-#         pickle.dump(screen, open(f'{dest_dir}/{structure_name}_screen.pkl', 'wb'))
-#         print(f'{structure_name} screen successfully saved.')
-    
-#     if make_tracking_video:
-#         fname = f'timepoint---of{timelapse.sizet}'
-#         dest_dir = f'{dest_dir}/det_videos'
-#         os.makedirs(dest_dir, exist_ok=True)
-
-#         if tracking_video_kwargs.get('insert_distance_plot'):
-#             tracking_video_kwargs['insert_distance_plot'] = screen
-#             if tracking_video_kwargs.get('which_axons'):
-#                 screen.set_axon_subset(tracking_video_kwargs.get('which_axons'))
-
-#         draw_all(axon_detections, fname, dest_dir=dest_dir, 
-#                  dt=timelapse.dt, pixelsize=timelapse.pixelsize, hide_det2=True,
-#                  color_det1_ids=True, use_IDed_dets=True, 
-#                  **tracking_video_kwargs)
-
-#     if make_tracking_video_finaldest:
-#         dists = screen.get_distances()
-#         target_axons, cg_axons, stag_axons = screen.detect_axons_final_location(dists)
-        
-#         fname = f'timepoint---of{timelapse.sizet}'
-#         draw_all(axon_detections, fname, dest_dir=dest_dir, which_axons=target_axons+cg_axons,
-#                  dt=timelapse.dt, pixelsize=timelapse.pixelsize, hide_det2=True, 
-#                  color_det1_ids=True, use_IDed_dets=True, anim_fname_postfix='_special_axons',
-#                  **tracking_video_kwargs)
-#     return screen
-
-# def main():
-#     basename = 'timel2_Des101_G1'
-#     imseq_fname = f'training_timelapse.tif'
-#     mask_fname = None
-#     metadata_fname = f'{basename}_metadata.csv'
-
-#     # RAW_INFERENCE_DATA_DIR = REMOTE_DATA_DIR + '/tl13_tl14_all'
-#     RAW_INFERENCE_DATA_DIR = DEPLOYED_MODEL_DIR + '/../../training_data_subs/' # locally for debugging/ testing
-#     dest_dir = RAW_INFERENCE_DATA_DIR+'_inference'
-
-#     use_cached_datasets = True
-#     check_preproc = False
-
-#     use_cached_det_astar_paths = True
-#     use_cached_target_astar_paths = True
-#     make_tracking_video = True
-#     make_tracking_video_finaldest = False
-#     make_dist_over_time_video = True
-
-    
-#     parameters, model, stnd_scaler = setup_inference(dest_dir)
-
-#     timelapse = prepare_input_data(imseq_fname, mask_fname, metadata_fname, 
-#                                    parameters, dest_dir, stnd_scaler, 
-#                                    use_cached_datasets, check_preproc,
-#                                    RAW_INFERENCE_DATA_DIR)
-    
-#     axon_detections = inference(timelapse, model, dest_dir, parameters, use_cached_det_astar_paths)
-
-#     # # tracking_video_kwargs = {'show':True, 'animated':True,
-#     # #                          't_y_x_slice':[None,(0, 1250), (2250, 3100)]}
-#     # tracking_video_kwargs = {'draw_axons':None, 'show':False, 'animated':True, 
-#     #                          'draw_grid':False, 'hide_det1':False,
-#     #                          'which_axons': ['Axon_001'], 
-#     #                          'anim_fname_postfix':'_Ax064_dist',
-#     #                          'draw_trg_distances': True,
-#     #                          'fps':4, 
-#     #                          'dpi':300, 
-#     #                          'draw_scalebar':False, 
-#     #                          'insert_distance_plot':True,
-#     #                          't_y_x_slice':[None,None, (2500, 3500)]}
-#     # visualize_inference(timelapse, axon_detections, dest_dir, 
-#     #                     use_cached_target_astar_paths, make_tracking_video,
-#     #                     make_tracking_video_finaldest, tracking_video_kwargs, 
-#     #                     make_dist_over_time_video,
-#     #                     cache_screen=True)
-
-
-
-# if __name__ == '__main__':
-#     main()
-#     print('\n\n\nExit(0)')
+def visualize_inference(axon_dets, which_dets='confident', 
+                        description='', t_y_x_slice=[None,None,None], dets_kwargs=None, 
+                        scnd_dets_kwargs=None, show=False, axon_subset=None, 
+                        save_single_tiles=False, animated=False, dpi=160, fps=6, 
+                        anim_fname_postfix='', draw_true_dets=False, 
+                        draw_grid=True, draw_scalebar=False, 
+                        draw_axon_reconstructions=False, draw_trg_paths=None, 
+                        draw_brightened_bg=True):
+    draw_all(axon_dets, 
+             which_dets = which_dets,
+             description = description,
+             t_y_x_slice = t_y_x_slice,
+             dets_kwargs = dets_kwargs,
+             scnd_dets_kwargs = scnd_dets_kwargs,
+             show = show,
+             axon_subset = axon_subset,
+             save_single_tiles = save_single_tiles,
+             animated = animated,
+             dpi = dpi,
+             fps = fps,
+             anim_fname_postfix = anim_fname_postfix,
+             draw_true_dets = draw_true_dets,
+             draw_grid = draw_grid,
+             draw_scalebar = draw_scalebar,
+             draw_axon_reconstructions = draw_axon_reconstructions,
+             draw_trg_paths = draw_trg_paths,
+             draw_brightened_bg = draw_brightened_bg,)

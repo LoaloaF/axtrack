@@ -6,7 +6,7 @@ from matplotlib.lines import Line2D
 
 from .config import * # all caps constants
 
-def plot_preprocessed_input_data(data, notes='', dest_dir=None, show=False, 
+def plot_preprocessed_input_data(data, name='', notes='', dest_dir=None, show=False, 
                                  fname_prefix=''):
     # data: each column represents one framem, one preprocessing step, 
     # 1 mio pixel intensity samples
@@ -86,8 +86,9 @@ def plot_preprocessed_input_data(data, notes='', dest_dir=None, show=False,
     if show:
         plt.show()
     if dest_dir is not None:
-        fname = f'{dest_dir}/{fname_prefix}preprocessed_data.{FIGURE_FILETYPE}'
+        fname = f'{dest_dir}/{name}_{fname_prefix}preprocessed_data.{FIGURE_FILETYPE}'
         fig.savefig(fname)
+        print(f'Preprocessing effects plot saved: {fname}')
     plt.close()
 
 def plot_training_process(data, draw_best_thresholds=False, show=False, dest_dir=None):

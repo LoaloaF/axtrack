@@ -12,19 +12,28 @@ from skimage.morphology import dilation
 
 from .utils import torch_data2drawable
 from .config import *   # all caps constants
+from .AxonDetections import AxonDetections
 
-def draw_all(axon_dets, structure_screen=None, which_dets='confident', 
+def draw_all(axon_dets, which_dets='confident', 
              description='', t_y_x_slice=[None,None,None], dets_kwargs=None, 
              scnd_dets_kwargs=None, show=False, axon_subset=None, 
              save_single_tiles=False, animated=False, dpi=160, fps=6, 
-             anim_fname_postfix='', draw_true_dets=False, draw_grid=True,
-             draw_scalebar=False, draw_axon_reconstructions=False,  
-             draw_trg_paths=None, draw_brightened_bg=True):
+             anim_fname_postfix='', draw_true_dets=False, 
+             draw_grid=True, draw_scalebar=False, 
+             draw_axon_reconstructions=False, draw_trg_paths=None, 
+             draw_brightened_bg=True):
+
+    print(f'\nDrawing frames with `{which_dets}` detections... ')
+    if isinstance(axon_dets, AxonDetections):
+        dataset_info = axon_dets.dataset
+    else:
+        dataset_info = axon_dets
+    dest_dir = axon_dets.dir
 
     # slicing if passed
-    tmin, tmax = t_y_x_slice[0] if t_y_x_slice[0] is not None else (0, axon_dets.dataset.sizet)
-    ymin, ymax = t_y_x_slice[1] if t_y_x_slice[1] is not None else (0, axon_dets.dataset.sizey)
-    xmin, xmax = t_y_x_slice[2] if t_y_x_slice[2] is not None else (0, axon_dets.dataset.sizex)
+    tmin, tmax = t_y_x_slice[0] if t_y_x_slice[0] is not None else (0, dataset_info.sizet)
+    ymin, ymax = t_y_x_slice[1] if t_y_x_slice[1] is not None else (0, dataset_info.sizey)
+    xmin, xmax = t_y_x_slice[2] if t_y_x_slice[2] is not None else (0, dataset_info.sizex)
     yslice = slice(ymin, ymax)
     xslice = slice(xmin, xmax)
     tslice = slice(tmin, tmax)
@@ -36,22 +45,22 @@ def draw_all(axon_dets, structure_screen=None, which_dets='confident',
         anim_frames = []
         animated = plt.subplots(1, figsize=((xmax-xmin)/350, (ymax-ymin)/350))
 
-    # for drawing axon reconstructions (A* paths)
+    # for drawing axon reconstructions (A* paths) - not implemented -
     if draw_axon_reconstructions:
         axon_dets._reconstruct_axons()
         
     # iterate the timepoints
     for t in timepoints:
         # setup the frame parameters / data
-        out = setup_frame_drawing(axon_dets, structure_screen, which_dets, t, 
+        out = setup_frame_drawing(axon_dets, dataset_info, which_dets, t, 
                                   description, dets_kwargs, scnd_dets_kwargs, 
                                   axon_subset, yslice, xslice, ymin, xmin, 
                                   draw_brightened_bg, draw_true_dets, 
                                   draw_scalebar, draw_axon_reconstructions, 
                                   draw_grid, draw_trg_paths)
+
         frame_fname, frame_lbl, dets, frame_img, scnd_dets = out[:5]
-        dets_kwargs, scnd_dets_kwargs, frame_args, dest_dir = out[5:]
-      
+        dets_kwargs, scnd_dets_kwargs, frame_args = out[5:]
         frame_artists = draw_frame(img = frame_img, 
                                    dest_dir = axon_dets.dir,  
                                    dets = dets, 
@@ -70,8 +79,9 @@ def draw_all(axon_dets, structure_screen=None, which_dets='confident',
 
         # also save the single tile images, note that these are not NMS processed
         if save_single_tiles:
+            # assert is not structure screen
             if draw_grid:
-                frame_args['gridsize'] = axon_dets.tilesize/axon_dets.Sx
+                frame_args['gridsize'] = axon_ts.tilesizdee/axon_dets.Sx
             
             img_tiled, gt_dets_tiled = axon_dets.get_frame_and_truedets(t, unstitched=True)
             # for the current timepoints, iter non-empty tiles
@@ -79,7 +89,7 @@ def draw_all(axon_dets, structure_screen=None, which_dets='confident',
             for tile_i in range(n_tiles):
                 tile_fname = f'{frame_fname}_tile{tile_i:0>2}of{n_tiles:0>2}'
                 # draw one tile
-                draw_frame(img = img_tiled[tile_i][axon_dets.dataset.get_tcenter_idx()],
+                draw_frame(img = img_tiled[tile_i][dataset_info.get_tcenter_idx()],
                            dets = gt_dets_tiled[tile_i],
                            scnd_dets = gt_dets_tiled[tile_i],
                            fname = tile_fname,
@@ -87,7 +97,6 @@ def draw_all(axon_dets, structure_screen=None, which_dets='confident',
                            dest_dir = axon_dets.dir, 
                            show = show,
                            **frame_args,)
-        
         print('Done.')
 
     if animated:
@@ -97,34 +106,35 @@ def draw_all(axon_dets, structure_screen=None, which_dets='confident',
         if show:
             plt.show()
         print('encoding animation...', flush=True, end='')
-        fname = (f'{dest_dir}/{axon_dets.dataset.name}_dets'
+        fname = (f'{dest_dir}/{axon_dets.name}_dets'
                  f'{anim_fname_postfix}.{VIDEO_FILETYPE}')
         ani.save(fname, writer=writers[VIDEO_ENCODER](fps=fps), dpi=dpi)
-        print(f'{axon_dets.dataset.name} animation saved.')
+        print(f'{axon_dets.name} animation saved: {fname}')
     plt.close('all')
     print(' - Done.', flush=True)
 
-def setup_frame_drawing(axon_dets, structure_screen, which_dets, t, description,
+def setup_frame_drawing(axon_dets, dataset_info, which_dets, t, description,
                         dets_kwargs, scnd_dets_kwargs, axon_subset, yslice, 
                         xslice, ymin, xmin, draw_brightened_bg, draw_true_dets, 
                         draw_scalebar, draw_axon_reconstructions, draw_grid, 
                         draw_trg_paths):
     # frame specific label
-    frame_fname = f'Dataset{axon_dets.dataset.name}-frame{t:0>3}of{len(axon_dets):0>3}'
-    if structure_screen is None:
-        if not axon_dets.labelled:
-            frame_lbl = f'{description} - {frame_fname}'
-        else:
-            wd = which_dets if which_dets != 'FP_FN' else 'confident'
-            prc, rcl, F1 = axon_dets.get_detection_metrics(wd, t)
-            frame_lbl = (f'{description} - Recall: {rcl}, Precision: {prc},'
-                            f' F1: {F1} - {frame_fname}')
+    frame_fname = f'Dataset {axon_dets.name}-frame{t:0>3}of{len(axon_dets):0>3}'
+    if axon_dets.labelled:
+        # assert is not structure screen
+        wd = which_dets if which_dets != 'FP_FN' else 'confident'
+        prc, rcl, F1 = axon_dets.get_detection_metrics(wd, t)
+        frame_lbl = (f'{description} - Recall: {rcl}, Precision: {prc},'
+                        f' F1: {F1} - {frame_fname}')
     else:
-        frame_lbl = (f'{description} - {frame_fname} - DIV '
-                        f'{structure_screen.get_DIV_point(t)}')
+        frame_lbl = f'{description} - {frame_fname}'
+        # assert is not structure screen
+        if dataset_info.dt and dataset_info.incubation_time:
+            frame_lbl += (f' - DIV {dataset_info.get_DIV_point(t)}')
     print(frame_lbl, end='...', flush=True)
 
     # get the detections to draw
+    # different for structure screen
     dets = axon_dets.get_frame_dets(which_dets, t )
     frame_img, gt_dets = axon_dets.get_frame_and_truedets(t)
     frame_img = frame_img[:, yslice, xslice]
@@ -141,15 +151,17 @@ def setup_frame_drawing(axon_dets, structure_screen, which_dets, t, description,
         scnd_dets_kwargs = scnd_dets_kwargs if scnd_dets_kwargs else FN_BOXES_KWARGS
     
     # adjust the detection coordinates to the image slice
-    dets.anchor_y -= ymin
-    dets.anchor_x -= xmin
+    dets = dets.dropna()
+    dets.anchor_y = dets.anchor_y.values-ymin
+    dets.anchor_x = dets.anchor_x.values-xmin
     if scnd_dets is not None:
         scnd_dets.anchor_y -= ymin
         scnd_dets.anchor_x -= xmin
+        scnd_dets.dropna(inplace=True)
     
     # additional, optional setup for frame drawing
     frame_args = {}
-    # draw the reconstructed axons A* paths
+    # draw the reconstructed axons A* paths - not implemented - 
     if draw_axon_reconstructions:
         assert which_dets == 'IDed', 'Can only reconstruct IDed detections!'
         axon_reconstr = axon_dets.get_axon_reconstructions(t=t, ymin=ymin, ymax=ymax)
@@ -157,10 +169,11 @@ def setup_frame_drawing(axon_dets, structure_screen, which_dets, t, description,
     
     # draw the path to the target location (A* path as well)
     if draw_trg_paths:
-        assert structure_screen is not None, 'Pass StructureScreen object!'
-        trg_paths = structure_screen.get_trg_path(t=t, ymin=ymin, ymax=ymax)
+        # not implemented
+        assert not isinstance(axon_dets, AxonDetections), 'Pass StructureScreen object!'
+        trg_paths = axon_dets.get_trg_path(t=t, ymin=ymin, ymax=ymax)
         frame_args['trg_paths'] = trg_paths
-        ygoal, xgoal = structure_screen.structure_outputchannel_coo
+        ygoal, xgoal = axon_dets.structure_outputchannel_coo
         frame_args['target_coo'] = (ygoal-ymin, xgoal-xmin)
     
     # draw tile boundaries
@@ -168,26 +181,28 @@ def setup_frame_drawing(axon_dets, structure_screen, which_dets, t, description,
         frame_args['gridsize'] = axon_dets.tilesize
     
     if draw_scalebar:
-        assert structure_screen is not None, 'Pass StructureScreen object!'
-        frame_args['pixelsize'] = structure_screen.pixelsize
+        assert dataset_info.pixelsize is not None, 'Pass pixelsize as metadata!!'
+        frame_args['pixelsize'] = dataset_info.pixelsize
     
     if draw_brightened_bg:
-        frame_args['mask'] = axon_dets.dataset.mask[t].todense()[yslice, xslice]
+        frame_args['mask'] = dataset_info.mask
+        if isinstance(frame_args['mask'], list):
+            frame_args['mask'] = frame_args['mask'][t].todense()[yslice, xslice]
+        else:
+            frame_args['mask'] = frame_args['mask'].todense()[yslice, xslice]
 
     # draw only a subset of axons 
     if axon_subset is not None:
         dets = dets.drop([ax for ax in dets.index if ax not in axon_subset])
         if axon_reconstr is not None:
-            # filter list of paths here
+            # filter list of paths here, not implemented
             pass
         if trg_paths is not None:
-            # filter list of paths here
+            # filter list of paths here, not implemented
             pass
     
-    # draw one frame
-    dest_dir = axon_dets.dir if structure_screen is None else structure_screen.dir
     return frame_fname, frame_lbl, dets, frame_img, scnd_dets, \
-            dets_kwargs, scnd_dets_kwargs, frame_args, dest_dir
+            dets_kwargs, scnd_dets_kwargs, frame_args
 
 def draw_frame(img, dest_dir, dets=None, scnd_dets=None, fname='image', lbl='',
                show=False, animation=None, boxs=70, dets_kwargs=None, 
@@ -195,6 +210,7 @@ def draw_frame(img, dest_dir, dets=None, scnd_dets=None, fname='image', lbl='',
                gridsize=None, axon_reconstr=None, trg_paths=None, 
                target_coo=None, mask=None):
 
+    # draw one frame
     im = torch_data2drawable(img)
     height, width = im.shape[:-1]
 
@@ -270,7 +286,8 @@ def draw_frame(img, dest_dir, dets=None, scnd_dets=None, fname='image', lbl='',
 def draw_detections(dets, kwargs, ax, boxs, annotate=False, axon_reconstr=None, 
                     trg_paths=None, paths_canvas_rgba=None):
     artists = []
-    for axon_id, (conf, x, y) in dets.iterrows():
+    for axon_id, ax_dat in dets.iterrows():
+        conf, x, y = ax_dat.conf, ax_dat.anchor_x, ax_dat.anchor_y
         conf = min(1, conf)
         if kwargs.get('edgecolor') == 'hsv':
             ax_id_col = plt.cm.get_cmap('hsv', 20)(int(axon_id[-3:])%20)

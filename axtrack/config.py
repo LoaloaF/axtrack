@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 from matplotlib.colors import ListedColormap
 
 where = os.path.dirname(__file__) + '/../'
-print(where)
+# print(where)
 
 # eth gpu server
 if os.path.exists('/home/ssteffens/'):
@@ -22,7 +22,7 @@ if os.path.exists('/home/ssteffens/'):
     VIDEO_ENCODER = 'ffmpeg'
 
 # local machine
-elif where.startswith('///home/loaloa/gdrive/'):
+elif os.path.exists('/home/loaloa/gdriveeeeeeeee/'):
     BASE_DIR = '/home/loaloa/gdrive/projects/biohybrid MEA/'
     REMOTE_DATA_DIR = '/home/loaloa/lbbgpu_data/'
 

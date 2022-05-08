@@ -115,6 +115,7 @@ class MinCostFlowTracker(object):
         entire_trajectories: List[List[Tuple[int, int, ndarray]]]
             entire time steps trajectories
         """
+
         # save the first node id in current frame
         first_node_id = deepcopy(self.node_idx)
 
@@ -167,8 +168,6 @@ class MinCostFlowTracker(object):
         for k, predecessor_node_ids in enumerate(predecessor_time_slices):
             if len(predecessor_node_ids) == 0 or len(node_ids) == 0:
                 continue
-            # print()
-            # print('k: ', k, end='  ')
             predecessors = [self.node[x] for x in predecessor_node_ids]
             predecessor_boxes = np.asarray(
                 [node["box"] for node in predecessors])
@@ -353,7 +352,6 @@ class MinCostFlowTracker(object):
                 self.graph.SetNodeSupply(1, -u)
                 if self.graph.Solve() == self.graph.OPTIMAL:
                     cost[u] = self.graph.OptimalCost()
-
                 else:
                     cost[u] = np.inf
 
