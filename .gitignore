@@ -1,4 +1,4 @@
-*.pth
+
 yolov3.weights
 .vscode
 *.png
