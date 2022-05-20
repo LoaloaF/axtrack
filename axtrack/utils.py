@@ -389,43 +389,6 @@ def _compute_astar_path(source, target, weights, return_dist=True,
     else:
         return None
 
-def _get_astar_path_distances(astar_paths, nan_path_value=np.nan):
-        """
-        Get the lengths of a set of A* paths. Inputs may be lists, nested lists
-        or dictionaries. Returns a np.array where dimensions match the input
-        type and shape.
-
-        Arguments
-        ---------
-        astar_paths: {dict, list}
-            The set of A* paths (scipy.sparse.coo_matrix) either within a
-            dictionary (for between-detection use case) or lists (or nested
-            lists) for general use case.
-        """
-        def rec_get_distance(path_list):
-            if isinstance(path_list, list):
-                # unpack the next depth level
-                dists_list = [rec_get_distance(el) for el in path_list]
-            else:
-                # path_list fully unpacked, elements are either None or scipy.coo
-                dist = path_list.getnnz() if path_list is not None else nan_path_value
-                # built up nested list of distances
-                return dist
-            # final exit
-            return dists_list
-        
-        dictinput = isinstance(astar_paths, dict)
-        if dictinput:
-            keys, astar_paths = astar_paths.keys(), list(astar_paths.values())
-        
-        dists = rec_get_distance(astar_paths)
-        dists = [np.array(ds) for ds in dists]
-        
-        # reconstruct dict input format
-        if dictinput:
-            dists = dict(zip(keys, dists))
-        return dists
-
 def torch_data2drawable(im):
     if isinstance(im, torch.Tensor):
         im = np.array(im.detach().cpu())

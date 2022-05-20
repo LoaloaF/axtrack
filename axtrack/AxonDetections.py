@@ -11,7 +11,7 @@ from sklearn import metrics
 from libmot.data_association import MinCostFlowTracker
 import motmetrics as mm
 
-from .utils import _compute_astar_path, _get_astar_path_distances
+from .utils import _compute_astar_path
 from .mincostflow_models import observation_model, transition_model, feature_model
 
 class AxonDetections(object):
@@ -659,8 +659,7 @@ class AxonDetections(object):
                 dets[:, -1] /= dets[:, -1].max()
 
             # setup the tracker model with paramters and a* distances
-            astar_dists = _get_astar_path_distances(self.astar_dets_paths, 
-                                                    self.max_px_assoc_dist)
+            astar_dists = self._get_astar_path_distances(self.astar_dets_paths)
             track_model = MinCostFlowTracker(observation_model = observation_model,
                                             transition_model = transition_model, 
                                             feature_model = feature_model,
@@ -690,10 +689,10 @@ class AxonDetections(object):
             print('Finding trajectories...', end=' ')
             trajectory = track_model.compute_trajectories()
             if not trajectory:
-                print('Could not solve the graph for identity association. Try '
-                      'narrowing expected identities by updating '
-                      'parameters[`MCF_min_flow`, `MCF_max_flow`]. Currently: '
-                      f'{self.MCF_min_flow} to {self.MCF_max_flow}.')
+                print('Could not solve the graph for identity association; -> '
+                      'no IDed detections. Try narrowing expected identities by'
+                      ' updating parameters[`MCF_MIN_FLOW`, `MCF_MAX_FLOW`]. '
+                      f'Currently: {self.MCF_min_flow} to {self.MCF_max_flow}.')
                 return None
 
             # iterate IDs and bring them in to more convinient format again
@@ -715,42 +714,42 @@ class AxonDetections(object):
             self.to_cache('_IDed_detections', _IDed_detections)
         return _IDed_detections
 
-    # def _get_astar_path_distances(self, astar_paths):
-    #     """
-    #     Get the lengths of a set of A* paths. Inputs may be lists, nested lists
-    #     or dictionaries. Returns a np.array where dimensions match the input
-    #     type and shape.
+    def _get_astar_path_distances(self, astar_paths):
+        """
+        Get the lengths of a set of A* paths. Inputs may be lists, nested lists
+        or dictionaries. Returns a np.array where dimensions match the input
+        type and shape.
 
-    #     Arguments
-    #     ---------
-    #     astar_paths: {dict, list}
-    #         The set of A* paths (scipy.sparse.coo_matrix) either within a
-    #         dictionary (for between-detection use case) or lists (or nested
-    #         lists) for general use case.
-    #     """
-    #     def rec_get_distance(path_list):
-    #         if isinstance(path_list, list):
-    #             # unpack the next depth level
-    #             dists_list = [rec_get_distance(el) for el in path_list]
-    #         else:
-    #             # path_list fully unpacked, elements are either None or scipy.coo
-    #             dist = self.max_px_assoc_dist if path_list is None else path_list.getnnz()
-    #             # built up nested list of distances
-    #             return dist
-    #         # final exit
-    #         return dists_list
+        Arguments
+        ---------
+        astar_paths: {dict, list}
+            The set of A* paths (scipy.sparse.coo_matrix) either within a
+            dictionary (for between-detection use case) or lists (or nested
+            lists) for general use case.
+        """
+        def rec_get_distance(path_list):
+            if isinstance(path_list, list):
+                # unpack the next depth level
+                dists_list = [rec_get_distance(el) for el in path_list]
+            else:
+                # path_list fully unpacked, elements are either None or scipy.coo
+                dist = self.max_px_assoc_dist if path_list is None else path_list.getnnz()
+                # built up nested list of distances
+                return dist
+            # final exit
+            return dists_list
         
-    #     dictinput = isinstance(astar_paths, dict)
-    #     if dictinput:
-    #         keys, astar_paths = astar_paths.keys(), list(astar_paths.values())
+        dictinput = isinstance(astar_paths, dict)
+        if dictinput:
+            keys, astar_paths = astar_paths.keys(), list(astar_paths.values())
         
-    #     dists = rec_get_distance(astar_paths)
-    #     dists = [np.array(ds) for ds in dists]
+        dists = rec_get_distance(astar_paths)
+        dists = [np.array(ds) for ds in dists]
         
-    #     # reconstruct dict input format
-    #     if dictinput:
-    #         dists = dict(zip(keys, dists))
-    #     return dists
+        # reconstruct dict input format
+        if dictinput:
+            dists = dict(zip(keys, dists))
+        return dists
 
     def det2libmot_det(self, detection, t, empty_id=False, drop_conf=False, 
                        to_pandas=True):
@@ -837,7 +836,10 @@ class AxonDetections(object):
         missing_ts = [t for t in range(len(self)) if t not in IDed_dets_all.columns.unique(0)]
         fill_dfs = [pd.DataFrame([], columns=pd.MultiIndex.from_product(([t], 
                     ['anchor_x', 'anchor_y', 'conf']))) for t in missing_ts]
-        return pd.concat([IDed_dets_all, *fill_dfs], axis=1).sort_index(axis=1)
+        IDed_dets_all = pd.concat([IDed_dets_all, *fill_dfs], axis=1).sort_index(axis=1)
+        IDed_dets_all.index.rename('axonID', inplace=True)
+        IDed_dets_all.columns.rename(('frameID', 'detInfo'), inplace=True)
+        return IDed_dets_all
         
 
     def search_MCF_params(self, edge_cost_thr_values = [.4, .6, .7, .8, .9, 1, 1.2, 3], 
@@ -920,6 +922,7 @@ class AxonDetections(object):
         results.to_csv(f'{self.dir}/MCF_params_results.csv')
 
 def _reconstruct_axons(self, ):
+    """-- Not implemented --"""
     # indicate what path was interpolated, option to get that version or the one
     # without interpolation 
     all_dets = self.get_frame_dets('IDed', None)
@@ -928,233 +931,5 @@ def _reconstruct_axons(self, ):
 
 def get_axon_reconstructions(self, t=None, axon_name=None, include_history=True, 
                              interpolate_missing=True, ymin=0, ymax=0):
+    """-- Not implemented --"""
     pass
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    # def get_axon_reconstructions(self, t, interpolate_missed_dets=True):
-    #     weights = np.where(self.dataset.mask[t].todense(), 1, 2**16).astype(np.float32)
-    #     if not t:
-    #         return pd.DataFrame([])
-    #     # get the paths from t0 to t before (t0-1)
-    #     lbl = f'{self.dataset.name}_t:{t:0>3}-t:{t-1:0>3}'
-    #     paths = self.astar_dets_paths[lbl]
-
-    #     # get the IDed (filtered) detections
-    #     dets_t, ilocs_t = self.get_frame_dets('IDed', t, return_ilocs=True)
-    #     dets_t_bef, ilocs_t_bef = self.get_frame_dets('IDed', t-1, return_ilocs=True)
-    #     if interpolate_missed_dets and t>1:
-    #         dets_2t_bef = self.get_frame_dets('IDed', t-2, return_ilocs=False)
-        
-    #     reconstructions = [pd.DataFrame([])]
-    #     # iterate the IDed (filtered) detections at t=0
-    #     for i, axon_t0 in enumerate(dets_t.index):
-    #         # check which iloc this det had in the unfiltered t0 dets
-    #         t0_unfilt_dets_idx = ilocs_t[i]
-            
-    #         # from the IDed (filtered) t0-1 dets, get the iloc of its t0 match
-    #         t_bef_IDed_dets_matched_idx = np.where(dets_t_bef.index.values == axon_t0)[0]
-    #         # if the matching name was in the filtered t0-1 dets
-    #         if len(t_bef_IDed_dets_matched_idx) == 1:
-    #             # check which iloc this t0-1 det had in the unfiltered t0-1 dets
-    #             t_bef_unfilt_dets_idx = ilocs_t_bef[t_bef_IDed_dets_matched_idx[0]]
-    #             # finally use the indices corresbonding to unfiltered dets to 
-    #             # index the paths (which were computed on the unfiltered dets...)
-    #             p = paths[t_bef_unfilt_dets_idx][t0_unfilt_dets_idx]
-            
-    #         # interpolate one frame detection by calculating A* from t0 to t-2
-    #         elif interpolate_missed_dets and t>1 and axon_t0 in dets_2t_bef.index:
-    #             yx_det_2t_before = dets_2t_bef.loc[axon_t0][['anchor_y','anchor_x']]
-    #             yx_det = dets_t.loc[axon_t0][['anchor_y','anchor_x']]
-    #             p = _compute_astar_path(yx_det.astype(int), 
-    #                                          yx_det_2t_before.astype(int), 
-    #                                          weights, False)
-    #         else:
-    #             continue 
-    #         cols = pd.MultiIndex.from_product([[axon_t0],['X','Y'],[t]])
-    #         reconstructions.append(pd.DataFrame([p.col, p.row], index=cols).T)
-    #     return pd.concat(reconstructions, axis=1)
-
-
-
-
-
-
-
-
-
-
-
-
-    # def get_all_IDassiged_dets(self):
-    #     all_detections = []
-    #     for t in range(len(self)):
-    #         # det = self.get_IDed_det(t)
-    #         det = self.get_frame_dets('IDed', t)
-    #         det.columns = pd.MultiIndex.from_product([[t], det.columns])
-    #         all_detections.append(det)
-    #     return pd.concat(all_detections, axis=1)
-
-    # def compute_target_distances(self, cache):
-    #     self.to_target_paths = self._compute_dets_path_to_target(cache=cache)
-    #     to_target_dists = self._get_astar_path_distances(self.to_target_paths)
-    #     idx = self.get_frame_dets('IDed', t).index
-    #     to_target_dists = [pd.Series(to_target_dists[t], index=idx, name=t) 
-    #                        for t in range(len(self))]
-    #     self.to_target_dists = pd.concat(to_target_dists, axis=1)
-        
-    # def _compute_dets_path_to_target(self, cache='to'):
-    #     cache_fname = f'{self.dir}/{self.dataset.name}_astar_target_paths.pkl'
-    #     if cache == 'from':
-    #         print('Getting A* target paths from cache file...', end='')
-    #         with open(cache_fname, 'rb') as file:
-    #             target_astar_paths = pickle.load(file)
-            
-    #     else:
-    #         print('Computing A* paths to target...', end='')
-    #         target_yx = self.dataset.structure_outputchannel_coo
-            
-    #         target_astar_paths = []
-    #         for t in range(len(self)):
-    #             print(f't:{t:0>3}', end='...', flush=True)
-    #             yx = self.get_frame_dets('IDed', t).loc[:, ['anchor_y', 'anchor_x']].values.astype(int)
-    #             # yx = self.get_IDed_det(t).loc[:, ['anchor_y', 'anchor_x']].values.astype(int)
-    #             # yx = self.get_frame_and_truedets(t, return_tiled=False)[1].loc[:, ['anchor_y', 'anchor_x']].values
-                
-    #             weights = np.where(self.dataset.mask[t].todense(), 1, 2**16).astype(np.float32)
-
-    #             with ThreadPoolExecutor() as executer:
-    #                 args = repeat(target_yx), yx, repeat(weights), repeat(False)
-    #                 as_paths = executer.map(_compute_astar_path, *args)
-    #             target_astar_paths.append([p for p in as_paths])
-            
-    #         if cache == 'to':
-    #             print('caching...', end='')
-    #             with open(cache_fname, 'wb') as file:
-    #                 pickle.dump(target_astar_paths, file)
-    #     print('Done.')
-    #     return target_astar_paths
-
-    # def get_IDed_det(self, t, return_ilocs=False):
-    #     det = self._detections[t]
-    #     if t not in self._IDed_detections.index:
-    #         emtpy_IDed_det = pd.DataFrame([], columns=['conf','anchor_x','anchor_y'])
-    #         if not return_ilocs:
-    #             return emtpy_IDed_det
-    #         return emtpy_IDed_det, []
-    #     IDed_det = self._IDed_detections.loc[t, ['X','Y']]
-    #     half_boxs = self.axon_box_size/2
-        
-    #     valid_det = []
-    #     ilocs = []
-    #     # iter old detections (longer or same size as IDed detections)
-    #     for i, (_, (conf, anchor_x, anchor_y)) in enumerate(det.iterrows()):
-    #         # get the assigned ID by masking for matching box coordinates (hacky)
-    #         coo_mask = (IDed_det.values==(anchor_x-half_boxs, anchor_y-half_boxs)).all(1)
-    #         ID = IDed_det.index[coo_mask]
-    #         # if the box coordinates were still in the IDed detections add them
-    #         if not ID.empty:
-    #             ilocs.append(i)
-    #             valid_det.append(pd.Series([conf, anchor_x, anchor_y], 
-    #                                         name=f'Axon_{ID[0]:0>3}', 
-    #                                         index=('conf', 'anchor_x', 'anchor_y')))
-    #     IDed_det = pd.concat(valid_det, axis=1).T
-    #     if not return_ilocs:
-    #         return IDed_det
-    #     return IDed_det, ilocs
-
-
-
-
-
-
-
-
-
-            # det = self._detections[t]
-            # if t not in self._IDed_detections.index:
-            #     emtpy_IDed_det = pd.DataFrame([], columns=['conf','anchor_x','anchor_y'])
-            #     if not return_ilocs:
-            #         return emtpy_IDed_det
-            #     return emtpy_IDed_det, []
-            # IDed_det = self._IDed_detections.loc[t, ['X','Y']]
-            # half_boxs = self.axon_box_size/2
-            
-            # valid_det = []
-            # ilocs = []
-            # # iter old detections (longer or same size as IDed detections)
-            # for i, (_, (conf, anchor_x, anchor_y)) in enumerate(det.iterrows()):
-            #     # get the assigned ID by masking for matching box coordinates (hacky)
-            #     coo_mask = (IDed_det.values==(anchor_x-half_boxs, anchor_y-half_boxs)).all(1)
-            #     ID = IDed_det.index[coo_mask]
-            #     # if the box coordinates were still in the IDed detections add them
-            #     if not ID.empty:
-            #         ilocs.append(i)
-            #         valid_det.append(pd.Series([conf, anchor_x, anchor_y], 
-            #                                     name=f'Axon_{ID[0]:0>3}', 
-            #                                     index=('conf', 'anchor_x', 'anchor_y')))
-            # IDed_det = pd.concat(valid_det, axis=1).T
-            # if not return_ilocs:
-            #     return IDed_det
-            # return IDed_det, ilocs
-
-    # def get_confident_det(self, t, unstitched=False):
-    #     # filter the detection set at this frame to confidence threshold 
-    #     if not unstitched:
-    #         return self._detections[t][self._detections[t].conf>self.conf_thr]
-    #     return [d[d.conf>self.conf_thr] for d in self._pandas_tiled_dets[t]]
-
-    # def get_FP_FN_detections(self, t):
-    #     # FP_dets = self.get_confident_det(t).copy()
-    #     FP_dets = self.get_frame_dets('confident', t).copy()
-    #     FN_dets = self.get_frame_and_truedets(t)[1]
-
-    #     FP_mask, FN_mask = self.compute_TP_FP_FN('confident', t, return_FP_FN_mask=True)
-    #     FP_dets = FP_dets[FP_mask]
-    #     FN_dets = FN_dets[FN_mask]
-    #     return FP_dets, FN_dets

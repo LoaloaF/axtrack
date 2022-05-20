@@ -1,0 +1,6 @@
+[submodule "libmot"]
+	path = libmot
+	url = https://github.com/LoaloaF/libmot.git
+[submodule "pyastar2d"]
+	path = pyastar2d
+	url = https://github.com/LoaloaF/pyastar2d.git

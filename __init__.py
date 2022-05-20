@@ -14,4 +14,3 @@ from .axtrack.config import (SPACER,
                             DEFAULT_COLORS,)
 
 from .axtrack.utils import _compute_astar_path
-from .axtrack.utils import _get_astar_path_distances

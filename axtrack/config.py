@@ -1,54 +1,20 @@
-import sys
 import os
 from cycler import cycler
 import matplotlib.pyplot as plt
-from matplotlib.colors import ListedColormap
 
-where = os.path.dirname(__file__) + '/../'
-# print(where)
+_PKG_DIR = os.path.abspath(os.path.dirname(__file__)) + '/../'
+_DATA_DIR = '/run/media/loaloa/lbbSSD/'
 
-# eth gpu server
-if os.path.exists('/home/ssteffens/'):
-    REMOTE_DATA_DIR = '/srv/beegfs-data/projects/biohybrid-signal-p/data/'
-    
-    TRAINING_DATA_DIR = REMOTE_DATA_DIR + '/training_data/'
-    TRAINING_DATA_DIR = REMOTE_DATA_DIR + '/training_data_subs/'
-    OUTPUT_DIR = REMOTE_DATA_DIR + '/model_output/'
-    BASE_DIR = '/home/ssteffens/'
-    DEPLOYED_MODEL_DIR = BASE_DIR + '/code/axtrack/deployed_model/'
+DEPLOYED_MODEL_DIR = _PKG_DIR + '/deployed_model/'
+# TRAINING_DATA_DIR = _DATA_DIR + '/training_data/'
+TRAINING_DATA_DIR = _DATA_DIR + '/training_data_subs/'
+OUTPUT_DIR = _DATA_DIR + '/model_output/'
 
-    DEFAULT_DEVICE = 'cuda:0'
-    DEFAULT_NUM_WORKERS = 2
-    VIDEO_ENCODER = 'ffmpeg'
-
-# local machine
-elif os.path.exists('/home/loaloa/gdriveeeeeeeee/'):
-    BASE_DIR = '/home/loaloa/gdrive/projects/biohybrid MEA/'
-    REMOTE_DATA_DIR = '/home/loaloa/lbbgpu_data/'
-
-    TRAINING_DATA_DIR = BASE_DIR + 'training_data_subs/'
-    OUTPUT_DIR = BASE_DIR + 'model_output/'
-    DEPLOYED_MODEL_DIR = BASE_DIR + '/code/deployed_model/'
-    
-    DEFAULT_DEVICE = 'cpu'
-    DEFAULT_NUM_WORKERS = 3
-    VIDEO_ENCODER = 'ffmpeg'
-else:
-    BASE_DIR = where
-    # DATA_DIR = '/run/media/loaloa/'
-    DEPLOYED_MODEL_DIR = BASE_DIR + '/deployed_model/'
-    # REMOTE_DATA_DIR = '/home/loaloa/lbbgpu_data/'
-
-    TRAINING_DATA_DIR = BASE_DIR + 'training_data_subs/'
-    OUTPUT_DIR = BASE_DIR + 'model_output/'
-    
-    DEFAULT_DEVICE = 'cpu'
-    DEFAULT_NUM_WORKERS = 3
-    VIDEO_ENCODER = 'ffmpeg'
-    
+DEFAULT_DEVICE = 'cpu'
+DEFAULT_NUM_WORKERS = 3
+VIDEO_ENCODER = 'ffmpeg'
 
 SPACER = '========================================================'
-
 # train test frames constants
 # Dat1 37 frames - Dat2 80 frames - Dat3 210 frames 
 WHOLE_DATASET_TRAIN_FRAMES = list(range(2, 37+80-20-4)) + list(range(37+80+20+4, 37+80+210-2))

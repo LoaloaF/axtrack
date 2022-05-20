@@ -185,7 +185,7 @@ if __name__ == '__main__':
     # parameters['TRAIN_TIMEPOINTS'] = config.ALLTRAIN_DATASET_TRAIN_FRAMES
     
     """Run the experiment (model optimization) using the paramters."""
-    # run_experiment(exp8_name, parameters, save_results=False)
+    run_experiment(exp8_name, parameters, save_results=True)
 
     
     

@@ -12,8 +12,7 @@ dest_dir = inference_data_dir
 mask_fname = None
 parameters, model, stnd_scaler = axtrack.setup_inference(dest_dir)
 
-# parameters.update({'MCF_MIN_FLOW': 20})
-parameters.update({'MCF_MAX_FLOW': 140})
+# parameters.update({'MCF_MAX_FLOW': 140})    # reduce from 450 to 140
 
 use_cached_datasets = 'from'
 check_preproc = False
@@ -34,4 +33,5 @@ axon_dets = axtrack.inference(timelapse, model, dest_dir, parameters,
 dets = axon_dets.IDed_dets_all
 print(dets)
 
-axtrack.visualize_inference(axon_dets, which_dets='IDed', draw_scalebar=False, )
+axtrack.visualize_inference(axon_dets, which_dets='IDed', draw_scalebar=False, 
+                            animated=True, show=True)
