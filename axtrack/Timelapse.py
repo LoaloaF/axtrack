@@ -43,7 +43,6 @@ class Timelapse(Dataset):
             self.seeding_datetime = seeding_datetime
             self.pixelsize = pixelsize
             self.notes = notes
-            print(self.notes)
 
             # which input data to use
             self.timepoints = timepoints
@@ -222,7 +221,7 @@ class Timelapse(Dataset):
             print(f'offsetting by {offset:.4f} (0-1)...', end='', flush=True)
             imseq -=  offset
             imseq[imseq<0] = 0
-        if any(self.pad):
+        if self.pad is not None and any(self.pad):
             print('padding...', end='', flush=True)
             top, right, bottom, left = self.pad
             H = imseq.shape[1] + top + bottom

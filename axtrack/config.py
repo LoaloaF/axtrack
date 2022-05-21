@@ -2,10 +2,10 @@ import os
 from cycler import cycler
 import matplotlib.pyplot as plt
 
-_PKG_DIR = os.path.abspath(os.path.dirname(__file__)) + '/../'
+PKG_DIR = os.path.abspath(os.path.dirname(__file__)) + '/../'
 _DATA_DIR = '/run/media/loaloa/lbbSSD/'
 
-DEPLOYED_MODEL_DIR = _PKG_DIR + '/deployed_model/'
+DEPLOYED_MODEL_DIR = PKG_DIR + '/deployed_model/'
 # TRAINING_DATA_DIR = _DATA_DIR + '/training_data/'
 TRAINING_DATA_DIR = _DATA_DIR + '/training_data_subs/'
 OUTPUT_DIR = _DATA_DIR + '/model_output/'
