@@ -1,4 +1,5 @@
 # AxTrack
+Track axon growth cones in video data 
 
 ![](./examples/example_timelapse.gif)
 
