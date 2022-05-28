@@ -47,5 +47,5 @@ The example goes through the three simple steps of tracking axons in a 3D-graysc
 test.py should create the video below.\
 [![IMAGE ALT TEXT HERE](https://img.youtube.com/vi/S1x_FRVN9C4/0.jpg)](https://www.youtube.com/watch?v=S1x_FRVN9C4)
 
-# Train on new data
+## Train on new data
 To improve performance on your dataset you may consider labelling a subset of your data and retraining the model. To do this, label a timelapse using the jupyter notebooks in `./data_prep_nbs/`. Then, train on your data by running `./experiment/experiment.py`.
