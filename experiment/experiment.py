@@ -9,7 +9,7 @@ import torch
 import torch.nn as nn
 
 import axtrack.config as config
-from axtrack.config import OUTPUT_DIR, SPACER, TRAINING_DATA_DIR
+from axtrack.config import OUTPUT_DIR, SPACER, TRAINING_DATA_DIR, DEPLOYED_MODEL_DIR
 from axtrack.video_plotting import draw_all
 from axtrack.AxonDetections import AxonDetections
 from axtrack.exp_parameters import (
@@ -176,6 +176,7 @@ if __name__ == '__main__':
     parameters['NOTES'] = 'ReproduceExp7run35E400Results, trainonly'
     parameters['FROM_CACHE'] = None
     parameters['CACHE'] = OUTPUT_DIR
+    parameters['LOAD_MODEL'] = DEPLOYED_MODEL_DIR
     parameters['PERF_LOG_VIDEO_KWARGS'] = {'animated':True, 
                                            't_y_x_slice':[(0,50), None, None]}
     # on gpuserver settings
