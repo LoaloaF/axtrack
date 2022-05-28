@@ -18,4 +18,4 @@ Download model & example data:
 Run the included example:\
 `python example/test.py`
 
-![](./examples/axon_dets/example_timelapse_dets.mp4)
+[![IMAGE ALT TEXT HERE](https://img.youtube.com/vi/S1x_FRVN9C4/0.jpg)](https://www.youtube.com/watch?v=S1x_FRVN9C4)
