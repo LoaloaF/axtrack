@@ -1,4 +1,4 @@
-name: bioMEA_pt
+name: axtr
 channels:
   - pytorch
   - defaults
