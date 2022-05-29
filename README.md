@@ -12,7 +12,7 @@ Create anaconda env and install the submodules:
 
     conda env create --file axtr.yml
     conda activate axtr
-    cd axtrack/libmot && python setup.py install develop --user
+    cd libmot && python setup.py install develop --user
     cd ../pyastar2d && python setup.py install develop --user && cd ../
 
 Download model & example data:
