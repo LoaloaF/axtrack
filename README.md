@@ -6,7 +6,7 @@ Track axon growth cones in video data
 ## Installation
 Clone the repo:
 
-    git clone --recursive https://github.com/LoaloaF/axtrack.git    
+    git clone --recursive https://github.com/LoaloaF/axtrack.git && cd axtrack
 
 Create anaconda env and install the submodules:
 
